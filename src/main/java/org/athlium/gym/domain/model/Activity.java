@@ -17,4 +17,12 @@ public class Activity {
     private Boolean isActive;
     private String tenantId;
 
+    public static Activity createNew(String name, String description, String tenantId) {
+        return Activity.builder()
+                .name(name)
+                .description(description)
+                .isActive(true)
+                .tenantId(tenantId)
+                .build();
+    }
 }
