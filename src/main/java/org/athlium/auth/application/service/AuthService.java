@@ -12,15 +12,15 @@ import java.util.Optional;
 @ApplicationScoped
 public class AuthService {
 
-    @Inject
-    UserRepository userRepository;
-
-    public Optional<User> authenticateUser(String firebaseUid) {
-        return userRepository.findByFirebaseUid(firebaseUid);
-    }
-
-    public User registerUser(String email, String firebaseUid) {
-        User user = new User(null, email, firebaseUid);
-        return userRepository.save(user);
-    }
+//    @Inject
+//    UserRepository userRepository;
+//
+//    public Optional<User> authenticateUser(String firebaseUid) {
+//        return userRepository.findByFirebaseUid(firebaseUid);
+//    }
+//
+//    public User registerUser(String email, String firebaseUid) {
+//        User user = new User(null, email, firebaseUid);
+//        return userRepository.save(user);
+//    }
 }
