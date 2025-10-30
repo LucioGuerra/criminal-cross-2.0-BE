@@ -35,14 +35,17 @@ public class GetActivitiesUseCase {
         return activityRepository.findAllByTenantId(tenantId, isActive);
     }
 
-    public PageResponse<Activity> executeByName(String name, int page, int size) {
+    public PageResponse<Activity> executeByName(String name, Long tenantId, int page, int size) {
         if (name == null || name.trim().isEmpty()) {
             throw new BadRequestException("Activity name is required");
+        }
+        if (tenantId == null) {
+            throw new BadRequestException("Tenant ID is required");
         }
         if (page < 0 || size <= 0) {
             throw new BadRequestException("Invalid pagination parameters");
         }
         
-        return activityRepository.findByName(name, Page.of(page, size));
+        return activityRepository.findByNameAndTenantId(name, tenantId, Page.of(page, size));
     }
 }

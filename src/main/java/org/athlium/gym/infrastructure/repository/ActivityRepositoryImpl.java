@@ -49,8 +49,8 @@ public class ActivityRepositoryImpl implements ActivityRepository {
     }
 
     @Override
-    public PageResponse<Activity> findByName(String name, Page page) {
-        PanacheQuery<ActivityEntity> query = panacheRepo.find("LOWER(name) LIKE LOWER(?1)", "%" + name + "%").page(page);
+    public PageResponse<Activity> findByNameAndTenantId(String name, Long tenantId, Page page) {
+        PanacheQuery<ActivityEntity> query = panacheRepo.find("LOWER(name) LIKE LOWER(?1) AND tenantId = ?2", "%" + name + "%", tenantId).page(page);
         List<Activity> activities = query.list().stream().map(mapper::toDomain).collect(Collectors.toList());
         long total = query.count();
         return new PageResponse<>(activities, page.index, page.size, total);

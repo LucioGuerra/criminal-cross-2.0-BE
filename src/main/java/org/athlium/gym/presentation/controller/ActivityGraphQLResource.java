@@ -56,9 +56,10 @@ public class ActivityGraphQLResource {
     @Description("Search activities by name with pagination")
     public ActivityPageResponse getActivitiesByName(
             @Name("name") @Description("Activity name to search") String name,
+            @Name("tenantId") @Description("Tenant ID") Long tenantId,
             @Name("page") @Description("Page number (0-based)") int page,
             @Name("size") @Description("Page size") int size) {
-        var pageResponse = getActivitiesUseCase.executeByName(name, page, size);
+        var pageResponse = getActivitiesUseCase.executeByName(name, tenantId, page, size);
         return dtoMapper.toPageResponse(pageResponse);
     }
 
