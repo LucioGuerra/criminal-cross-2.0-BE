@@ -2,6 +2,7 @@ package org.athlium.gym.application.usecase;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.repository.ActivityRepository;
 
@@ -11,6 +12,7 @@ public class UpdateActivityUseCase {
     @Inject
     ActivityRepository activityRepository;
 
+    @Transactional
     public Activity execute(Activity activity) {
         return activityRepository.update(activity);
     }
