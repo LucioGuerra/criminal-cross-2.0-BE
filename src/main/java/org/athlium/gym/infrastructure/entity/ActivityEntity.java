@@ -2,7 +2,6 @@ package org.athlium.gym.infrastructure.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,7 +34,7 @@ public class ActivityEntity {
     private Boolean isActive = true;
 
     @Column(nullable = false)
-    private String tenantId;
+    private String hqId;
 
     @CreationTimestamp
     @Column(updatable = false)

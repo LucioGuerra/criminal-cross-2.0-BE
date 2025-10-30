@@ -16,36 +16,36 @@ public class GetActivitiesUseCase {
     @Inject
     ActivityRepository activityRepository;
 
-    public PageResponse<Activity> executeByTenant(Long tenantId, Boolean isActive, int page, int size) {
-        if (tenantId == null) {
-            throw new BadRequestException("Tenant ID is required");
+    public PageResponse<Activity> executeByHeadquarter(Long hqId, Boolean isActive, int page, int size) {
+        if (hqId == null) {
+            throw new BadRequestException("Headquarter ID is required");
         }
         if (page < 0 || size <= 0) {
             throw new BadRequestException("Invalid pagination parameters");
         }
         
-        return activityRepository.findPagedByTenantId(tenantId, isActive, Page.of(page, size));
+        return activityRepository.findPagedByHqId(hqId, isActive, Page.of(page, size));
     }
 
-    public List<Activity> executeAllByTenant(Long tenantId, Boolean isActive) {
-        if (tenantId == null) {
-            throw new BadRequestException("Tenant ID is required");
+    public List<Activity> executeAllByHeadquarter(Long hqId, Boolean isActive) {
+        if (hqId == null) {
+            throw new BadRequestException("Headquarter ID is required");
         }
         
-        return activityRepository.findAllByTenantId(tenantId, isActive);
+        return activityRepository.findAllByHqId(hqId, isActive);
     }
 
-    public PageResponse<Activity> executeByName(String name, Long tenantId, int page, int size) {
+    public PageResponse<Activity> executeByName(String name, Long hqId, int page, int size) {
         if (name == null || name.trim().isEmpty()) {
             throw new BadRequestException("Activity name is required");
         }
-        if (tenantId == null) {
-            throw new BadRequestException("Tenant ID is required");
+        if (hqId == null) {
+            throw new BadRequestException("Headquarter ID is required");
         }
         if (page < 0 || size <= 0) {
             throw new BadRequestException("Invalid pagination parameters");
         }
         
-        return activityRepository.findByNameAndTenantId(name, tenantId, Page.of(page, size));
+        return activityRepository.findByNameAndHqId(name, hqId, Page.of(page, size));
     }
 }

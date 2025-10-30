@@ -21,5 +21,5 @@ public class ActivityResponse {
     private Boolean isActive;
     
     @Description("Tenant identifier")
-    private String tenantId;
+    private String hqId;
 }

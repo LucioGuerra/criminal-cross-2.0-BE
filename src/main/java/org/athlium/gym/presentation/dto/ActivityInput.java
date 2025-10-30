@@ -15,5 +15,5 @@ public class ActivityInput {
     private String description;
     
     @Description("Tenant identifier")
-    private String tenantId;
+    private String hqId;
 }

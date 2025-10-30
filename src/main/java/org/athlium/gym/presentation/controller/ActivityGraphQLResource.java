@@ -44,11 +44,11 @@ public class ActivityGraphQLResource {
     @Query("activities")
     @Description("Get paginated activities by tenant")
     public ActivityPageResponse getActivities(
-            @Name("tenantId") @Description("Tenant ID") Long tenantId,
+            @Name("hqId") @Description("Headquarter ID") Long hqId,
             @Name("isActive") @Description("Filter by active status") Boolean isActive,
             @Name("page") @Description("Page number (0-based)") int page,
             @Name("size") @Description("Page size") int size) {
-        var pageResponse = getActivitiesUseCase.executeByTenant(tenantId, isActive, page, size);
+        var pageResponse = getActivitiesUseCase.executeByHeadquarter(hqId, isActive, page, size);
         return dtoMapper.toPageResponse(pageResponse);
     }
 
@@ -56,19 +56,19 @@ public class ActivityGraphQLResource {
     @Description("Search activities by name with pagination")
     public ActivityPageResponse getActivitiesByName(
             @Name("name") @Description("Activity name to search") String name,
-            @Name("tenantId") @Description("Tenant ID") Long tenantId,
+            @Name("hqId") @Description("Headquarter ID") Long hqId,
             @Name("page") @Description("Page number (0-based)") int page,
             @Name("size") @Description("Page size") int size) {
-        var pageResponse = getActivitiesUseCase.executeByName(name, tenantId, page, size);
+        var pageResponse = getActivitiesUseCase.executeByName(name, hqId, page, size);
         return dtoMapper.toPageResponse(pageResponse);
     }
 
     @Query("allActivities")
     @Description("Get all activities by tenant without pagination")
     public List<ActivityResponse> getAllActivities(
-            @Name("tenantId") @Description("Tenant ID") Long tenantId,
+            @Name("hqId") @Description("Headquarter ID") Long hqId,
             @Name("isActive") @Description("Filter by active status") Boolean isActive) {
-        List<Activity> activities = getActivitiesUseCase.executeAllByTenant(tenantId, isActive);
+        List<Activity> activities = getActivitiesUseCase.executeAllByHeadquarter(hqId, isActive);
         return dtoMapper.toResponseList(activities);
     }
 
@@ -76,7 +76,7 @@ public class ActivityGraphQLResource {
     @Description("Create a new activity")
     public ActivityResponse createActivity(
             @Name("input") @Description("Activity data") ActivityInput input) {
-        Activity created = createActivityUseCase.execute(input.getName(), input.getDescription(), input.getTenantId());
+        Activity created = createActivityUseCase.execute(input.getName(), input.getDescription(), input.getHqId());
         return dtoMapper.toResponse(created);
     }
 

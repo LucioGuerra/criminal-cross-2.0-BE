@@ -11,7 +11,7 @@ public interface ActivityRepository {
     Activity findById(Long id);
     Activity update(Activity activity);
     void delete(Long id);
-    PageResponse<Activity> findPagedByTenantId(Long tenantId, Boolean isActive, Page page);
-    List<Activity> findAllByTenantId(Long tenantId, Boolean isActive);
-    PageResponse<Activity> findByNameAndTenantId(String name, Long tenantId, Page page);
+    PageResponse<Activity> findPagedByHqId(Long hqId, Boolean isActive, Page page);
+    List<Activity> findAllByHqId(Long hqId, Boolean isActive);
+    PageResponse<Activity> findByNameAndHqId(String name, Long hqId, Page page);
 }

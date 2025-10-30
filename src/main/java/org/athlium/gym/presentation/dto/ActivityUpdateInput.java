@@ -19,7 +19,4 @@ public class ActivityUpdateInput {
     
     @Description("Whether the activity is active or not")
     private Boolean isActive;
-    
-    @Description("Tenant identifier")
-    private String tenantId;
 }

@@ -49,17 +49,17 @@ public class ActivityRepositoryImpl implements ActivityRepository {
     }
 
     @Override
-    public PageResponse<Activity> findByNameAndTenantId(String name, Long tenantId, Page page) {
-        PanacheQuery<ActivityEntity> query = panacheRepo.find("LOWER(name) LIKE LOWER(?1) AND tenantId = ?2", "%" + name + "%", tenantId).page(page);
+    public PageResponse<Activity> findByNameAndHqId(String name, Long hqId, Page page) {
+        PanacheQuery<ActivityEntity> query = panacheRepo.find("LOWER(name) LIKE LOWER(?1) AND hqId = ?2", "%" + name + "%", hqId).page(page);
         List<Activity> activities = query.list().stream().map(mapper::toDomain).collect(Collectors.toList());
         long total = query.count();
         return new PageResponse<>(activities, page.index, page.size, total);
     }
 
     @Override
-    public PageResponse<Activity> findPagedByTenantId(Long tenantId, Boolean isActive, Page page) {
-        String queryStr = "tenantId = ?1" + (isActive != null ? " AND isActive = ?2" : "");
-        Object[] params = isActive != null ? new Object[]{tenantId, isActive} : new Object[]{tenantId};
+    public PageResponse<Activity> findPagedByHqId(Long hqId, Boolean isActive, Page page) {
+        String queryStr = "hqId = ?1" + (isActive != null ? " AND isActive = ?2" : "");
+        Object[] params = isActive != null ? new Object[]{hqId, isActive} : new Object[]{hqId};
 
         var query = panacheRepo.find(queryStr, params).page(page);
         List<Activity> activities = query.list().stream().map(mapper::toDomain).collect(Collectors.toList());
@@ -69,9 +69,9 @@ public class ActivityRepositoryImpl implements ActivityRepository {
     }
 
     @Override
-    public List<Activity> findAllByTenantId(Long tenantId, Boolean isActive) {
-        String queryStr = "tenantId = ?1" + (isActive != null ? " AND isActive = ?2" : "");
-        Object[] params = isActive != null ? new Object[]{tenantId, isActive} : new Object[]{tenantId};
+    public List<Activity> findAllByHqId(Long hqId, Boolean isActive) {
+        String queryStr = "hqId = ?1" + (isActive != null ? " AND isActive = ?2" : "");
+        Object[] params = isActive != null ? new Object[]{hqId, isActive} : new Object[]{hqId};
 
         return panacheRepo.find(queryStr, params)
                 .list()
