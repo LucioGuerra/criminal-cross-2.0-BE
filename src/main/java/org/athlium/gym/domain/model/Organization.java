@@ -17,11 +17,9 @@ public class Organization {
     private Long id;
     private String name; // nombre de la organización
     private List<Headquarters> headQuarters; // Lista de sedes de la organización
-    // TODO: El tier lo manejamos por organización o por sede?
-    // TODO: como hacemos si una sede ya esta registrada y ahora se registra la organización?
-    // TODO: Capaz el tier ENTERPRISE podria ser para organizaciones con varias sedes y el resto a nivel sede
-    private Tier tier; // nivel de servicio contratado
-    private TierState tierState; // estado de la suscripción o pago del nivel de servicio
+    // TODO: Manejamos el tier a nivel organización y despues unos addons por sede (mp, estadisticas, entre otras cosas)
+//    private Tier tier; // nivel de servicio contratado
+//    private TierState tierState; // estado de la suscripción o pago del nivel de servicio
 //    private LocalDateTime tierExpiration; // fecha de expiración del nivel de servicio (para acceso mas rapido)
 //    private LocalDateTime tierStartDate; // fecha de inicio del nivel de servicio (para acceso mas rapido)
 //    private List<Long> owners; // Lista de usuarios que son dueños de la organización
