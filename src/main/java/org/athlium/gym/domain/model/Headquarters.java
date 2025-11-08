@@ -14,7 +14,7 @@ import java.util.List;
 public class Headquarters {
 
     private Long id;
-    private String organizationId; // ID de la organización a la que pertenece la sede
+    private Long organizationId; // ID de la organización a la que pertenece la sede
     private String name; // nombre completo de la sede
     // TODO: definir si el tier va a nivel sede o a nivel organización
     // TODO: Si el tier lo manejamos por sede, debemos tener los datos de pago y facturación acá

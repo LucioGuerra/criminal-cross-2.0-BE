@@ -1,5 +1,6 @@
 package org.athlium.gym.infrastructure.entity;
 
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,12 +18,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "activity")
 @SoftDelete(columnName = "deleted_at", strategy = SoftDeleteType.TIMESTAMP)
-public class ActivityEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(updatable = false, nullable = false)
-    private Long id;
+public class ActivityEntity extends PanacheEntity {
 
     @Column(nullable = false)
     private String name;
