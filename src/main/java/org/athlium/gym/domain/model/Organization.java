@@ -1,22 +1,20 @@
 package org.athlium.gym.domain.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.athlium.shared.exception.DomainException;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
 @Builder
 public class Organization {
 
     private Long id;
     private String name; // nombre de la organización
-    private List<Headquarters> headQuarters; // Lista de sedes de la organización
+    private List<Headquarters> headQuarters = new ArrayList<>(); // Lista de sedes de la organización
     // TODO: Manejamos el tier a nivel organización y despues unos addons por sede (mp, estadisticas, entre otras cosas)
 //    private Tier tier; // nivel de servicio contratado
 //    private TierState tierState; // estado de la suscripción o pago del nivel de servicio
@@ -47,5 +45,14 @@ public class Organization {
 //    private String paymentAccount; // cuenta de pago (número de tarjeta, cuenta bancaria, etc.)
 //    private Object payments; // historial de pagos del nivel de servicio (puede ser una lista de objetos de pago) capaz aca podemos incluir el tier con sus detalles
 //    // proximamente podriamos hacer una clase Payment para que puedan tener varias opciones y elegir en cada momento cual usar y definir el preferido
+
+    public void addHQ(Headquarters hq) {
+        // Limitaremos a una sede por organización por ahora
+        if (this.headQuarters != null && this.headQuarters.size() > 0) {
+            throw new DomainException("An organization can only have one headquarters in the current version.");
+        }
+
+        this.headQuarters.add(hq);
+    }
 
 }
