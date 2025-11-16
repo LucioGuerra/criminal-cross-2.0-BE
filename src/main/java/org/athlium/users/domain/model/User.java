@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -24,12 +25,16 @@ public class User {
     }
 
     public void addRole(Role role) {
+        if (roles == null) {
+            roles = new HashSet<>();
+        }
         roles.add(role);
     }
 
-
     public void removeRole(Role role) {
-        roles.remove(role);
+        if (roles != null) {
+            roles.remove(role);
+        }
     }
 
 
