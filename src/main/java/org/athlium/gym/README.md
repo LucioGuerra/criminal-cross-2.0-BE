@@ -1,4 +1,4 @@
-# Gym Module
+ Gym Module
 
 Módulo responsable de los datos estructurales del gimnasio.
 
@@ -10,3 +10,4 @@ Módulo responsable de los datos estructurales del gimnasio.
 
 ## Persistencia
 - SQL (PostgreSQL)
+- MongoDB (Configuracion)
