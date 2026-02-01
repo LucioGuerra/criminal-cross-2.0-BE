@@ -14,15 +14,15 @@ public class CreateActivityUseCase {
     ActivityRepository activityRepository;
 
     @Transactional
-    public Activity execute(String name, String description, String tenantId) {
+    public Activity execute(String name, String description, Long hqId) {
         if (name == null || name.trim().isEmpty()) {
             throw new BadRequestException("Activity name is required");
         }
-        if (tenantId == null || tenantId.trim().isEmpty()) {
-            throw new BadRequestException("Tenant ID is required");
+        if (hqId == null) {
+            throw new BadRequestException("Headquarters ID is required");
         }
         
-        Activity activity = Activity.createNew(name, description, tenantId);
+        Activity activity = Activity.createNew(name, description, hqId);
         return activityRepository.save(activity);
     }
 }

@@ -14,6 +14,6 @@ public class ActivityInput {
     @Description("Detailed description of the activity")
     private String description;
     
-    @Description("Tenant identifier")
-    private String hqId;
+    @Description("Headquarters ID")
+    private Long hqId;
 }

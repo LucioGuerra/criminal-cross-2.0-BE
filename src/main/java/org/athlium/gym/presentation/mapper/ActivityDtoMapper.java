@@ -11,7 +11,7 @@ import org.athlium.shared.domain.PageResponse;
 
 import java.util.List;
 
-@Mapper(componentModel = "cdi")
+@Mapper(componentModel = "jakarta-cdi")
 public interface ActivityDtoMapper {
 
     @Mapping(target = "id", ignore = true)

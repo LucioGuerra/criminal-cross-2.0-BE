@@ -1,100 +1,313 @@
-# backend
+# Athlium Backend
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Quarkus-based monolith backend for Athlium fitness platform with modular architecture.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## 🚀 Quick Start
 
-## Running the application in dev mode
+```bash
+# Development mode (with live reload)
+./mvnw quarkus:dev
 
-You can run your application in dev mode that enables live coding using:
+# Dev UI available at http://localhost:8080/q/dev
+```
 
-```shell script
+## 📋 Prerequisites
+
+- Java 17+
+- Maven 3.8+
+- PostgreSQL 14+
+- MongoDB 5.0+
+- Firebase project (for authentication)
+
+## 🏗️ Architecture
+
+Modular monolith split into feature modules under `src/main/java/org/athlium/`:
+
+```
+org/athlium/
+├── auth/          # Authentication & Authorization (Firebase + JWT)
+├── users/         # User management & profiles
+├── clients/       # Client-specific features
+├── bookings/      # Booking & scheduling
+├── exercises/     # Exercise catalog
+├── routines/      # Workout routines
+├── payments/      # Payment processing
+├── gym/           # Gym management
+└── shared/        # Shared utilities, DTOs, exceptions
+```
+
+Each module follows clean architecture principles:
+- `application/` - Use cases and orchestration
+- `domain/` - Business entities and logic
+- `infrastructure/` - External concerns (DB, APIs, controllers)
+- `presentation/` - REST resources (when applicable)
+
+## 🔐 Authentication System
+
+The Auth module implements **Option B: Backend JWT Complete** architecture:
+
+- **Firebase** for initial user authentication (email/password, Google, Facebook)
+- **Backend-managed JWT** (RSA-256) for API access with 15-minute expiration
+- **Refresh tokens** in PostgreSQL with token rotation for secure sessions
+- **Instant logout** via token revocation
+- **Session tracking** with device info and IP address
+
+### Key Benefits
+- ✅ Full control over user sessions
+- ✅ Instant logout/revocation capability
+- ✅ No Firebase calls for API requests
+- ✅ Detailed audit trail
+- ✅ Custom claims in JWT (roles, userId, etc.)
+
+See [Auth Module Documentation](src/main/java/org/athlium/auth/README.md) for details.
+
+## 🗄️ Database Configuration
+
+### PostgreSQL
+```properties
+quarkus.datasource.db-kind=postgresql
+quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/athlium-pg
+quarkus.datasource.username=root
+quarkus.datasource.password=root
+```
+
+### MongoDB
+```properties
+quarkus.mongodb.connection-string=mongodb://root:root@localhost:27017/athlium-mongo?authSource=admin
+```
+
+### Schema Management
+- **Development:** `drop-and-create` mode (auto-recreates on restart)
+- **Production:** Flyway migrations in `src/main/resources/db/migration/`
+
+```properties
+# Development
+quarkus.hibernate-orm.database.generation=drop-and-create
+quarkus.flyway.migrate-at-start=false
+
+# Production
+quarkus.hibernate-orm.database.generation=none
+quarkus.flyway.migrate-at-start=true
+```
+
+## 🛠️ Development
+
+### Running the application in dev mode
+
+Live coding enabled with automatic reload:
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+**Dev UI:** http://localhost:8080/q/dev  
+**Health Check:** http://localhost:8080/q/health  
+**OpenAPI/Swagger:** http://localhost:8080/q/swagger-ui
 
-## Packaging and running the application
+### Environment Variables
 
-The application can be packaged using:
+```bash
+# Firebase
+export FIREBASE_CREDENTIALS_PATH=src/main/resources/athlium-credentials.json
+export FIREBASE_PROJECT_ID=athlium-11937
 
-```shell script
+# Optional: Enable mock mode (development only)
+export FIREBASE_MOCK_ENABLED=false
+```
+
+## 📦 Building & Packaging
+
+### Standard JAR
+```bash
 ./mvnw package
+java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+Produces `quarkus-run.jar` with dependencies in `target/quarkus-app/lib/`.
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
+### Uber JAR
+```bash
 ./mvnw package -Dquarkus.package.jar.type=uber-jar
+java -jar target/*-runner.jar
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+Single JAR with all dependencies embedded.
 
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
+### Native Executable
+```bash
+# With GraalVM installed
 ./mvnw package -Dnative
-```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
+# Using container build
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
+
+# Run
+./target/backend-1.0.0-SNAPSHOT-runner
 ```
 
-You can then execute your native executable with: `./target/backend-1.0.0-SNAPSHOT-runner`
+For more: [Quarkus Native Guide](https://quarkus.io/guides/maven-tooling)
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
+## 🧪 Testing
 
-## Related Guides
+```bash
+# Run all tests
+./mvnw test
 
-- REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
-- Flyway ([guide](https://quarkus.io/guides/flyway)): Handle your database schema migrations
-- MongoDB with Panache ([guide](https://quarkus.io/guides/mongodb-panache)): Simplify your persistence code for MongoDB via the active record or the repository pattern
-- Scheduler ([guide](https://quarkus.io/guides/scheduler)): Schedule jobs and tasks
-- SmallRye JWT ([guide](https://quarkus.io/guides/security-jwt)): Secure your applications with JSON Web Token
-- SmallRye Health ([guide](https://quarkus.io/guides/smallrye-health)): Monitor service health
-- SmallRye GraphQL ([guide](https://quarkus.io/guides/smallrye-graphql)): Create GraphQL Endpoints using the code-first approach from MicroProfile GraphQL
-- SmallRye Metrics ([guide](https://quarkus.io/guides/smallrye-metrics)): Expose metrics for your services
-- JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the PostgreSQL database via JDBC
-- Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Validate object properties (field, getter) and method parameters for your beans (REST, CDI, Jakarta Persistence)
-- SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Document your REST APIs with OpenAPI - comes with Swagger UI
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- SmallRye GraphQL Client ([guide](https://quarkus.io/guides/smallrye-graphql-client)): Create GraphQL Clients
-- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplify your persistence code for Hibernate ORM via the active record or the repository pattern
+# Run with coverage
+./mvnw clean verify
 
-## Provided Code
+# Skip tests during build
+./mvnw package -DskipTests
+```
 
-### Hibernate ORM
+## 📡 API Endpoints
 
-Create your first JPA entity
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login (get JWT + refresh token)
+- `POST /api/auth/refresh` - Refresh tokens
+- `POST /api/auth/logout` - Logout (revoke tokens)
+- `GET /api/auth/me` - Get current user
 
-[Related guide section...](https://quarkus.io/guides/hibernate-orm)
+### Health & Monitoring
+- `GET /q/health` - Health check
+- `GET /q/health/ready` - Readiness check
+- `GET /q/health/live` - Liveness check
+- `GET /q/metrics` - Prometheus metrics
 
-[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
+### Documentation
+- `GET /q/swagger-ui` - Interactive API docs
+- `GET /q/openapi` - OpenAPI spec (JSON/YAML)
+- `GET /q/dev` - Dev UI (dev mode only)
 
+## 🔧 Tech Stack
 
-### REST
+### Framework & Core
+- **Quarkus 3.29.0** - Supersonic Subatomic Java Framework
+- **Java 17+** - LTS version
+- **Jakarta EE** - REST, CDI, Bean Validation
 
-Easily start your REST Web Services
+### Persistence
+- **Hibernate ORM with Panache** - PostgreSQL persistence
+- **MongoDB with Panache** - Document storage
+- **Flyway** - Database migrations
+- **PostgreSQL 14+** - Relational database
+- **MongoDB 5.0+** - Document database
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+### Security & Auth
+- **Firebase Admin SDK 9.2.0** - Initial authentication
+- **SmallRye JWT** - Custom JWT generation (RSA-256)
+- **JJWT 0.11.5** - JWT validation
+- **Custom refresh tokens** - Session management
 
-### SmallRye GraphQL
+### Mapping & Serialization
+- **MapStruct 1.5.5** - DTO ↔ Entity mapping
+- **Lombok 1.18.38** - Boilerplate reduction
+- **Jackson** - JSON serialization
 
-Start coding with this Hello GraphQL Query
+### Monitoring & Docs
+- **SmallRye Health** - Health checks
+- **SmallRye Metrics** - Prometheus metrics
+- **SmallRye OpenAPI** - API documentation
+- **SmallRye GraphQL** - GraphQL API (optional)
 
-[Related guide section...](https://quarkus.io/guides/smallrye-graphql)
+## 📁 Project Structure
 
-### SmallRye Health
+```
+backend/
+├── src/
+│   ├── main/
+│   │   ├── java/org/athlium/
+│   │   │   ├── auth/              # Authentication module
+│   │   │   │   ├── application/   # Use cases
+│   │   │   │   ├── domain/        # Entities, value objects
+│   │   │   │   └── infrastructure/# Controllers, repos, adapters
+│   │   │   ├── users/             # User management
+│   │   │   ├── clients/           # Client features
+│   │   │   ├── bookings/          # Booking system
+│   │   │   ├── exercises/         # Exercise catalog
+│   │   │   ├── routines/          # Workout routines
+│   │   │   ├── payments/          # Payment processing
+│   │   │   ├── gym/               # Gym management
+│   │   │   └── shared/            # Shared code
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       ├── privateKey.pem     # JWT signing key
+│   │       ├── publicKey.pem      # JWT validation key
+│   │       ├── athlium-credentials.json  # Firebase credentials
+│   │       └── db/migration/      # Flyway migrations
+│   └── test/                       # Unit & integration tests
+├── pom.xml                         # Maven dependencies
+└── README.md                       # This file
+```
 
-Monitor your application's health using SmallRye Health
+## 🚀 Deployment
 
-[Related guide section...](https://quarkus.io/guides/smallrye-health)
+### Development
+```bash
+./mvnw quarkus:dev
+```
+
+### Production
+
+1. **Build:**
+   ```bash
+   ./mvnw package -Dquarkus.package.jar.type=uber-jar
+   ```
+
+2. **Environment Variables:**
+   ```bash
+   export FIREBASE_CREDENTIALS_PATH=/path/to/credentials.json
+   export QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://prod-db:5432/athlium
+   export QUARKUS_DATASOURCE_USERNAME=prod_user
+   export QUARKUS_DATASOURCE_PASSWORD=secure_password
+   ```
+
+3. **Run:**
+   ```bash
+   java -jar target/*-runner.jar
+   ```
+
+### Docker
+
+```dockerfile
+FROM registry.access.redhat.com/ubi8/openjdk-17:1.18
+
+COPY target/quarkus-app/lib/ /deployments/lib/
+COPY target/quarkus-app/*.jar /deployments/
+COPY target/quarkus-app/app/ /deployments/app/
+COPY target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER 185
+
+ENTRYPOINT ["java", "-jar", "/deployments/quarkus-run.jar"]
+```
+
+## 🔒 Security Considerations
+
+### Production Checklist
+- [ ] Rotate RSA keypair (don't use dev keys)
+- [ ] Store private keys in secrets manager
+- [ ] Enable HTTPS only
+- [ ] Configure CORS properly
+- [ ] Set up rate limiting
+- [ ] Enable database connection pooling
+- [ ] Configure log levels appropriately
+- [ ] Set up monitoring and alerting
+- [ ] Use environment-specific Firebase projects
+- [ ] Enable database encryption at rest
+
+## 📚 Module Documentation
+
+- [Auth Module](src/main/java/org/athlium/auth/README.md) - Complete authentication guide
+- [Users Module](src/main/java/org/athlium/users/README.md) - User management
+- More modules coming soon...
+
+## 🤝 Contributing
+
+1. Follow the module structure convention
+2. Write tests for new features
+3. Update documentation
+4. Follow Java code style guidelines
+5. Keep modules independent

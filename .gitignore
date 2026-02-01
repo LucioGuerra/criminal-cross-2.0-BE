@@ -1,3 +1,9 @@
 /.idea/
 /.amazonq/
 /target/
+/.github/
+
+# Credenciales de firebase
+src/main/resources/athlium-credentials.json
+src/main/resources/privateKey.pem
+src/main/resources/publicKey.pem

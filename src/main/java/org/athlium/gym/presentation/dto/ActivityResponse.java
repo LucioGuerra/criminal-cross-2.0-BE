@@ -20,6 +20,6 @@ public class ActivityResponse {
     @Description("Whether the activity is active or not")
     private Boolean isActive;
     
-    @Description("Tenant identifier")
-    private String hqId;
+    @Description("Headquarters ID")
+    private Long hqId;
 }

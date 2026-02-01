@@ -12,6 +12,7 @@ import java.util.List;
 @Builder
 public class Organization {
 
+    @Setter
     private Long id;
     private String name; // nombre de la organización
     private List<Headquarters> headQuarters = new ArrayList<>(); // Lista de sedes de la organización

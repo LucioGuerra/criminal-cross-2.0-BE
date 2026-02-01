@@ -2,6 +2,7 @@ package org.athlium.gym.presentation.dto;
 
 import lombok.Data;
 import org.eclipse.microprofile.graphql.Description;
+import org.eclipse.microprofile.graphql.Ignore;
 import org.eclipse.microprofile.graphql.Name;
 
 import java.util.List;
@@ -16,6 +17,6 @@ public class OrganizationResponse {
     @Description("Name of the organization")
     private String name;
     
-    @Description("List of headquarters belonging to this organization")
+    @Ignore // Loaded dynamically by OrganizationResolver
     private List<HeadquartersResponse> headquarters;
 }

@@ -15,14 +15,14 @@ public class Activity {
     private String name;
     private String description;
     private Boolean isActive;
-    private String hqId;
+    private Long hqId;
 
-    public static Activity createNew(String name, String description, String tenantId) {
+    public static Activity createNew(String name, String description, Long hqId) {
         return Activity.builder()
                 .name(name)
                 .description(description)
                 .isActive(true)
-                .hqId(tenantId)
+                .hqId(hqId)
                 .build();
     }
 }

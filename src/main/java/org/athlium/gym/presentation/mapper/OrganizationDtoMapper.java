@@ -6,7 +6,7 @@ import org.athlium.gym.presentation.dto.OrganizationResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "cdi")
+@Mapper(componentModel = "jakarta-cdi")
 public interface OrganizationDtoMapper {
 
     Organization toDomain(OrganizationInput input);

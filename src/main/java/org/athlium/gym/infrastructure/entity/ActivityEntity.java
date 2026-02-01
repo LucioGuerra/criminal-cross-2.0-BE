@@ -29,8 +29,12 @@ public class ActivityEntity extends PanacheEntity {
     @Column(nullable = false)
     private Boolean isActive = true;
 
-    @Column(nullable = false)
-    private String hqId;
+    @Column(name = "hq_id", nullable = false)
+    private Long hqId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hq_id", insertable = false, updatable = false)
+    private HeadquartersEntity headquarters;
 
     @CreationTimestamp
     @Column(updatable = false)

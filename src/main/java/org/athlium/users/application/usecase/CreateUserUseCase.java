@@ -2,6 +2,7 @@ package org.athlium.users.application.usecase;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.athlium.users.domain.model.Role;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.domain.repository.UserRepository;
@@ -14,6 +15,7 @@ public class CreateUserUseCase {
     @Inject
     UserRepository userRepository;
 
+    @Transactional
     public User execute(String firebaseUid, String email, String name, String lastName) {
         var existingUser = userRepository.findByFirebaseUid(firebaseUid);
         if (existingUser.isPresent()) {

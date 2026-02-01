@@ -5,7 +5,7 @@ import org.athlium.gym.infrastructure.entity.HeadquartersEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "cdi", uses = ActivityMapper.class)
+@Mapper(componentModel = "jakarta-cdi", uses = ActivityMapper.class)
 public interface HeadquartersMapper {
 
     Headquarters toDomain(HeadquartersEntity entity);
