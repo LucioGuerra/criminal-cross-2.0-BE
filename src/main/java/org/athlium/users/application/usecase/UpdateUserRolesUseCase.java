@@ -20,8 +20,20 @@ public class UpdateUserRolesUseCase {
             throw new DomainException("Only ADMIN or SUPERADMIN can update user roles");
         }
 
+        if (newRoles == null || newRoles.isEmpty()) {
+            throw new DomainException("At least one role is required");
+        }
+
+        if (newRoles.contains(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
+            throw new DomainException("Only SUPERADMIN can assign SUPERADMIN role");
+        }
+
         var user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new DomainException("User not found"));
+
+        if (user.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
+            throw new DomainException("Only SUPERADMIN can update a SUPERADMIN user");
+        }
 
         var updatedUser = User.builder()
                 .id(user.getId())

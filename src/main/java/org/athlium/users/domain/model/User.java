@@ -21,7 +21,7 @@ public class User {
     private Boolean active;
 
     public boolean hasRole(Role role) {
-        return roles.contains(role);
+        return roles != null && roles.contains(role);
     }
 
     public void addRole(Role role) {

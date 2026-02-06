@@ -3,6 +3,7 @@ package org.athlium.users.application.usecase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.athlium.shared.exception.DomainException;
 import org.athlium.users.domain.model.Role;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.domain.repository.UserRepository;
@@ -20,6 +21,10 @@ public class CreateUserUseCase {
         var existingUser = userRepository.findByFirebaseUid(firebaseUid);
         if (existingUser.isPresent()) {
             return existingUser.get();
+        }
+
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new DomainException("Email is already in use");
         }
 
         var user = User.builder()

@@ -2,9 +2,13 @@ package org.athlium.users.infrastructure.controller;
 
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.athlium.auth.domain.model.AuthenticatedUser;
+import org.athlium.auth.infrastructure.security.Authenticated;
+import org.athlium.auth.infrastructure.security.SecurityContext;
 import org.athlium.shared.dto.ApiResponse;
 import org.athlium.shared.exception.DomainException;
 import org.athlium.users.application.usecase.*;
@@ -32,9 +36,13 @@ public class UserResource {
     @Inject
     UserDtoMapper userDtoMapper;
 
+    @Inject
+    SecurityContext securityContext;
+
     @POST
     @Transactional
-    public Response createUser(CreateUserRequestDto request) {
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    public Response createUser(@Valid CreateUserRequestDto request) {
         try {
             var user = createUserUseCase.execute(
                     request.getFirebaseUid(),
@@ -53,6 +61,7 @@ public class UserResource {
 
     @GET
     @Path("/firebase/{uid}")
+    @Authenticated
     public Response getUserByUid(@PathParam("uid") String firebaseUid) {
         var user = getUserByUidUseCase.execute(firebaseUid);
         if (user.isPresent()) {
@@ -67,10 +76,12 @@ public class UserResource {
     @PUT
     @Path("/firebase/{uid}/roles")
     @Transactional
-    public Response updateUserRoles(@PathParam("uid") String firebaseUid, UpdateRolesRequestDto request) {
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    public Response updateUserRoles(@PathParam("uid") String firebaseUid, @Valid UpdateRolesRequestDto request) {
         try {
-            // TODO: Get current user from JWT token
-            var currentUser = getUserByUidUseCase.execute("current-user-uid")
+            AuthenticatedUser authUser = securityContext.requireCurrentUser();
+
+            var currentUser = getUserByUidUseCase.execute(authUser.getFirebaseUid())
                     .orElseThrow(() -> new DomainException("Current user not found"));
 
             var user = updateUserRolesUseCase.execute(firebaseUid, request.getRoles(), currentUser);
@@ -79,6 +90,10 @@ public class UserResource {
         } catch (DomainException e) {
             return Response.status(Response.Status.FORBIDDEN)
                     .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Authentication is required"))
                     .build();
         } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -90,7 +105,8 @@ public class UserResource {
     @POST
     @Path("/sync")
     @Transactional
-    public Response syncWithFirebase(CreateUserRequestDto request) {
+    @Authenticated
+    public Response syncWithFirebase(@Valid CreateUserRequestDto request) {
         try {
             var user = syncUserWithFirebaseUseCase.execute(
                     request.getFirebaseUid(),
