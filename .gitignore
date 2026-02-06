@@ -5,3 +5,9 @@ target/
 src/main/resources/athlium-credentials.json
 src/main/resources/privateKey.pem
 src/main/resources/publicKey.pem
+
+# Eclipse / STS local project files
+.classpath
+.project
+.factorypath
+.settings/
