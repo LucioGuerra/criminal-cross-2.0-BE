@@ -141,7 +141,7 @@ public class BookingRepositoryImpl implements BookingRepository {
         appendCondition(queryBuilder, params, "status =", status);
 
         if (branchId != null || activityId != null || from != null || to != null) {
-            if (!queryBuilder.isEmpty()) {
+            if (queryBuilder.length() > 0) {
                 queryBuilder.append(" and ");
             }
 
@@ -186,7 +186,7 @@ public class BookingRepositoryImpl implements BookingRepository {
         if (value == null) {
             return;
         }
-        if (!queryBuilder.isEmpty()) {
+        if (queryBuilder.length() > 0) {
             queryBuilder.append(" and ");
         }
         queryBuilder.append(expression).append(" ?").append(params.size() + 1);
