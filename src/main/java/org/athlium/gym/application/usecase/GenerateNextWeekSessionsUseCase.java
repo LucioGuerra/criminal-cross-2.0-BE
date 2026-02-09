@@ -2,6 +2,7 @@ package org.athlium.gym.application.usecase;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.athlium.gym.domain.model.ActivitySchedule;
 import org.athlium.gym.domain.model.SessionConfiguration;
 import org.athlium.gym.domain.model.SessionInstance;
@@ -30,6 +31,7 @@ public class GenerateNextWeekSessionsUseCase {
     @Inject
     ResolveSessionConfigurationUseCase resolveSessionConfigurationUseCase;
 
+    @Transactional
     public GenerationResult execute() {
         List<ActivitySchedule> schedules = activityScheduleRepository.findAllActive();
         LocalDate nextMonday = LocalDate.now(ZoneOffset.UTC)
