@@ -13,11 +13,9 @@ import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.athlium.bookings.application.usecase.CancelBookingUseCase;
-import org.athlium.bookings.application.usecase.CreateBookingUseCase;
 import org.athlium.bookings.application.usecase.GetBookingsUseCase;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.athlium.bookings.presentation.dto.BookingPageResponse;
-import org.athlium.bookings.presentation.dto.CreateBookingRequest;
 import org.athlium.bookings.presentation.mapper.BookingDtoMapper;
 import org.athlium.shared.dto.ApiResponse;
 import org.athlium.shared.exception.BadRequestException;
@@ -32,9 +30,6 @@ import java.time.format.DateTimeParseException;
 public class BookingResource {
 
     @Inject
-    CreateBookingUseCase createBookingUseCase;
-
-    @Inject
     CancelBookingUseCase cancelBookingUseCase;
 
     @Inject
@@ -42,29 +37,6 @@ public class BookingResource {
 
     @Inject
     BookingDtoMapper bookingDtoMapper;
-
-    @POST
-    @Path("/sessions/{sessionId}/bookings")
-    public Response createBooking(
-            @PathParam("sessionId") Long sessionId,
-            @HeaderParam("Idempotency-Key") String idempotencyKey,
-            CreateBookingRequest request
-    ) {
-        try {
-            var booking = createBookingUseCase.execute(
-                    sessionId,
-                    request != null ? request.getUserId() : null,
-                    idempotencyKey
-            );
-            return Response.status(Response.Status.CREATED)
-                    .entity(ApiResponse.success("Booking created", bookingDtoMapper.toResponse(booking)))
-                    .build();
-        } catch (BadRequestException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(ApiResponse.error(e.getMessage())).build();
-        } catch (EntityNotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND).entity(ApiResponse.error(e.getMessage())).build();
-        }
-    }
 
     @POST
     @Path("/bookings/{bookingId}/cancel")

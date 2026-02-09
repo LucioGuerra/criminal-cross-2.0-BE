@@ -2,11 +2,9 @@ package org.athlium.bookings.presentation.controller;
 
 import jakarta.ws.rs.core.Response;
 import org.athlium.bookings.application.usecase.CancelBookingUseCase;
-import org.athlium.bookings.application.usecase.CreateBookingUseCase;
 import org.athlium.bookings.application.usecase.GetBookingsUseCase;
 import org.athlium.bookings.domain.model.Booking;
 import org.athlium.bookings.domain.model.BookingStatus;
-import org.athlium.bookings.presentation.dto.CreateBookingRequest;
 import org.athlium.bookings.presentation.mapper.BookingDtoMapper;
 import org.athlium.shared.domain.PageResponse;
 import org.athlium.shared.dto.ApiResponse;
@@ -22,37 +20,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BookingResourceUnitTest {
 
     private BookingResource resource;
-    private StubCreateBookingUseCase createUseCase;
     private StubCancelBookingUseCase cancelUseCase;
     private StubGetBookingsUseCase getUseCase;
 
     @BeforeEach
     void setUp() {
         resource = new BookingResource();
-        createUseCase = new StubCreateBookingUseCase();
         cancelUseCase = new StubCancelBookingUseCase();
         getUseCase = new StubGetBookingsUseCase();
 
-        resource.createBookingUseCase = createUseCase;
         resource.cancelBookingUseCase = cancelUseCase;
         resource.getBookingsUseCase = getUseCase;
         resource.bookingDtoMapper = new BookingDtoMapper();
-    }
-
-    @Test
-    void shouldCreateBooking() {
-        Booking booking = booking(1L, 10L, 100L, BookingStatus.CONFIRMED);
-        createUseCase.response = booking;
-
-        CreateBookingRequest request = new CreateBookingRequest();
-        request.setUserId(100L);
-
-        Response response = resource.createBooking(10L, "key-1", request);
-
-        assertEquals(201, response.getStatus());
-        ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
-        assertTrue(body.isSuccess());
-        assertEquals("Booking created", body.getMessage());
     }
 
     @Test
@@ -79,15 +58,6 @@ class BookingResourceUnitTest {
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
         assertTrue(body.isSuccess());
         assertEquals("Bookings retrieved", body.getMessage());
-    }
-
-    private static class StubCreateBookingUseCase extends CreateBookingUseCase {
-        Booking response;
-
-        @Override
-        public Booking execute(Long sessionId, Long userId, String requestId) {
-            return response;
-        }
     }
 
     private static class StubCancelBookingUseCase extends CancelBookingUseCase {
