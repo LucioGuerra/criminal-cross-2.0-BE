@@ -9,6 +9,7 @@ import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.domain.model.SessionSource;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
+import org.hibernate.exception.ConstraintViolationException;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -64,8 +65,26 @@ public class GenerateSessionForScheduleUseCase {
         session.setCancellationMinHoursBeforeStart(config.getCancellationMinHoursBeforeStart());
         session.setCancellationAllowLateCancel(config.getCancellationAllowLateCancel());
 
-        sessionInstanceRepository.save(session);
-        return GenerationStatus.CREATED;
+        try {
+            sessionInstanceRepository.save(session);
+            return GenerationStatus.CREATED;
+        } catch (RuntimeException ex) {
+            if (isUniqueConstraintViolation(ex)) {
+                return GenerationStatus.SKIPPED;
+            }
+            throw ex;
+        }
+    }
+
+    private boolean isUniqueConstraintViolation(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof ConstraintViolationException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     public enum GenerationStatus {

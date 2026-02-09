@@ -6,10 +6,12 @@ import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.ActivityScheduleRepository;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
+import org.hibernate.exception.ConstraintViolationException;
 import org.athlium.shared.domain.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -118,6 +120,27 @@ class GenerateNextWeekSessionsUseCaseTest {
         assertEquals(1, sessionRepository.saved.size());
     }
 
+    @Test
+    void shouldTreatUniqueConstraintRaceAsSkipped() {
+        ActivitySchedule schedule = new ActivitySchedule();
+        schedule.setOrganizationId(1L);
+        schedule.setHeadquartersId(10L);
+        schedule.setActivityId(200L);
+        schedule.setDayOfWeek(3);
+        schedule.setStartTime(LocalTime.of(11, 0));
+        schedule.setDurationMinutes(60);
+        schedule.setActive(true);
+        scheduleRepository.schedules.add(schedule);
+
+        sessionRepository.throwUniqueViolationOnSave = true;
+
+        var result = useCase.execute();
+
+        assertEquals(0, result.created());
+        assertEquals(1, result.skipped());
+        assertEquals(0, result.failed());
+    }
+
     private static class InMemoryActivityScheduleRepository implements ActivityScheduleRepository {
         private final List<ActivitySchedule> schedules = new ArrayList<>();
 
@@ -141,9 +164,13 @@ class GenerateNextWeekSessionsUseCaseTest {
     private static class InMemorySessionRepository implements SessionInstanceRepository {
         private final List<SessionInstance> saved = new ArrayList<>();
         private boolean alwaysExists;
+        private boolean throwUniqueViolationOnSave;
 
         @Override
         public SessionInstance save(SessionInstance sessionInstance) {
+            if (throwUniqueViolationOnSave) {
+                throw new ConstraintViolationException("duplicate", new SQLException("duplicate key"), "uq_session_instances_slot");
+            }
             saved.add(sessionInstance);
             return sessionInstance;
         }

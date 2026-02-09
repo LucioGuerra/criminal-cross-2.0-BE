@@ -34,6 +34,10 @@ public class ActivityScheduleRepositoryImpl implements ActivityScheduleRepositor
 
     @Override
     public List<ActivitySchedule> findByHeadquartersId(Long headquartersId) {
-        return panacheRepository.find("headquartersId", headquartersId).list().stream().map(mapper::toDomain).toList();
+        return panacheRepository.find("headquartersId = ?1 and active = ?2", headquartersId, true)
+                .list()
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 }
