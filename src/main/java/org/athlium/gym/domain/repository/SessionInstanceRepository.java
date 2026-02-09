@@ -9,6 +9,15 @@ import java.util.Optional;
 
 public interface SessionInstanceRepository {
 
+    SessionInstance save(SessionInstance sessionInstance);
+
+    boolean existsByOrganizationAndHeadquartersAndActivityAndStartsAt(
+            Long organizationId,
+            Long headquartersId,
+            Long activityId,
+            Instant startsAt
+    );
+
     Optional<SessionInstance> findById(Long id);
 
     PageResponse<SessionInstance> findSessions(

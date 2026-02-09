@@ -49,6 +49,21 @@ class GetSessionByIdUseCaseTest {
     private static class InMemorySessionRepository implements SessionInstanceRepository {
 
         @Override
+        public SessionInstance save(SessionInstance sessionInstance) {
+            return sessionInstance;
+        }
+
+        @Override
+        public boolean existsByOrganizationAndHeadquartersAndActivityAndStartsAt(
+                Long organizationId,
+                Long headquartersId,
+                Long activityId,
+                Instant startsAt
+        ) {
+            return false;
+        }
+
+        @Override
         public Optional<SessionInstance> findById(Long id) {
             if (id.equals(1L)) {
                 SessionInstance session = new SessionInstance();

@@ -74,6 +74,21 @@ class GetSessionsUseCaseTest {
         boolean capturedSortAscending;
 
         @Override
+        public SessionInstance save(SessionInstance sessionInstance) {
+            return sessionInstance;
+        }
+
+        @Override
+        public boolean existsByOrganizationAndHeadquartersAndActivityAndStartsAt(
+                Long organizationId,
+                Long headquartersId,
+                Long activityId,
+                Instant startsAt
+        ) {
+            return false;
+        }
+
+        @Override
         public Optional<SessionInstance> findById(Long id) {
             return Optional.empty();
         }

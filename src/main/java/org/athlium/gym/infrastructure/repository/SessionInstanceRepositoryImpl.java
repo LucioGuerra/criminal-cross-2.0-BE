@@ -26,6 +26,32 @@ public class SessionInstanceRepositoryImpl implements SessionInstanceRepository 
     SessionInstanceMapper mapper;
 
     @Override
+    public SessionInstance save(SessionInstance sessionInstance) {
+        SessionInstanceEntity entity = mapper.toEntity(sessionInstance);
+        if (sessionInstance.getId() != null) {
+            entity.id = sessionInstance.getId();
+        }
+        panacheRepository.persist(entity);
+        return mapper.toDomain(entity);
+    }
+
+    @Override
+    public boolean existsByOrganizationAndHeadquartersAndActivityAndStartsAt(
+            Long organizationId,
+            Long headquartersId,
+            Long activityId,
+            Instant startsAt
+    ) {
+        return panacheRepository.count(
+                "organizationId = ?1 and headquartersId = ?2 and activityId = ?3 and startsAt = ?4",
+                organizationId,
+                headquartersId,
+                activityId,
+                startsAt
+        ) > 0;
+    }
+
+    @Override
     public Optional<SessionInstance> findById(Long id) {
         SessionInstanceEntity entity = panacheRepository.findById(id);
         return Optional.ofNullable(entity).map(mapper::toDomain);
