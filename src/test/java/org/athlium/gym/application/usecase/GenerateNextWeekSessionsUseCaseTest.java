@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GenerateNextWeekSessionsUseCaseTest {
@@ -29,6 +28,7 @@ class GenerateNextWeekSessionsUseCaseTest {
     private InMemorySessionRepository sessionRepository;
     private StubResolveConfigUseCase resolveConfigUseCase;
     private GenerateSessionForScheduleUseCase generateSessionForScheduleUseCase;
+    private PersistGeneratedSessionUseCase persistGeneratedSessionUseCase;
 
     @BeforeEach
     void setUp() {
@@ -37,12 +37,15 @@ class GenerateNextWeekSessionsUseCaseTest {
         sessionRepository = new InMemorySessionRepository();
         resolveConfigUseCase = new StubResolveConfigUseCase();
         generateSessionForScheduleUseCase = new GenerateSessionForScheduleUseCase();
+        persistGeneratedSessionUseCase = new PersistGeneratedSessionUseCase();
 
         useCase.activityScheduleRepository = scheduleRepository;
         useCase.generateSessionForScheduleUseCase = generateSessionForScheduleUseCase;
 
-        generateSessionForScheduleUseCase.sessionInstanceRepository = sessionRepository;
+        generateSessionForScheduleUseCase.persistGeneratedSessionUseCase = persistGeneratedSessionUseCase;
         generateSessionForScheduleUseCase.resolveSessionConfigurationUseCase = resolveConfigUseCase;
+
+        persistGeneratedSessionUseCase.sessionInstanceRepository = sessionRepository;
     }
 
     @Test
@@ -86,7 +89,7 @@ class GenerateNextWeekSessionsUseCaseTest {
         assertEquals(1, result.skipped());
         assertEquals(0, result.failed());
         assertTrue(sessionRepository.saved.isEmpty());
-        assertFalse(resolveConfigUseCase.called);
+        assertTrue(resolveConfigUseCase.called);
     }
 
     @Test
