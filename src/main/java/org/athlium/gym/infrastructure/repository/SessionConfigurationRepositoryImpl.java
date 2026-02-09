@@ -1,5 +1,11 @@
 package org.athlium.gym.infrastructure.repository;
 
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.Updates;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.athlium.gym.domain.model.SessionConfiguration;
@@ -28,51 +34,87 @@ public class SessionConfigurationRepositoryImpl implements SessionConfigurationR
     @Inject
     SessionConfigPanacheRepository sessionConfigRepository;
 
+    @PostConstruct
+    void ensureUniqueIndexes() {
+        organizationConfigRepository.mongoCollection().createIndex(
+                Indexes.ascending("organizationId"),
+                new IndexOptions().unique(true).name("uq_gym_config_organization_id")
+        );
+        headquartersConfigRepository.mongoCollection().createIndex(
+                Indexes.ascending("headquartersId"),
+                new IndexOptions().unique(true).name("uq_branch_config_headquarters_id")
+        );
+        activityConfigRepository.mongoCollection().createIndex(
+                Indexes.ascending("activityId"),
+                new IndexOptions().unique(true).name("uq_activity_config_activity_id")
+        );
+        sessionConfigRepository.mongoCollection().createIndex(
+                Indexes.ascending("sessionId"),
+                new IndexOptions().unique(true).name("uq_session_overrides_session_id")
+        );
+    }
+
     @Override
     public SessionConfiguration upsertOrganizationConfig(Long organizationId, SessionConfiguration configuration) {
+        SessionConfigurationDocument configDocument = toDocument(configuration);
+        organizationConfigRepository.mongoCollection().updateOne(
+                Filters.eq("organizationId", organizationId),
+                Updates.combine(
+                        Updates.set("organizationId", organizationId),
+                        Updates.set("configuration", configDocument)
+                ),
+                new UpdateOptions().upsert(true)
+        );
+
         OrganizationConfigDocument document = organizationConfigRepository.find("organizationId", organizationId).firstResult();
-        if (document == null) {
-            document = new OrganizationConfigDocument();
-            document.organizationId = organizationId;
-        }
-        document.configuration = toDocument(configuration);
-        organizationConfigRepository.persistOrUpdate(document);
         return toDomain(document.configuration);
     }
 
     @Override
     public SessionConfiguration upsertHeadquartersConfig(Long headquartersId, SessionConfiguration configuration) {
+        SessionConfigurationDocument configDocument = toDocument(configuration);
+        headquartersConfigRepository.mongoCollection().updateOne(
+                Filters.eq("headquartersId", headquartersId),
+                Updates.combine(
+                        Updates.set("headquartersId", headquartersId),
+                        Updates.set("configuration", configDocument)
+                ),
+                new UpdateOptions().upsert(true)
+        );
+
         HeadquartersConfigDocument document = headquartersConfigRepository.find("headquartersId", headquartersId).firstResult();
-        if (document == null) {
-            document = new HeadquartersConfigDocument();
-            document.headquartersId = headquartersId;
-        }
-        document.configuration = toDocument(configuration);
-        headquartersConfigRepository.persistOrUpdate(document);
         return toDomain(document.configuration);
     }
 
     @Override
     public SessionConfiguration upsertActivityConfig(Long activityId, SessionConfiguration configuration) {
+        SessionConfigurationDocument configDocument = toDocument(configuration);
+        activityConfigRepository.mongoCollection().updateOne(
+                Filters.eq("activityId", activityId),
+                Updates.combine(
+                        Updates.set("activityId", activityId),
+                        Updates.set("configuration", configDocument)
+                ),
+                new UpdateOptions().upsert(true)
+        );
+
         ActivityConfigDocument document = activityConfigRepository.find("activityId", activityId).firstResult();
-        if (document == null) {
-            document = new ActivityConfigDocument();
-            document.activityId = activityId;
-        }
-        document.configuration = toDocument(configuration);
-        activityConfigRepository.persistOrUpdate(document);
         return toDomain(document.configuration);
     }
 
     @Override
     public SessionConfiguration upsertSessionConfig(Long sessionId, SessionConfiguration configuration) {
+        SessionConfigurationDocument configDocument = toDocument(configuration);
+        sessionConfigRepository.mongoCollection().updateOne(
+                Filters.eq("sessionId", sessionId),
+                Updates.combine(
+                        Updates.set("sessionId", sessionId),
+                        Updates.set("configuration", configDocument)
+                ),
+                new UpdateOptions().upsert(true)
+        );
+
         SessionConfigDocument document = sessionConfigRepository.find("sessionId", sessionId).firstResult();
-        if (document == null) {
-            document = new SessionConfigDocument();
-            document.sessionId = sessionId;
-        }
-        document.configuration = toDocument(configuration);
-        sessionConfigRepository.persistOrUpdate(document);
         return toDomain(document.configuration);
     }
 

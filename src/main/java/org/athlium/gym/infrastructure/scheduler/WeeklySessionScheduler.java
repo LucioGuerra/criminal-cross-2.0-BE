@@ -14,9 +14,14 @@ public class WeeklySessionScheduler {
     @Inject
     GenerateNextWeekSessionsUseCase generateNextWeekSessionsUseCase;
 
-    @Scheduled(cron = "0 0 3 ? * MON")
+    @Scheduled(cron = "0 0 3 ? * MON", timeZone = "UTC")
     void generateWeeklySessions() {
         var result = generateNextWeekSessionsUseCase.execute();
-        LOG.infof("Weekly session generation completed: created=%d skipped=%d", result.created(), result.skipped());
+        LOG.infof(
+                "Weekly session generation completed: created=%d skipped=%d failed=%d",
+                result.created(),
+                result.skipped(),
+                result.failed()
+        );
     }
 }

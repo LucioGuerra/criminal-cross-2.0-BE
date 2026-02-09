@@ -114,7 +114,7 @@ public class SessionInstanceRepositoryImpl implements SessionInstanceRepository 
             return;
         }
 
-        if (!queryBuilder.isEmpty()) {
+        if (queryBuilder.length() > 0) {
             queryBuilder.append(" and ");
         }
 
