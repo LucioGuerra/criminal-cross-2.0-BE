@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.athlium.bookings.domain.model.Booking;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.athlium.bookings.domain.repository.BookingRepository;
+import org.athlium.gym.domain.repository.SessionInstanceRepository;
 import org.athlium.shared.exception.BadRequestException;
 import org.athlium.shared.exception.EntityNotFoundException;
 
@@ -17,14 +18,20 @@ public class CancelBookingUseCase {
     @Inject
     BookingRepository bookingRepository;
 
+    @Inject
+    SessionInstanceRepository sessionInstanceRepository;
+
     @Transactional
     public CancelBookingResult execute(Long bookingId) {
         if (bookingId == null || bookingId <= 0) {
             throw new BadRequestException("bookingId must be a positive number");
         }
 
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking", bookingId));
+
+        sessionInstanceRepository.findByIdForUpdate(booking.getSessionId())
+                .orElseThrow(() -> new EntityNotFoundException("Session", booking.getSessionId()));
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new BadRequestException("Booking is already cancelled");
@@ -40,7 +47,7 @@ public class CancelBookingUseCase {
 
         Booking promoted = null;
         if (previousStatus == BookingStatus.CONFIRMED) {
-            var waitlisted = bookingRepository.findFirstWaitlistedBySessionId(booking.getSessionId());
+            var waitlisted = bookingRepository.findFirstWaitlistedBySessionIdForUpdate(booking.getSessionId());
             if (waitlisted.isPresent()) {
                 Booking candidate = waitlisted.get();
                 candidate.setStatus(BookingStatus.CONFIRMED);

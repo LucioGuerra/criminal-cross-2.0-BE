@@ -127,6 +127,11 @@ class GenerateNextWeekSessionsUseCaseTest {
         }
 
         @Override
+        public Optional<SessionInstance> findByIdForUpdate(Long id) {
+            return Optional.empty();
+        }
+
+        @Override
         public PageResponse<SessionInstance> findSessions(
                 Long organizationId,
                 Long headquartersId,

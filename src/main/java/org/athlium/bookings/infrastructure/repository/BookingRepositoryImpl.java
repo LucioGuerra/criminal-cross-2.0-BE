@@ -4,6 +4,7 @@ import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.LockModeType;
 import org.athlium.bookings.domain.model.Booking;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.athlium.bookings.domain.repository.BookingRepository;
@@ -54,6 +55,12 @@ public class BookingRepositoryImpl implements BookingRepository {
     }
 
     @Override
+    public Optional<Booking> findByIdForUpdate(Long id) {
+        BookingEntity entity = bookingPanacheRepository.findById(id, LockModeType.PESSIMISTIC_WRITE);
+        return Optional.ofNullable(entity).map(bookingMapper::toDomain);
+    }
+
+    @Override
     public boolean existsActiveBooking(Long sessionId, Long userId) {
         return bookingPanacheRepository.count(
                 "sessionId = ?1 and userId = ?2 and status in (?3, ?4)",
@@ -76,6 +83,18 @@ public class BookingRepositoryImpl implements BookingRepository {
                         sessionId,
                         BookingStatus.WAITLISTED
                 )
+                .firstResult();
+        return Optional.ofNullable(entity).map(bookingMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Booking> findFirstWaitlistedBySessionIdForUpdate(Long sessionId) {
+        BookingEntity entity = bookingPanacheRepository.find(
+                        "sessionId = ?1 and status = ?2 order by createdAt asc",
+                        sessionId,
+                        BookingStatus.WAITLISTED
+                )
+                .withLock(LockModeType.PESSIMISTIC_WRITE)
                 .firstResult();
         return Optional.ofNullable(entity).map(bookingMapper::toDomain);
     }

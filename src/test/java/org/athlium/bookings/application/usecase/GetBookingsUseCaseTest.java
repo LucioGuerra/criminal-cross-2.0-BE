@@ -71,6 +71,11 @@ class GetBookingsUseCaseTest {
         }
 
         @Override
+        public Optional<Booking> findByIdForUpdate(Long id) {
+            return Optional.empty();
+        }
+
+        @Override
         public boolean existsActiveBooking(Long sessionId, Long userId) {
             return false;
         }
@@ -82,6 +87,11 @@ class GetBookingsUseCaseTest {
 
         @Override
         public Optional<Booking> findFirstWaitlistedBySessionId(Long sessionId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Booking> findFirstWaitlistedBySessionIdForUpdate(Long sessionId) {
             return Optional.empty();
         }
 

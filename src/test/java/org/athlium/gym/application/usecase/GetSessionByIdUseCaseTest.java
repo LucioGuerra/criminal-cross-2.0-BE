@@ -80,6 +80,11 @@ class GetSessionByIdUseCaseTest {
         }
 
         @Override
+        public Optional<SessionInstance> findByIdForUpdate(Long id) {
+            return findById(id);
+        }
+
+        @Override
         public PageResponse<SessionInstance> findSessions(
                 Long organizationId,
                 Long headquartersId,

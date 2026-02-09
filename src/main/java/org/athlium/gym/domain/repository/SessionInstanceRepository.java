@@ -20,6 +20,8 @@ public interface SessionInstanceRepository {
 
     Optional<SessionInstance> findById(Long id);
 
+    Optional<SessionInstance> findByIdForUpdate(Long id);
+
     PageResponse<SessionInstance> findSessions(
             Long organizationId,
             Long headquartersId,

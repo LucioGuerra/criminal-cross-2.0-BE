@@ -24,7 +24,7 @@ public class CreateBookingUseCase {
     public Booking execute(Long sessionId, Long userId) {
         validateIds(sessionId, userId);
 
-        var session = sessionInstanceRepository.findById(sessionId)
+        var session = sessionInstanceRepository.findByIdForUpdate(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session", sessionId));
 
         if (session.getStatus() != SessionStatus.OPEN) {

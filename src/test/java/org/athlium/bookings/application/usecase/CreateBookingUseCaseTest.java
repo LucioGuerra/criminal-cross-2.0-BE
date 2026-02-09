@@ -85,6 +85,11 @@ class CreateBookingUseCaseTest {
         }
 
         @Override
+        public Optional<Booking> findByIdForUpdate(Long id) {
+            return Optional.empty();
+        }
+
+        @Override
         public boolean existsActiveBooking(Long sessionId, Long userId) {
             return bookings.stream().anyMatch(b -> b.getSessionId().equals(sessionId)
                     && b.getUserId().equals(userId)
@@ -98,6 +103,11 @@ class CreateBookingUseCaseTest {
 
         @Override
         public Optional<Booking> findFirstWaitlistedBySessionId(Long sessionId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Booking> findFirstWaitlistedBySessionIdForUpdate(Long sessionId) {
             return Optional.empty();
         }
 
@@ -129,6 +139,11 @@ class CreateBookingUseCaseTest {
         public Optional<SessionInstance> findById(Long id) {
             session.setId(id);
             return Optional.of(session);
+        }
+
+        @Override
+        public Optional<SessionInstance> findByIdForUpdate(Long id) {
+            return findById(id);
         }
 
         @Override

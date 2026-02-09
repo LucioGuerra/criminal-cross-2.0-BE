@@ -13,11 +13,15 @@ public interface BookingRepository {
 
     Optional<Booking> findById(Long id);
 
+    Optional<Booking> findByIdForUpdate(Long id);
+
     boolean existsActiveBooking(Long sessionId, Long userId);
 
     long countBySessionAndStatus(Long sessionId, BookingStatus status);
 
     Optional<Booking> findFirstWaitlistedBySessionId(Long sessionId);
+
+    Optional<Booking> findFirstWaitlistedBySessionIdForUpdate(Long sessionId);
 
     PageResponse<Booking> findBookings(
             Long sessionId,

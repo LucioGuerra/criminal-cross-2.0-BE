@@ -3,6 +3,9 @@ package org.athlium.bookings.application.usecase;
 import org.athlium.bookings.domain.model.Booking;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.athlium.bookings.domain.repository.BookingRepository;
+import org.athlium.gym.domain.model.SessionInstance;
+import org.athlium.gym.domain.model.SessionStatus;
+import org.athlium.gym.domain.repository.SessionInstanceRepository;
 import org.athlium.shared.domain.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,12 +24,15 @@ class CancelBookingUseCaseTest {
 
     private CancelBookingUseCase useCase;
     private InMemoryBookingRepository bookingRepository;
+    private InMemorySessionRepository sessionRepository;
 
     @BeforeEach
     void setUp() {
         useCase = new CancelBookingUseCase();
         bookingRepository = new InMemoryBookingRepository();
+        sessionRepository = new InMemorySessionRepository();
         useCase.bookingRepository = bookingRepository;
+        useCase.sessionInstanceRepository = sessionRepository;
     }
 
     @Test
@@ -77,6 +83,11 @@ class CancelBookingUseCaseTest {
         }
 
         @Override
+        public Optional<Booking> findByIdForUpdate(Long id) {
+            return findById(id);
+        }
+
+        @Override
         public boolean existsActiveBooking(Long sessionId, Long userId) {
             return false;
         }
@@ -94,9 +105,56 @@ class CancelBookingUseCaseTest {
         }
 
         @Override
+        public Optional<Booking> findFirstWaitlistedBySessionIdForUpdate(Long sessionId) {
+            return findFirstWaitlistedBySessionId(sessionId);
+        }
+
+        @Override
         public PageResponse<Booking> findBookings(Long sessionId, Long userId, BookingStatus status, Long branchId,
                                                   Long activityId, Instant from, Instant to, int page,
                                                   int size, boolean sortAscending) {
+            return new PageResponse<>(List.of(), page, size, 0);
+        }
+    }
+
+    private static class InMemorySessionRepository implements SessionInstanceRepository {
+
+        @Override
+        public SessionInstance save(SessionInstance sessionInstance) {
+            return sessionInstance;
+        }
+
+        @Override
+        public boolean existsByOrganizationAndHeadquartersAndActivityAndStartsAt(Long organizationId,
+                                                                                  Long headquartersId,
+                                                                                  Long activityId,
+                                                                                  Instant startsAt) {
+            return false;
+        }
+
+        @Override
+        public Optional<SessionInstance> findById(Long id) {
+            SessionInstance session = new SessionInstance();
+            session.setId(id);
+            session.setStatus(SessionStatus.OPEN);
+            return Optional.of(session);
+        }
+
+        @Override
+        public Optional<SessionInstance> findByIdForUpdate(Long id) {
+            return findById(id);
+        }
+
+        @Override
+        public PageResponse<SessionInstance> findSessions(Long organizationId,
+                                                          Long headquartersId,
+                                                          Long activityId,
+                                                          SessionStatus status,
+                                                          Instant from,
+                                                          Instant to,
+                                                          int page,
+                                                          int size,
+                                                          boolean sortAscending) {
             return new PageResponse<>(List.of(), page, size, 0);
         }
     }

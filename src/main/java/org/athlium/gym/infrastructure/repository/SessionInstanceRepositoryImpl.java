@@ -4,6 +4,7 @@ import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.LockModeType;
 import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
@@ -54,6 +55,12 @@ public class SessionInstanceRepositoryImpl implements SessionInstanceRepository 
     @Override
     public Optional<SessionInstance> findById(Long id) {
         SessionInstanceEntity entity = panacheRepository.findById(id);
+        return Optional.ofNullable(entity).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<SessionInstance> findByIdForUpdate(Long id) {
+        SessionInstanceEntity entity = panacheRepository.findById(id, LockModeType.PESSIMISTIC_WRITE);
         return Optional.ofNullable(entity).map(mapper::toDomain);
     }
 
