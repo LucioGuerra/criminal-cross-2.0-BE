@@ -15,7 +15,6 @@ import org.athlium.shared.exception.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.List;
 
@@ -44,18 +43,18 @@ class SessionResourceUnitTest {
     @Test
     void shouldReturnSessionsPage() {
         SessionInstance session = new SessionInstance();
-        setField(session, "id", 1L);
-        setField(session, "organizationId", 7L);
-        setField(session, "headquartersId", 10L);
-        setField(session, "activityId", 100L);
-        setField(session, "startsAt", Instant.parse("2026-02-10T10:00:00Z"));
-        setField(session, "endsAt", Instant.parse("2026-02-10T11:00:00Z"));
-        setField(session, "status", SessionStatus.OPEN);
-        setField(session, "source", SessionSource.MANUAL);
+        session.setId(1L);
+        session.setOrganizationId(7L);
+        session.setHeadquartersId(10L);
+        session.setActivityId(100L);
+        session.setStartsAt(Instant.parse("2026-02-10T10:00:00Z"));
+        session.setEndsAt(Instant.parse("2026-02-10T11:00:00Z"));
+        session.setStatus(SessionStatus.OPEN);
+        session.setSource(SessionSource.MANUAL);
 
         getSessionsUseCase.response = new PageResponse<>(List.of(session), 0, 20, 1);
 
-        Response response = resource.getSessions(null, null, null, null, null, null, 1, 20, "startsAt:asc");
+        Response response = resource.getSessions(null, null, null, null, null, null, null, null, 1, 20, "startsAt:asc");
 
         assertEquals(200, response.getStatus());
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
@@ -65,7 +64,7 @@ class SessionResourceUnitTest {
 
     @Test
     void shouldReturnBadRequestWhenFromIsInvalid() {
-        Response response = resource.getSessions(null, null, null, null, "bad-date", null, 1, 20, "startsAt:asc");
+        Response response = resource.getSessions(null, null, null, null, null, null, "bad-date", null, 1, 20, "startsAt:asc");
 
         assertEquals(400, response.getStatus());
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
@@ -87,14 +86,14 @@ class SessionResourceUnitTest {
     @Test
     void shouldReturnSessionById() {
         SessionInstance session = new SessionInstance();
-        setField(session, "id", 5L);
-        setField(session, "organizationId", 2L);
-        setField(session, "headquartersId", 3L);
-        setField(session, "activityId", 4L);
-        setField(session, "startsAt", Instant.parse("2026-02-10T10:00:00Z"));
-        setField(session, "endsAt", Instant.parse("2026-02-10T11:00:00Z"));
-        setField(session, "status", SessionStatus.OPEN);
-        setField(session, "source", SessionSource.MANUAL);
+        session.setId(5L);
+        session.setOrganizationId(2L);
+        session.setHeadquartersId(3L);
+        session.setActivityId(4L);
+        session.setStartsAt(Instant.parse("2026-02-10T10:00:00Z"));
+        session.setEndsAt(Instant.parse("2026-02-10T11:00:00Z"));
+        session.setStatus(SessionStatus.OPEN);
+        session.setSource(SessionSource.MANUAL);
         getSessionByIdUseCase.response = session;
 
         Response response = resource.getSessionById(5L);
@@ -147,41 +146,12 @@ class SessionResourceUnitTest {
 
         @Override
         public SessionResponse toResponse(SessionInstance session) {
-            SessionResponse response = new SessionResponse();
-            setField(response, "id", getField(session, "id"));
-            setField(response, "organizationId", getField(session, "organizationId"));
-            setField(response, "headquartersId", getField(session, "headquartersId"));
-            setField(response, "activityId", getField(session, "activityId"));
-            setField(response, "startsAt", getField(session, "startsAt"));
-            setField(response, "endsAt", getField(session, "endsAt"));
-            setField(response, "status", getField(session, "status"));
-            setField(response, "source", getField(session, "source"));
-            return response;
+            return new SessionResponse();
         }
 
         @Override
         public List<SessionResponse> toResponseList(List<SessionInstance> sessions) {
             return sessions.stream().map(this::toResponse).toList();
-        }
-    }
-
-    private static Object getField(Object target, String fieldName) {
-        try {
-            Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            return field.get(target);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed reading field " + fieldName, e);
-        }
-    }
-
-    private static void setField(Object target, String fieldName, Object value) {
-        try {
-            Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed setting field " + fieldName, e);
         }
     }
 }

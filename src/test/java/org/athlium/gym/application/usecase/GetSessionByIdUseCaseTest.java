@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,7 +42,7 @@ class GetSessionByIdUseCaseTest {
     void shouldReturnSessionWhenExists() {
         SessionInstance session = useCase.execute(1L);
         assertNotNull(session);
-        assertEquals(SessionStatus.OPEN, getField(session, "status"));
+        assertEquals(SessionStatus.OPEN, session.getStatus());
     }
 
     private static class InMemorySessionRepository implements SessionInstanceRepository {
@@ -67,13 +66,13 @@ class GetSessionByIdUseCaseTest {
         public Optional<SessionInstance> findById(Long id) {
             if (id.equals(1L)) {
                 SessionInstance session = new SessionInstance();
-                setField(session, "id", 1L);
-                setField(session, "organizationId", 10L);
-                setField(session, "headquartersId", 20L);
-                setField(session, "activityId", 30L);
-                setField(session, "startsAt", Instant.parse("2026-02-12T10:00:00Z"));
-                setField(session, "endsAt", Instant.parse("2026-02-12T11:00:00Z"));
-                setField(session, "status", SessionStatus.OPEN);
+                session.setId(1L);
+                session.setOrganizationId(10L);
+                session.setHeadquartersId(20L);
+                session.setActivityId(30L);
+                session.setStartsAt(Instant.parse("2026-02-12T10:00:00Z"));
+                session.setEndsAt(Instant.parse("2026-02-12T11:00:00Z"));
+                session.setStatus(SessionStatus.OPEN);
                 return Optional.of(session);
             }
             return Optional.empty();
@@ -97,26 +96,6 @@ class GetSessionByIdUseCaseTest {
                 boolean sortAscending
         ) {
             return new PageResponse<>(List.of(), page, size, 0);
-        }
-    }
-
-    private static Object getField(Object target, String fieldName) {
-        try {
-            Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            return field.get(target);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed reading field " + fieldName, e);
-        }
-    }
-
-    private static void setField(Object target, String fieldName, Object value) {
-        try {
-            Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed setting field " + fieldName, e);
         }
     }
 }

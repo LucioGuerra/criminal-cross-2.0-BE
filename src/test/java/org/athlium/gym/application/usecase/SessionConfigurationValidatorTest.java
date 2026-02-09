@@ -30,7 +30,18 @@ class SessionConfigurationValidatorTest {
         BadRequestException ex = assertThrows(BadRequestException.class,
                 () -> SessionConfigurationValidator.validate(config));
 
-        assertEquals("waitlistMaxSize must be greater than 0 when waitlist is enabled", ex.getMessage());
+        assertEquals("waitlistMaxSize must be provided and greater than 0 when waitlist is enabled", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWaitlistEnabledWithoutMaxSize() {
+        SessionConfiguration config = new SessionConfiguration();
+        config.setWaitlistEnabled(true);
+
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> SessionConfigurationValidator.validate(config));
+
+        assertEquals("waitlistMaxSize must be provided and greater than 0 when waitlist is enabled", ex.getMessage());
     }
 
     @Test

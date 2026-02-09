@@ -57,7 +57,9 @@ public class ActivityScheduleResource {
     @Path("/generate-next-week")
     public Response generateNextWeek(@DefaultValue("false") @QueryParam("dryRun") boolean dryRun) {
         if (dryRun) {
-            return Response.ok(ApiResponse.success("Dry run is not supported yet", null)).build();
+            return Response.status(Response.Status.NOT_IMPLEMENTED)
+                    .entity(ApiResponse.error("Dry run is not supported yet"))
+                    .build();
         }
 
         var result = generateNextWeekSessionsUseCase.execute();

@@ -28,8 +28,8 @@ public final class SessionConfigurationValidator {
         }
 
         if (Boolean.TRUE.equals(configuration.getWaitlistEnabled())) {
-            if (configuration.getWaitlistMaxSize() != null && configuration.getWaitlistMaxSize() == 0) {
-                throw new BadRequestException("waitlistMaxSize must be greater than 0 when waitlist is enabled");
+            if (configuration.getWaitlistMaxSize() == null || configuration.getWaitlistMaxSize() <= 0) {
+                throw new BadRequestException("waitlistMaxSize must be provided and greater than 0 when waitlist is enabled");
             }
             if (configuration.getWaitlistStrategy() == null) {
                 configuration.setWaitlistStrategy(WaitlistStrategy.FIFO);

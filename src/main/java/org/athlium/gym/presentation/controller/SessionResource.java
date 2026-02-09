@@ -36,8 +36,10 @@ public class SessionResource {
 
     @GET
     public Response getSessions(
-            @QueryParam("gymId") Long organizationId,
-            @QueryParam("branchId") Long headquartersId,
+            @QueryParam("organizationId") Long organizationId,
+            @QueryParam("headquartersId") Long headquartersId,
+            @QueryParam("gymId") Long gymId,
+            @QueryParam("branchId") Long branchId,
             @QueryParam("activityId") Long activityId,
             @QueryParam("status") SessionStatus status,
             @QueryParam("from") String from,
@@ -47,12 +49,14 @@ public class SessionResource {
             @DefaultValue("startsAt:asc") @QueryParam("sort") String sort
     ) {
         try {
+            Long effectiveOrganizationId = organizationId != null ? organizationId : gymId;
+            Long effectiveHeadquartersId = headquartersId != null ? headquartersId : branchId;
             Instant fromInstant = parseInstant(from, "from");
             Instant toInstant = parseInstant(to, "to");
 
             var result = getSessionsUseCase.execute(
-                    organizationId,
-                    headquartersId,
+                    effectiveOrganizationId,
+                    effectiveHeadquartersId,
                     activityId,
                     status,
                     fromInstant,
