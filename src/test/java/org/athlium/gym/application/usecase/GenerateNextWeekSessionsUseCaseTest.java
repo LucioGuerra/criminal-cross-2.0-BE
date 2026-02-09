@@ -26,6 +26,7 @@ class GenerateNextWeekSessionsUseCaseTest {
     private InMemoryActivityScheduleRepository scheduleRepository;
     private InMemorySessionRepository sessionRepository;
     private StubResolveConfigUseCase resolveConfigUseCase;
+    private GenerateSessionForScheduleUseCase generateSessionForScheduleUseCase;
 
     @BeforeEach
     void setUp() {
@@ -33,10 +34,13 @@ class GenerateNextWeekSessionsUseCaseTest {
         scheduleRepository = new InMemoryActivityScheduleRepository();
         sessionRepository = new InMemorySessionRepository();
         resolveConfigUseCase = new StubResolveConfigUseCase();
+        generateSessionForScheduleUseCase = new GenerateSessionForScheduleUseCase();
 
         useCase.activityScheduleRepository = scheduleRepository;
-        useCase.sessionInstanceRepository = sessionRepository;
-        useCase.resolveSessionConfigurationUseCase = resolveConfigUseCase;
+        useCase.generateSessionForScheduleUseCase = generateSessionForScheduleUseCase;
+
+        generateSessionForScheduleUseCase.sessionInstanceRepository = sessionRepository;
+        generateSessionForScheduleUseCase.resolveSessionConfigurationUseCase = resolveConfigUseCase;
     }
 
     @Test
@@ -55,6 +59,7 @@ class GenerateNextWeekSessionsUseCaseTest {
 
         assertEquals(1, result.created());
         assertEquals(0, result.skipped());
+        assertEquals(0, result.failed());
         assertEquals(1, sessionRepository.saved.size());
         assertEquals(SessionStatus.OPEN, sessionRepository.saved.get(0).getStatus());
     }
@@ -77,8 +82,40 @@ class GenerateNextWeekSessionsUseCaseTest {
 
         assertEquals(0, result.created());
         assertEquals(1, result.skipped());
+        assertEquals(0, result.failed());
         assertTrue(sessionRepository.saved.isEmpty());
         assertFalse(resolveConfigUseCase.called);
+    }
+
+    @Test
+    void shouldContinueWhenOneScheduleFails() {
+        ActivitySchedule invalid = new ActivitySchedule();
+        invalid.setId(1L);
+        invalid.setOrganizationId(1L);
+        invalid.setHeadquartersId(10L);
+        invalid.setActivityId(100L);
+        invalid.setDurationMinutes(60);
+        invalid.setActive(true);
+
+        ActivitySchedule valid = new ActivitySchedule();
+        valid.setId(2L);
+        valid.setOrganizationId(1L);
+        valid.setHeadquartersId(10L);
+        valid.setActivityId(101L);
+        valid.setDayOfWeek(2);
+        valid.setStartTime(LocalTime.of(9, 0));
+        valid.setDurationMinutes(45);
+        valid.setActive(true);
+
+        scheduleRepository.schedules.add(invalid);
+        scheduleRepository.schedules.add(valid);
+
+        var result = useCase.execute();
+
+        assertEquals(1, result.created());
+        assertEquals(0, result.skipped());
+        assertEquals(1, result.failed());
+        assertEquals(1, sessionRepository.saved.size());
     }
 
     private static class InMemoryActivityScheduleRepository implements ActivityScheduleRepository {

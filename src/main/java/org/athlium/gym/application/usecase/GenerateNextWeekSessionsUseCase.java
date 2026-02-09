@@ -2,19 +2,12 @@ package org.athlium.gym.application.usecase;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import org.athlium.gym.domain.model.ActivitySchedule;
-import org.athlium.gym.domain.model.SessionConfiguration;
-import org.athlium.gym.domain.model.SessionInstance;
-import org.athlium.gym.domain.model.SessionSource;
-import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.ActivityScheduleRepository;
-import org.athlium.gym.domain.repository.SessionInstanceRepository;
+import org.jboss.logging.Logger;
 
 import java.time.DayOfWeek;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
@@ -22,16 +15,14 @@ import java.util.List;
 @ApplicationScoped
 public class GenerateNextWeekSessionsUseCase {
 
+    private static final Logger LOG = Logger.getLogger(GenerateNextWeekSessionsUseCase.class);
+
     @Inject
     ActivityScheduleRepository activityScheduleRepository;
 
     @Inject
-    SessionInstanceRepository sessionInstanceRepository;
+    GenerateSessionForScheduleUseCase generateSessionForScheduleUseCase;
 
-    @Inject
-    ResolveSessionConfigurationUseCase resolveSessionConfigurationUseCase;
-
-    @Transactional
     public GenerationResult execute() {
         List<ActivitySchedule> schedules = activityScheduleRepository.findAllActive();
         LocalDate nextMonday = LocalDate.now(ZoneOffset.UTC)
@@ -39,54 +30,32 @@ public class GenerateNextWeekSessionsUseCase {
 
         int created = 0;
         int skipped = 0;
+        int failed = 0;
 
         for (ActivitySchedule schedule : schedules) {
-            LocalDate sessionDate = nextMonday.plusDays(schedule.getDayOfWeek() - 1L);
-            LocalDateTime startsAtLocal = LocalDateTime.of(sessionDate, schedule.getStartTime());
-            Instant startsAt = startsAtLocal.toInstant(ZoneOffset.UTC);
-            Instant endsAt = startsAt.plusSeconds(schedule.getDurationMinutes() * 60L);
-
-            boolean exists = sessionInstanceRepository.existsByOrganizationAndHeadquartersAndActivityAndStartsAt(
-                    schedule.getOrganizationId(),
-                    schedule.getHeadquartersId(),
-                    schedule.getActivityId(),
-                    startsAt
-            );
-
-            if (exists) {
-                skipped++;
-                continue;
+            try {
+                var status = generateSessionForScheduleUseCase.execute(schedule, nextMonday);
+                if (status == GenerateSessionForScheduleUseCase.GenerationStatus.CREATED) {
+                    created++;
+                } else {
+                    skipped++;
+                }
+            } catch (Exception ex) {
+                failed++;
+                LOG.errorf(
+                        ex,
+                        "Failed generating session for schedule id=%s organizationId=%s headquartersId=%s activityId=%s",
+                        schedule.getId(),
+                        schedule.getOrganizationId(),
+                        schedule.getHeadquartersId(),
+                        schedule.getActivityId()
+                );
             }
-
-            SessionConfiguration config = resolveSessionConfigurationUseCase.execute(
-                    schedule.getOrganizationId(),
-                    schedule.getHeadquartersId(),
-                    schedule.getActivityId(),
-                    null
-            );
-
-            SessionInstance session = new SessionInstance();
-            session.setOrganizationId(schedule.getOrganizationId());
-            session.setHeadquartersId(schedule.getHeadquartersId());
-            session.setActivityId(schedule.getActivityId());
-            session.setStartsAt(startsAt);
-            session.setEndsAt(endsAt);
-            session.setStatus(SessionStatus.OPEN);
-            session.setSource(SessionSource.SCHEDULER);
-            session.setMaxParticipants(config.getMaxParticipants());
-            session.setWaitlistEnabled(config.getWaitlistEnabled());
-            session.setWaitlistMaxSize(config.getWaitlistMaxSize());
-            session.setWaitlistStrategy(config.getWaitlistStrategy());
-            session.setCancellationMinHoursBeforeStart(config.getCancellationMinHoursBeforeStart());
-            session.setCancellationAllowLateCancel(config.getCancellationAllowLateCancel());
-
-            sessionInstanceRepository.save(session);
-            created++;
         }
 
-        return new GenerationResult(created, skipped);
+        return new GenerationResult(created, skipped, failed);
     }
 
-    public record GenerationResult(int created, int skipped) {
+    public record GenerationResult(int created, int skipped, int failed) {
     }
 }
