@@ -9,6 +9,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.athlium.bookings.application.usecase.CancelBookingUseCase;
@@ -44,9 +45,17 @@ public class BookingResource {
 
     @POST
     @Path("/sessions/{sessionId}/bookings")
-    public Response createBooking(@PathParam("sessionId") Long sessionId, CreateBookingRequest request) {
+    public Response createBooking(
+            @PathParam("sessionId") Long sessionId,
+            @HeaderParam("Idempotency-Key") String idempotencyKey,
+            CreateBookingRequest request
+    ) {
         try {
-            var booking = createBookingUseCase.execute(sessionId, request != null ? request.getUserId() : null);
+            var booking = createBookingUseCase.execute(
+                    sessionId,
+                    request != null ? request.getUserId() : null,
+                    idempotencyKey
+            );
             return Response.status(Response.Status.CREATED)
                     .entity(ApiResponse.success("Booking created", bookingDtoMapper.toResponse(booking)))
                     .build();
@@ -59,9 +68,12 @@ public class BookingResource {
 
     @POST
     @Path("/bookings/{bookingId}/cancel")
-    public Response cancelBooking(@PathParam("bookingId") Long bookingId) {
+    public Response cancelBooking(
+            @PathParam("bookingId") Long bookingId,
+            @HeaderParam("Idempotency-Key") String idempotencyKey
+    ) {
         try {
-            var result = cancelBookingUseCase.execute(bookingId);
+            var result = cancelBookingUseCase.execute(bookingId, idempotencyKey);
             return Response.ok(ApiResponse.success("Booking cancelled", bookingDtoMapper.toCancelResponse(result))).build();
         } catch (BadRequestException e) {
             return Response.status(Response.Status.BAD_REQUEST).entity(ApiResponse.error(e.getMessage())).build();

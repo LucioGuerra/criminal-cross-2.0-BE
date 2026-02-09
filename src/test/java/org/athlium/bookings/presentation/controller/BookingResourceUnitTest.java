@@ -47,7 +47,7 @@ class BookingResourceUnitTest {
         CreateBookingRequest request = new CreateBookingRequest();
         request.setUserId(100L);
 
-        Response response = resource.createBooking(10L, request);
+        Response response = resource.createBooking(10L, "key-1", request);
 
         assertEquals(201, response.getStatus());
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
@@ -61,7 +61,7 @@ class BookingResourceUnitTest {
         Booking promoted = booking(2L, 10L, 101L, BookingStatus.CONFIRMED);
         cancelUseCase.response = new CancelBookingUseCase.CancelBookingResult(cancelled, promoted);
 
-        Response response = resource.cancelBooking(1L);
+        Response response = resource.cancelBooking(1L, "key-2");
 
         assertEquals(200, response.getStatus());
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
@@ -85,7 +85,7 @@ class BookingResourceUnitTest {
         Booking response;
 
         @Override
-        public Booking execute(Long sessionId, Long userId) {
+        public Booking execute(Long sessionId, Long userId, String requestId) {
             return response;
         }
     }
@@ -94,7 +94,7 @@ class BookingResourceUnitTest {
         CancelBookingResult response;
 
         @Override
-        public CancelBookingResult execute(Long bookingId) {
+        public CancelBookingResult execute(Long bookingId, String requestId) {
             return response;
         }
     }

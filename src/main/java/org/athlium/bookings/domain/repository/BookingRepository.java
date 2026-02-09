@@ -15,6 +15,10 @@ public interface BookingRepository {
 
     Optional<Booking> findByIdForUpdate(Long id);
 
+    Optional<Booking> findByCreateRequestId(String requestId);
+
+    Optional<Booking> findByCancelRequestId(String requestId);
+
     boolean existsActiveBooking(Long sessionId, Long userId);
 
     long countBySessionAndStatus(Long sessionId, BookingStatus status);

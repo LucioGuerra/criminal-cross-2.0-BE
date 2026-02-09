@@ -42,7 +42,7 @@ class CancelBookingUseCaseTest {
         Booking waitlist2 = booking(3L, 10L, 102L, BookingStatus.WAITLISTED, Instant.parse("2026-01-01T10:02:00Z"));
         bookingRepository.bookings.addAll(List.of(confirmed, waitlist1, waitlist2));
 
-        var result = useCase.execute(1L);
+        var result = useCase.execute(1L, "cancel-1");
 
         assertEquals(BookingStatus.CANCELLED, result.cancelledBooking().getStatus());
         assertNotNull(result.promotedBooking());
@@ -55,7 +55,7 @@ class CancelBookingUseCaseTest {
         Booking waitlisted = booking(4L, 10L, 100L, BookingStatus.WAITLISTED, Instant.parse("2026-01-01T10:00:00Z"));
         bookingRepository.bookings.add(waitlisted);
 
-        var result = useCase.execute(4L);
+        var result = useCase.execute(4L, "cancel-2");
 
         assertEquals(BookingStatus.CANCELLED, result.cancelledBooking().getStatus());
         assertNull(result.promotedBooking());
@@ -85,6 +85,16 @@ class CancelBookingUseCaseTest {
         @Override
         public Optional<Booking> findByIdForUpdate(Long id) {
             return findById(id);
+        }
+
+        @Override
+        public Optional<Booking> findByCreateRequestId(String requestId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Booking> findByCancelRequestId(String requestId) {
+            return bookings.stream().filter(b -> requestId.equals(b.getCancelRequestId())).findFirst();
         }
 
         @Override

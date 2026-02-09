@@ -21,8 +21,20 @@ public class CreateBookingUseCase {
     SessionInstanceRepository sessionInstanceRepository;
 
     @Transactional
-    public Booking execute(Long sessionId, Long userId) {
+    public Booking execute(Long sessionId, Long userId, String requestId) {
         validateIds(sessionId, userId);
+        String normalizedRequestId = normalizeRequestId(requestId);
+
+        if (normalizedRequestId != null) {
+            var existingByRequest = bookingRepository.findByCreateRequestId(normalizedRequestId);
+            if (existingByRequest.isPresent()) {
+                Booking booking = existingByRequest.get();
+                if (!booking.getSessionId().equals(sessionId) || !booking.getUserId().equals(userId)) {
+                    throw new BadRequestException("Idempotency key already used for a different booking request");
+                }
+                return booking;
+            }
+        }
 
         var session = sessionInstanceRepository.findByIdForUpdate(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session", sessionId));
@@ -42,6 +54,7 @@ public class CreateBookingUseCase {
         booking.setSessionId(sessionId);
         booking.setUserId(userId);
         booking.setStatus(targetStatus);
+        booking.setCreateRequestId(normalizedRequestId);
         return bookingRepository.save(booking);
     }
 
@@ -77,5 +90,19 @@ public class CreateBookingUseCase {
         }
 
         throw new BadRequestException("Session is full");
+    }
+
+    private String normalizeRequestId(String requestId) {
+        if (requestId == null) {
+            return null;
+        }
+        String normalized = requestId.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        if (normalized.length() > 128) {
+            throw new BadRequestException("Idempotency key length must be less than or equal to 128");
+        }
+        return normalized;
     }
 }

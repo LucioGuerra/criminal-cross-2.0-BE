@@ -11,6 +11,8 @@ public class Booking {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant cancelledAt;
+    private String createRequestId;
+    private String cancelRequestId;
 
     public Long getId() {
         return id;
@@ -66,5 +68,21 @@ public class Booking {
 
     public void setCancelledAt(Instant cancelledAt) {
         this.cancelledAt = cancelledAt;
+    }
+
+    public String getCreateRequestId() {
+        return createRequestId;
+    }
+
+    public void setCreateRequestId(String createRequestId) {
+        this.createRequestId = createRequestId;
+    }
+
+    public String getCancelRequestId() {
+        return cancelRequestId;
+    }
+
+    public void setCancelRequestId(String cancelRequestId) {
+        this.cancelRequestId = cancelRequestId;
     }
 }

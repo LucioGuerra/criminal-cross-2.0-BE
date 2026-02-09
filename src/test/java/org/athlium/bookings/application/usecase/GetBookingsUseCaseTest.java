@@ -76,6 +76,16 @@ class GetBookingsUseCaseTest {
         }
 
         @Override
+        public Optional<Booking> findByCreateRequestId(String requestId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Booking> findByCancelRequestId(String requestId) {
+            return Optional.empty();
+        }
+
+        @Override
         public boolean existsActiveBooking(Long sessionId, Long userId) {
             return false;
         }

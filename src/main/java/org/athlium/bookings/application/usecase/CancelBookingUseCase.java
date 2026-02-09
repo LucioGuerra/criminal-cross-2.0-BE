@@ -22,9 +22,21 @@ public class CancelBookingUseCase {
     SessionInstanceRepository sessionInstanceRepository;
 
     @Transactional
-    public CancelBookingResult execute(Long bookingId) {
+    public CancelBookingResult execute(Long bookingId, String requestId) {
         if (bookingId == null || bookingId <= 0) {
             throw new BadRequestException("bookingId must be a positive number");
+        }
+        String normalizedRequestId = normalizeRequestId(requestId);
+
+        if (normalizedRequestId != null) {
+            var existingByRequest = bookingRepository.findByCancelRequestId(normalizedRequestId);
+            if (existingByRequest.isPresent()) {
+                Booking existing = existingByRequest.get();
+                if (!existing.getId().equals(bookingId)) {
+                    throw new BadRequestException("Idempotency key already used for a different cancel request");
+                }
+                return new CancelBookingResult(existing, null);
+            }
         }
 
         Booking booking = bookingRepository.findByIdForUpdate(bookingId)
@@ -43,6 +55,7 @@ public class CancelBookingUseCase {
         BookingStatus previousStatus = booking.getStatus();
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(Instant.now());
+        booking.setCancelRequestId(normalizedRequestId);
         Booking cancelled = bookingRepository.save(booking);
 
         Booking promoted = null;
@@ -56,6 +69,20 @@ public class CancelBookingUseCase {
         }
 
         return new CancelBookingResult(cancelled, promoted);
+    }
+
+    private String normalizeRequestId(String requestId) {
+        if (requestId == null) {
+            return null;
+        }
+        String normalized = requestId.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        if (normalized.length() > 128) {
+            throw new BadRequestException("Idempotency key length must be less than or equal to 128");
+        }
+        return normalized;
     }
 
     public record CancelBookingResult(Booking cancelledBooking, Booking promotedBooking) {

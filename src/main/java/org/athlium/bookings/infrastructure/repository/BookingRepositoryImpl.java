@@ -41,6 +41,8 @@ public class BookingRepositoryImpl implements BookingRepository {
             entity.userId = booking.getUserId();
             entity.status = booking.getStatus();
             entity.cancelledAt = booking.getCancelledAt();
+            entity.createRequestId = booking.getCreateRequestId();
+            entity.cancelRequestId = booking.getCancelRequestId();
             return bookingMapper.toDomain(entity);
         }
 
@@ -57,6 +59,24 @@ public class BookingRepositoryImpl implements BookingRepository {
     @Override
     public Optional<Booking> findByIdForUpdate(Long id) {
         BookingEntity entity = bookingPanacheRepository.findById(id, LockModeType.PESSIMISTIC_WRITE);
+        return Optional.ofNullable(entity).map(bookingMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Booking> findByCreateRequestId(String requestId) {
+        if (requestId == null || requestId.isBlank()) {
+            return Optional.empty();
+        }
+        BookingEntity entity = bookingPanacheRepository.find("createRequestId", requestId).firstResult();
+        return Optional.ofNullable(entity).map(bookingMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Booking> findByCancelRequestId(String requestId) {
+        if (requestId == null || requestId.isBlank()) {
+            return Optional.empty();
+        }
+        BookingEntity entity = bookingPanacheRepository.find("cancelRequestId", requestId).firstResult();
         return Optional.ofNullable(entity).map(bookingMapper::toDomain);
     }
 

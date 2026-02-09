@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -16,6 +17,10 @@ import java.time.Instant;
 @Entity
 @Table(
         name = "bookings",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_bookings_create_request_id", columnNames = "create_request_id"),
+                @UniqueConstraint(name = "uq_bookings_cancel_request_id", columnNames = "cancel_request_id")
+        },
         indexes = {
                 @Index(name = "idx_bookings_session_status", columnList = "session_id, status"),
                 @Index(name = "idx_bookings_user_status", columnList = "user_id, status"),
@@ -44,4 +49,10 @@ public class BookingEntity extends PanacheEntity {
 
     @Column(name = "cancelled_at")
     public Instant cancelledAt;
+
+    @Column(name = "create_request_id", length = 128)
+    public String createRequestId;
+
+    @Column(name = "cancel_request_id", length = 128)
+    public String cancelRequestId;
 }

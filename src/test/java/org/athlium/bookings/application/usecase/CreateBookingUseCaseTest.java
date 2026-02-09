@@ -40,7 +40,7 @@ class CreateBookingUseCaseTest {
         sessionRepository.session.setMaxParticipants(2);
         bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
 
-        Booking created = useCase.execute(10L, 100L);
+        Booking created = useCase.execute(10L, 100L, "req-1");
 
         assertEquals(BookingStatus.CONFIRMED, created.getStatus());
     }
@@ -53,7 +53,7 @@ class CreateBookingUseCaseTest {
         sessionRepository.session.setWaitlistMaxSize(3);
         bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
 
-        Booking created = useCase.execute(10L, 101L);
+        Booking created = useCase.execute(10L, 101L, "req-2");
 
         assertEquals(BookingStatus.WAITLISTED, created.getStatus());
     }
@@ -65,8 +65,19 @@ class CreateBookingUseCaseTest {
         sessionRepository.session.setWaitlistEnabled(false);
         bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
 
-        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 102L));
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 102L, "req-3"));
         assertEquals("Session is full", ex.getMessage());
+    }
+
+    @Test
+    void shouldReturnExistingBookingForSameIdempotencyKey() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(5);
+
+        Booking first = useCase.execute(10L, 100L, "same-key");
+        Booking second = useCase.execute(10L, 100L, "same-key");
+
+        assertEquals(first.getId(), second.getId());
     }
 
     private static class InMemoryBookingRepository implements BookingRepository {
@@ -86,6 +97,16 @@ class CreateBookingUseCaseTest {
 
         @Override
         public Optional<Booking> findByIdForUpdate(Long id) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Booking> findByCreateRequestId(String requestId) {
+            return bookings.stream().filter(b -> requestId.equals(b.getCreateRequestId())).findFirst();
+        }
+
+        @Override
+        public Optional<Booking> findByCancelRequestId(String requestId) {
             return Optional.empty();
         }
 
