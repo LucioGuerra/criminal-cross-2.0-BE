@@ -2,6 +2,7 @@ package org.athlium.gym.application.usecase;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.athlium.gym.domain.model.ActivitySchedule;
 import org.athlium.gym.domain.repository.ActivityScheduleRepository;
 import org.athlium.shared.exception.BadRequestException;
@@ -12,6 +13,7 @@ public class CreateActivityScheduleUseCase {
     @Inject
     ActivityScheduleRepository activityScheduleRepository;
 
+    @Transactional
     public ActivitySchedule execute(ActivitySchedule schedule) {
         if (schedule == null) {
             throw new BadRequestException("Schedule body is required");

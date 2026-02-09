@@ -43,6 +43,7 @@ public class BookingRepositoryImpl implements BookingRepository {
             entity.cancelledAt = booking.getCancelledAt();
             entity.createRequestId = booking.getCreateRequestId();
             entity.cancelRequestId = booking.getCancelRequestId();
+            entity.promotedBookingId = booking.getPromotedBookingId();
             return bookingMapper.toDomain(entity);
         }
 

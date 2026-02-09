@@ -55,4 +55,7 @@ public class BookingEntity extends PanacheEntity {
 
     @Column(name = "cancel_request_id", length = 128)
     public String cancelRequestId;
+
+    @Column(name = "promoted_booking_id")
+    public Long promotedBookingId;
 }

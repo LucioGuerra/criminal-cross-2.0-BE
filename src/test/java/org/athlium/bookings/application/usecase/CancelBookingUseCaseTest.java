@@ -61,6 +61,20 @@ class CancelBookingUseCaseTest {
         assertNull(result.promotedBooking());
     }
 
+    @Test
+    void shouldReturnSamePromotedBookingOnCancelRetryWithSameKey() {
+        Booking confirmed = booking(10L, 20L, 200L, BookingStatus.CONFIRMED, Instant.parse("2026-01-01T10:00:00Z"));
+        Booking waitlist = booking(11L, 20L, 201L, BookingStatus.WAITLISTED, Instant.parse("2026-01-01T10:01:00Z"));
+        bookingRepository.bookings.addAll(List.of(confirmed, waitlist));
+
+        var first = useCase.execute(10L, "same-cancel-key");
+        var second = useCase.execute(10L, "same-cancel-key");
+
+        assertNotNull(first.promotedBooking());
+        assertNotNull(second.promotedBooking());
+        assertEquals(first.promotedBooking().getId(), second.promotedBooking().getId());
+    }
+
     private static class InMemoryBookingRepository implements BookingRepository {
         private final List<Booking> bookings = new ArrayList<>();
 

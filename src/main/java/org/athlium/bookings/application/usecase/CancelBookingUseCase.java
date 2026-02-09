@@ -35,7 +35,10 @@ public class CancelBookingUseCase {
                 if (!existing.getId().equals(bookingId)) {
                     throw new BadRequestException("Idempotency key already used for a different cancel request");
                 }
-                return new CancelBookingResult(existing, null);
+                Booking promotedOnOriginal = existing.getPromotedBookingId() != null
+                        ? bookingRepository.findById(existing.getPromotedBookingId()).orElse(null)
+                        : null;
+                return new CancelBookingResult(existing, promotedOnOriginal);
             }
         }
 
@@ -65,6 +68,8 @@ public class CancelBookingUseCase {
                 Booking candidate = waitlisted.get();
                 candidate.setStatus(BookingStatus.CONFIRMED);
                 promoted = bookingRepository.save(candidate);
+                cancelled.setPromotedBookingId(promoted.getId());
+                cancelled = bookingRepository.save(cancelled);
             }
         }
 

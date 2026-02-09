@@ -1,10 +1,7 @@
 package org.athlium.shared.domain;
 
-import lombok.Getter;
-
 import java.util.List;
 
-@Getter
 public class PageResponse<T> {
 
     private final List<T> content;

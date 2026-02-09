@@ -13,6 +13,7 @@ public class Booking {
     private Instant cancelledAt;
     private String createRequestId;
     private String cancelRequestId;
+    private Long promotedBookingId;
 
     public Long getId() {
         return id;
@@ -84,5 +85,13 @@ public class Booking {
 
     public void setCancelRequestId(String cancelRequestId) {
         this.cancelRequestId = cancelRequestId;
+    }
+
+    public Long getPromotedBookingId() {
+        return promotedBookingId;
+    }
+
+    public void setPromotedBookingId(Long promotedBookingId) {
+        this.promotedBookingId = promotedBookingId;
     }
 }
