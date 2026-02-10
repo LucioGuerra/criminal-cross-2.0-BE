@@ -9,6 +9,8 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "jakarta-cdi")
 public interface HeadquartersDtoMapper {
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "activities", ignore = true)
     Headquarters toDomain(HeadquartersInput input);
 
     @Mapping(target = "activities", ignore = true)
