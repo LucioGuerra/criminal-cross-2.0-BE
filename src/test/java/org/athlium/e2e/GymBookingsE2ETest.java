@@ -3,6 +3,7 @@ package org.athlium.e2e;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.athlium.bookings.infrastructure.repository.BookingPanacheRepository;
 import org.athlium.gym.infrastructure.repository.ActivityConfigPanacheRepository;
@@ -17,7 +18,13 @@ import org.athlium.gym.infrastructure.repository.SessionInstancePanacheRepositor
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -45,6 +52,9 @@ class GymBookingsE2ETest {
 
     @Inject
     OrganizationPanacheRepository organizationRepository;
+
+    @Inject
+    EntityManager entityManager;
 
     @Inject
     OrganizationConfigPanacheRepository organizationConfigRepository;
@@ -202,6 +212,106 @@ class GymBookingsE2ETest {
         assertEquals(booking3.intValue(), listAfterCancel.getInt("data.items[2].id"));
     }
 
+    @Test
+    void shouldAllowOnlyOneActiveBookingPerUserUnderConcurrentRequests() throws Exception {
+        Long organizationId = createOrganization("Gym Concurrency");
+        Long headquartersId = createHeadquarters(organizationId, "HQ Concurrency");
+        Long activityId = createActivity(headquartersId, "Cross Concurrent", "Clase concurrency");
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "maxParticipants", 2,
+                        "waitlistEnabled", true,
+                        "waitlistMaxSize", 2,
+                        "waitlistStrategy", "FIFO",
+                        "cancellationMinHoursBeforeStart", 2,
+                        "cancellationAllowLateCancel", true
+                ))
+                .when()
+                .put("/api/gym/config/activities/{activityId}", activityId)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true));
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "organizationId", organizationId,
+                        "headquartersId", headquartersId,
+                        "activityId", activityId,
+                        "dayOfWeek", 1,
+                        "startTime", "20:00",
+                        "durationMinutes", 60,
+                        "active", true
+                ))
+                .when()
+                .post("/api/activity-schedules")
+                .then()
+                .statusCode(201)
+                .body("success", equalTo(true));
+
+        given()
+                .contentType("application/json")
+                .body("{}")
+                .when()
+                .post("/api/activity-schedules/generate-next-week")
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true));
+
+        Long sessionId = given()
+                .queryParam("organizationId", organizationId)
+                .queryParam("headquartersId", headquartersId)
+                .queryParam("activityId", activityId)
+                .queryParam("page", 1)
+                .queryParam("limit", 20)
+                .when()
+                .get("/api/sessions")
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .extract()
+                .jsonPath()
+                .getLong("data.items[0].id");
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Callable<Integer> firstCreate = () -> given()
+                    .contentType("application/json")
+                    .header("Idempotency-Key", "concurrent-a")
+                    .body(Map.of("userId", 999L))
+                    .when()
+                    .post("/api/sessions/{sessionId}/bookings", sessionId)
+                    .then()
+                    .extract()
+                    .statusCode();
+
+            Callable<Integer> secondCreate = () -> given()
+                    .contentType("application/json")
+                    .header("Idempotency-Key", "concurrent-b")
+                    .body(Map.of("userId", 999L))
+                    .when()
+                    .post("/api/sessions/{sessionId}/bookings", sessionId)
+                    .then()
+                    .extract()
+                    .statusCode();
+
+            List<Future<Integer>> futures = executor.invokeAll(List.of(firstCreate, secondCreate));
+            int statusA = futures.get(0).get(10, TimeUnit.SECONDS);
+            int statusB = futures.get(1).get(10, TimeUnit.SECONDS);
+
+            List<Integer> statuses = List.of(statusA, statusB);
+            long createdCount = statuses.stream().filter(code -> code == 201).count();
+            long rejectedCount = statuses.stream().filter(code -> code == 400).count();
+
+            assertEquals(1L, createdCount);
+            assertEquals(1L, rejectedCount);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
     private Long createBooking(Long sessionId, Long userId, String idempotencyKey) {
         JsonPath response = given()
                 .contentType("application/json")
@@ -224,7 +334,7 @@ class GymBookingsE2ETest {
         bookingRepository.deleteAll();
         sessionInstanceRepository.deleteAll();
         activityScheduleRepository.deleteAll();
-        activityRepository.deleteAll();
+        entityManager.createNativeQuery("DELETE FROM activity").executeUpdate();
         headquartersRepository.deleteAll();
         organizationRepository.deleteAll();
     }

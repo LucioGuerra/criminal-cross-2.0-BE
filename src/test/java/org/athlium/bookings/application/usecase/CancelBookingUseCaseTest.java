@@ -7,6 +7,7 @@ import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
 import org.athlium.shared.domain.PageResponse;
+import org.athlium.shared.exception.BadRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CancelBookingUseCaseTest {
 
@@ -73,6 +75,44 @@ class CancelBookingUseCaseTest {
         assertNotNull(first.promotedBooking());
         assertNotNull(second.promotedBooking());
         assertEquals(first.promotedBooking().getId(), second.promotedBooking().getId());
+    }
+
+    @Test
+    void shouldRejectWhenCancelIdempotencyKeyIsReusedForDifferentBooking() {
+        Booking first = booking(20L, 30L, 300L, BookingStatus.CONFIRMED, Instant.parse("2026-01-01T10:00:00Z"));
+        Booking second = booking(21L, 30L, 301L, BookingStatus.CONFIRMED, Instant.parse("2026-01-01T10:01:00Z"));
+        bookingRepository.bookings.addAll(List.of(first, second));
+
+        useCase.execute(20L, "same-cancel-key");
+
+        BadRequestException ex = assertThrows(
+                BadRequestException.class,
+                () -> useCase.execute(21L, "same-cancel-key")
+        );
+
+        assertEquals("Idempotency key already used for a different cancel request", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenBookingAlreadyCancelledWithoutIdempotencyKey() {
+        Booking cancelled = booking(30L, 40L, 400L, BookingStatus.CANCELLED, Instant.parse("2026-01-01T10:00:00Z"));
+        bookingRepository.bookings.add(cancelled);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(30L, null));
+
+        assertEquals("Booking is already cancelled", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenCancelIdempotencyKeyIsTooLong() {
+        Booking confirmed = booking(40L, 50L, 500L, BookingStatus.CONFIRMED, Instant.parse("2026-01-01T10:00:00Z"));
+        bookingRepository.bookings.add(confirmed);
+
+        String longKey = "x".repeat(129);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(40L, longKey));
+
+        assertEquals("Idempotency key length must be less than or equal to 128", ex.getMessage());
     }
 
     private static class InMemoryBookingRepository implements BookingRepository {

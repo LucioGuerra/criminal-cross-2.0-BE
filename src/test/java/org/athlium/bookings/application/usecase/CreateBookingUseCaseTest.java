@@ -80,6 +80,48 @@ class CreateBookingUseCaseTest {
         assertEquals(first.getId(), second.getId());
     }
 
+    @Test
+    void shouldRejectWhenIdempotencyKeyIsReusedForDifferentRequest() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(5);
+
+        useCase.execute(10L, 100L, "same-key");
+
+        BadRequestException ex = assertThrows(
+                BadRequestException.class,
+                () -> useCase.execute(10L, 101L, "same-key")
+        );
+
+        assertEquals("Idempotency key already used for a different booking request", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenWaitlistIsFull() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(1);
+        sessionRepository.session.setWaitlistEnabled(true);
+        sessionRepository.session.setWaitlistMaxSize(1);
+
+        bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
+        bookingRepository.bookings.add(existingBooking(10L, 51L, BookingStatus.WAITLISTED));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 102L, "req-full"));
+
+        assertEquals("Waitlist is full for this session", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenIdempotencyKeyIsTooLong() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(5);
+
+        String longKey = "x".repeat(129);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 100L, longKey));
+
+        assertEquals("Idempotency key length must be less than or equal to 128", ex.getMessage());
+    }
+
     private static class InMemoryBookingRepository implements BookingRepository {
         private final List<Booking> bookings = new ArrayList<>();
 
