@@ -2,7 +2,7 @@
   "info": {
     "name": "Athlium Backend - Manual E2E",
     "_postman_id": "f6f2dd52-1174-4f5d-a8a0-8f5f6f6df0f2",
-    "description": "Manual flow collection for auth (mock), gym config/scheduling, sessions, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend with mock auth: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.",
+    "description": "Manual flow collection for auth (mock), gym config/scheduling, sessions, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend with mock auth: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.\n\nAuth note:\n- Run Login first. If response has data.needsRegistration=true, run Register and then Login again.\n- Login/Refresh scripts store accessToken and refreshToken automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -41,6 +41,10 @@
               "script": {
                 "exec": [
                   "const r = pm.response.json();",
+                  "if (r?.data?.needsRegistration === true) {",
+                  "  pm.collectionVariables.set('accessToken', '');",
+                  "  pm.collectionVariables.set('refreshToken', '');",
+                  "}",
                   "if (r && r.data && r.data.tokens) {",
                   "  pm.collectionVariables.set('accessToken', r.data.tokens.accessToken || '');",
                   "  pm.collectionVariables.set('refreshToken', r.data.tokens.refreshToken || '');",
@@ -63,7 +67,36 @@
           }
         },
         {
+          "name": "Register (If Login Needs Registration)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{mockIdToken}}\",\n  \"name\": \"Test\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
           "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r && r.data && r.data.tokens) {",
+                  "  pm.collectionVariables.set('accessToken', r.data.tokens.accessToken || '');",
+                  "  pm.collectionVariables.set('refreshToken', r.data.tokens.refreshToken || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
