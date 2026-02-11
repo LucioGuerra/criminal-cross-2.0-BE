@@ -25,6 +25,56 @@ public class AuthenticatedUser {
     private final Set<Role> roles;
     private final boolean active;
 
+    public AuthenticatedUser(String firebaseUid,
+                             String email,
+                             String name,
+                             boolean emailVerified,
+                             AuthProvider provider,
+                             Long userId,
+                             Set<Role> roles,
+                             boolean active) {
+        this.firebaseUid = firebaseUid;
+        this.email = email;
+        this.name = name;
+        this.emailVerified = emailVerified;
+        this.provider = provider;
+        this.userId = userId;
+        this.roles = roles;
+        this.active = active;
+    }
+
+    public String getFirebaseUid() {
+        return firebaseUid;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public AuthProvider getProvider() {
+        return provider;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
     /**
      * Checks if the user exists in the local database.
      */

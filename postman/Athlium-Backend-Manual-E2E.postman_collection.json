@@ -1,0 +1,403 @@
+{
+  "info": {
+    "name": "Athlium Backend - Manual E2E",
+    "_postman_id": "f6f2dd52-1174-4f5d-a8a0-8f5f6f6df0f2",
+    "description": "Manual flow collection for auth (mock), gym config/scheduling, sessions, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend with mock auth: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.\n\nAuth note:\n- Run Login first. If response has data.needsRegistration=true, run Register and then Login again.\n- Login/Refresh scripts store accessToken and refreshToken automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "mockIdToken", "value": "tester-001" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "organizationId", "value": "1" },
+    { "key": "headquartersId", "value": "1" },
+    { "key": "activityId", "value": "1" },
+    { "key": "sessionId", "value": "" },
+    { "key": "bookingId1", "value": "" },
+    { "key": "bookingId2", "value": "" },
+    { "key": "bookingId3", "value": "" },
+    { "key": "idemBooking1", "value": "bk-req-1" },
+    { "key": "idemBooking2", "value": "bk-req-2" },
+    { "key": "idemBooking3", "value": "bk-req-3" },
+    { "key": "idemCancel1", "value": "bk-cancel-1" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth (Mock)",
+      "item": [
+        {
+          "name": "Auth Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/health"
+          }
+        },
+        {
+          "name": "Login (Mock Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r?.data?.needsRegistration === true) {",
+                  "  pm.collectionVariables.set('accessToken', '');",
+                  "  pm.collectionVariables.set('refreshToken', '');",
+                  "}",
+                  "if (r && r.data && r.data.tokens) {",
+                  "  pm.collectionVariables.set('accessToken', r.data.tokens.accessToken || '');",
+                  "  pm.collectionVariables.set('refreshToken', r.data.tokens.refreshToken || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{mockIdToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Register (If Login Needs Registration)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{mockIdToken}}\",\n  \"name\": \"Test\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r && r.data && r.data.tokens) {",
+                  "  pm.collectionVariables.set('accessToken', r.data.tokens.accessToken || '');",
+                  "  pm.collectionVariables.set('refreshToken', r.data.tokens.refreshToken || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/refresh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Gym Bootstrap (REST)",
+      "item": [
+        {
+          "name": "Create Organization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "const id = r?.data?.id;",
+                  "if (id) pm.collectionVariables.set('organizationId', String(id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gym Demo\"\n}"
+            },
+            "url": "{{baseUrl}}/api/organizations"
+          }
+        },
+        {
+          "name": "Create Headquarters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "const id = r?.data?.id;",
+                  "if (id) pm.collectionVariables.set('headquartersId', String(id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": {{organizationId}},\n  \"name\": \"HQ Centro\"\n}"
+            },
+            "url": "{{baseUrl}}/api/headquarters"
+          }
+        },
+        {
+          "name": "Create Activity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "const id = r?.data?.id;",
+                  "if (id) pm.collectionVariables.set('activityId', String(id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cross Training\",\n  \"description\": \"Clase funcional\",\n  \"hqId\": {{headquartersId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/activities"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Gym Config",
+      "item": [
+        {
+          "name": "Upsert Activity Config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxParticipants\": 2,\n  \"waitlistEnabled\": true,\n  \"waitlistMaxSize\": 3,\n  \"waitlistStrategy\": \"FIFO\",\n  \"cancellationMinHoursBeforeStart\": 2,\n  \"cancellationAllowLateCancel\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/gym/config/activities/{{activityId}}"
+          }
+        },
+        {
+          "name": "Get Effective Config",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/gym/config/effective?organizationId={{organizationId}}&headquartersId={{headquartersId}}&activityId={{activityId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Schedules and Sessions",
+      "item": [
+        {
+          "name": "Create Activity Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": {{organizationId}},\n  \"headquartersId\": {{headquartersId}},\n  \"activityId\": {{activityId}},\n  \"dayOfWeek\": 1,\n  \"startTime\": \"18:00\",\n  \"durationMinutes\": 60,\n  \"active\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/activity-schedules"
+          }
+        },
+        {
+          "name": "Generate Next Week Sessions",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/activity-schedules/generate-next-week"
+          }
+        },
+        {
+          "name": "List Sessions (Set sessionId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "const first = r?.data?.items?.[0];",
+                  "if (first?.id) pm.collectionVariables.set('sessionId', String(first.id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sessions?organizationId={{organizationId}}&headquartersId={{headquartersId}}&activityId={{activityId}}&page=1&limit=20"
+          }
+        },
+        {
+          "name": "Get Session by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Bookings",
+      "item": [
+        {
+          "name": "Create Booking User 101",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "const id = r?.data?.id;",
+                  "if (id) pm.collectionVariables.set('bookingId1', String(id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idemBooking1}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 101\n}"
+            },
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/bookings"
+          }
+        },
+        {
+          "name": "Create Booking User 102",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "const id = r?.data?.id;",
+                  "if (id) pm.collectionVariables.set('bookingId2', String(id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idemBooking2}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 102\n}"
+            },
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/bookings"
+          }
+        },
+        {
+          "name": "Create Booking User 103 (Waitlist)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "const id = r?.data?.id;",
+                  "if (id) pm.collectionVariables.set('bookingId3', String(id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idemBooking3}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 103\n}"
+            },
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/bookings"
+          }
+        },
+        {
+          "name": "List Bookings by Session",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bookings?sessionId={{sessionId}}&sort=createdAt:asc"
+          }
+        },
+        {
+          "name": "Cancel Booking 1 (Promote Waitlist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Idempotency-Key", "value": "{{idemCancel1}}" }
+            ],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId1}}/cancel"
+          }
+        },
+        {
+          "name": "Replay Same Cancel (Idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Idempotency-Key", "value": "{{idemCancel1}}" }
+            ],
+            "url": "{{baseUrl}}/api/bookings/{{bookingId1}}/cancel"
+          }
+        },
+        {
+          "name": "List Bookings Final",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bookings?sessionId={{sessionId}}&sort=createdAt:asc"
+          }
+        }
+      ]
+    }
+  ]
+}

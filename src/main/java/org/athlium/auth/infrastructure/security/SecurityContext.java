@@ -18,6 +18,26 @@ public class SecurityContext {
     private String rawToken;
     private boolean authenticated;
 
+    public AuthenticatedUser getCurrentUser() {
+        return currentUser;
+    }
+
+    public void setCurrentUser(AuthenticatedUser currentUser) {
+        this.currentUser = currentUser;
+    }
+
+    public String getRawToken() {
+        return rawToken;
+    }
+
+    public void setRawToken(String rawToken) {
+        this.rawToken = rawToken;
+    }
+
+    public void setAuthenticated(boolean authenticated) {
+        this.authenticated = authenticated;
+    }
+
     /**
      * Checks if there is an authenticated user in the current request.
      */
