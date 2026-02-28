@@ -1,11 +1,7 @@
 package org.athlium.shared.domain;
 
-import lombok.Data;
-import lombok.Getter;
-
 import java.util.List;
 
-@Getter
 public class PageResponse<T> {
 
     private final List<T> content;
@@ -20,5 +16,25 @@ public class PageResponse<T> {
         this.size = size;
         this.totalElements = totalElements;
         this.totalPages = (int) Math.ceil((double) totalElements / size);
+    }
+
+    public List<T> getContent() {
+        return content;
+    }
+
+    public int getPage() {
+        return page;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public long getTotalElements() {
+        return totalElements;
+    }
+
+    public int getTotalPages() {
+        return totalPages;
     }
 }

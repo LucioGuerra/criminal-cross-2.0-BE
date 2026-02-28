@@ -39,7 +39,6 @@ public class ActivityRepositoryImpl implements ActivityRepository {
     public Activity update(Activity activity) {
         ActivityEntity entity = panacheRepo.findById(activity.getId());
         mapper.updateEntityFromDomain(activity, entity);
-        panacheRepo.persist(entity);
         return mapper.toDomain(entity);
     }
 

@@ -1,0 +1,702 @@
+{
+  "info": {
+    "name": "Criminal-Cross-2.0 Full API",
+    "description": "Complete importable Postman collection for Criminal-Cross-2.0 backend modules.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearer_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "bearer_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "id_token", "value": "" },
+    { "key": "firebase_uid", "value": "demo-uid-001" },
+    { "key": "user_id", "value": "1" },
+    { "key": "organization_id", "value": "1" },
+    { "key": "headquarters_id", "value": "1" },
+    { "key": "activity_id", "value": "1" },
+    { "key": "activity_schedule_id", "value": "1" },
+    { "key": "session_id", "value": "1" },
+    { "key": "booking_id", "value": "1" },
+    { "key": "payment_id", "value": "1" },
+    { "key": "client_package_id", "value": "1" },
+    { "key": "idempotency_key", "value": "req-001" }
+  ],
+  "item": [
+    {
+      "name": "01 Auth",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/health"
+          }
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{id_token}}\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/verify-token"
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{id_token}}\",\n  \"name\": \"Demo\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "const tokens = data.tokens || {};",
+                  "if (tokens.accessToken) pm.collectionVariables.set('bearer_token', tokens.accessToken);",
+                  "if (tokens.refreshToken) pm.collectionVariables.set('refresh_token', tokens.refreshToken);",
+                  "if (data.user && data.user.id) pm.collectionVariables.set('user_id', String(data.user.id));",
+                  "if (data.user && data.user.firebaseUid) pm.collectionVariables.set('firebase_uid', String(data.user.firebaseUid));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{id_token}}\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const tokens = body && body.data && body.data.tokens ? body.data.tokens : {};",
+                  "if (tokens.accessToken) pm.collectionVariables.set('bearer_token', tokens.accessToken);",
+                  "if (tokens.refreshToken) pm.collectionVariables.set('refresh_token', tokens.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/refresh"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Logout (Single Session)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\",\n  \"logoutAll\": false\n}"
+            },
+            "url": "{{base_url}}/api/auth/logout"
+          }
+        },
+        {
+          "name": "Logout (All Sessions)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logoutAll\": true\n}"
+            },
+            "url": "{{base_url}}/api/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Users",
+      "item": [
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('user_id', String(data.id));",
+                  "if (data.firebaseUid) pm.collectionVariables.set('firebase_uid', String(data.firebaseUid));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firebaseUid\": \"{{firebase_uid}}\",\n  \"email\": \"demo+{{firebase_uid}}@example.com\",\n  \"name\": \"Demo\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": "{{base_url}}/api/users"
+          }
+        },
+        {
+          "name": "Get User By Firebase UID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users/firebase/{{firebase_uid}}"
+          }
+        },
+        {
+          "name": "Update User Roles",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roles\": [\"CLIENT\", \"ORG_ADMIN\"]\n}"
+            },
+            "url": "{{base_url}}/api/users/firebase/{{firebase_uid}}/roles"
+          }
+        },
+        {
+          "name": "Sync User With Firebase",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('user_id', String(data.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firebaseUid\": \"{{firebase_uid}}\",\n  \"email\": \"demo+{{firebase_uid}}@example.com\",\n  \"name\": \"Demo\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": "{{base_url}}/api/users/sync"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Gym - Organizations",
+      "item": [
+        {
+          "name": "List Organizations",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/organizations"
+          }
+        },
+        {
+          "name": "Get Organization By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/organizations/{{organization_id}}"
+          }
+        },
+        {
+          "name": "Create Organization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('organization_id', String(data.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Criminal Cross HQ\"\n}"
+            },
+            "url": "{{base_url}}/api/organizations"
+          }
+        },
+        {
+          "name": "Update Organization",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Criminal Cross HQ Updated\"\n}"
+            },
+            "url": "{{base_url}}/api/organizations/{{organization_id}}"
+          }
+        },
+        {
+          "name": "Delete Organization",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/organizations/{{organization_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Gym - Headquarters",
+      "item": [
+        {
+          "name": "List Headquarters",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/headquarters"
+          }
+        },
+        {
+          "name": "List Headquarters By Organization",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/headquarters?organizationId={{organization_id}}"
+          }
+        },
+        {
+          "name": "Get Headquarters By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/headquarters/{{headquarters_id}}"
+          }
+        },
+        {
+          "name": "Create Headquarters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('headquarters_id', String(data.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": {{organization_id}},\n  \"name\": \"Central Branch\"\n}"
+            },
+            "url": "{{base_url}}/api/headquarters"
+          }
+        },
+        {
+          "name": "Update Headquarters",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": {{organization_id}},\n  \"name\": \"Central Branch Updated\"\n}"
+            },
+            "url": "{{base_url}}/api/headquarters/{{headquarters_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Gym - Activities",
+      "item": [
+        {
+          "name": "List Activities",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/activities?hqId={{headquarters_id}}"
+          }
+        },
+        {
+          "name": "List Activities By Name",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/activities?hqId={{headquarters_id}}&name=Cross&page=0&size=20"
+          }
+        },
+        {
+          "name": "Get Activity By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/activities/{{activity_id}}"
+          }
+        },
+        {
+          "name": "Create Activity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('activity_id', String(data.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cross Training\",\n  \"description\": \"Functional class\",\n  \"hqId\": {{headquarters_id}}\n}"
+            },
+            "url": "{{base_url}}/api/activities"
+          }
+        },
+        {
+          "name": "Update Activity",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cross Training Advanced\",\n  \"description\": \"High intensity functional class\",\n  \"isActive\": true\n}"
+            },
+            "url": "{{base_url}}/api/activities/{{activity_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Gym - Activity Schedules",
+      "item": [
+        {
+          "name": "Create Activity Schedule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('activity_schedule_id', String(data.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": {{organization_id}},\n  \"headquartersId\": {{headquarters_id}},\n  \"activityId\": {{activity_id}},\n  \"dayOfWeek\": 1,\n  \"startTime\": \"18:00\",\n  \"durationMinutes\": 60,\n  \"active\": true\n}"
+            },
+            "url": "{{base_url}}/api/activity-schedules"
+          }
+        },
+        {
+          "name": "List Activity Schedules",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/activity-schedules?headquartersId={{headquarters_id}}"
+          }
+        },
+        {
+          "name": "Generate Next Week Sessions",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/activity-schedules/generate-next-week"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Gym - Session Configuration",
+      "item": [
+        {
+          "name": "Upsert Organization Config",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxParticipants\": 12,\n  \"waitlistEnabled\": true,\n  \"waitlistMaxSize\": 8,\n  \"waitlistStrategy\": \"FIFO\",\n  \"cancellationMinHoursBeforeStart\": 2,\n  \"cancellationAllowLateCancel\": false\n}"
+            },
+            "url": "{{base_url}}/api/gym/config/organizations/{{organization_id}}"
+          }
+        },
+        {
+          "name": "Upsert Headquarters Config",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxParticipants\": 10,\n  \"waitlistEnabled\": true,\n  \"waitlistMaxSize\": 6,\n  \"waitlistStrategy\": \"FIFO\",\n  \"cancellationMinHoursBeforeStart\": 4,\n  \"cancellationAllowLateCancel\": true\n}"
+            },
+            "url": "{{base_url}}/api/gym/config/headquarters/{{headquarters_id}}"
+          }
+        },
+        {
+          "name": "Upsert Activity Config",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxParticipants\": 8,\n  \"waitlistEnabled\": true,\n  \"waitlistMaxSize\": 5,\n  \"waitlistStrategy\": \"FIFO\",\n  \"cancellationMinHoursBeforeStart\": 2,\n  \"cancellationAllowLateCancel\": true\n}"
+            },
+            "url": "{{base_url}}/api/gym/config/activities/{{activity_id}}"
+          }
+        },
+        {
+          "name": "Upsert Session Config",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxParticipants\": 6,\n  \"waitlistEnabled\": true,\n  \"waitlistMaxSize\": 4,\n  \"waitlistStrategy\": \"FIFO\",\n  \"cancellationMinHoursBeforeStart\": 1,\n  \"cancellationAllowLateCancel\": true\n}"
+            },
+            "url": "{{base_url}}/api/gym/config/sessions/{{session_id}}"
+          }
+        },
+        {
+          "name": "Get Effective Config",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/gym/config/effective?organizationId={{organization_id}}&headquartersId={{headquarters_id}}&activityId={{activity_id}}&sessionId={{session_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Gym - Sessions",
+      "item": [
+        {
+          "name": "List Sessions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "const first = data.items && data.items.length ? data.items[0] : null;",
+                  "if (first && first.id) pm.collectionVariables.set('session_id', String(first.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/sessions?organizationId={{organization_id}}&headquartersId={{headquarters_id}}&activityId={{activity_id}}&page=1&limit=20&sort=startsAt:asc"
+          }
+        },
+        {
+          "name": "Get Session By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/sessions/{{session_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Bookings",
+      "item": [
+        {
+          "name": "Create Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('booking_id', String(data.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idempotency_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{user_id}}\n}"
+            },
+            "url": "{{base_url}}/api/sessions/{{session_id}}/bookings"
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Idempotency-Key", "value": "{{idempotency_key}}" }
+            ],
+            "url": "{{base_url}}/api/bookings/{{booking_id}}/cancel"
+          }
+        },
+        {
+          "name": "List Bookings",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/bookings?sessionId={{session_id}}&userId={{user_id}}&page=1&limit=20&sort=createdAt:desc"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('payment_id', String(data.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20000,\n  \"paymentMethod\": \"CASH\"\n}"
+            },
+            "url": "{{base_url}}/api/payments"
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Client Packages",
+      "item": [
+        {
+          "name": "Create Client Package",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "if (data.id) pm.collectionVariables.set('client_package_id', String(data.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": {{payment_id}},\n  \"activityTokens\": {\n    \"{{activity_id}}\": 10\n  }\n}"
+            },
+            "url": "{{base_url}}/api/clients/{{user_id}}/packages"
+          }
+        },
+        {
+          "name": "Update Active Client Package",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activityTokens\": {\n    \"{{activity_id}}\": 8\n  }\n}"
+            },
+            "url": "{{base_url}}/api/clients/{{user_id}}/packages/{{client_package_id}}"
+          }
+        },
+        {
+          "name": "Get Active Client Package",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/clients/{{user_id}}/packages/active"
+          }
+        },
+        {
+          "name": "Get Client Packages",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/clients/{{user_id}}/packages"
+          }
+        }
+      ]
+    }
+  ]
+}

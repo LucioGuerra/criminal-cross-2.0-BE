@@ -1,0 +1,282 @@
+package org.athlium.bookings.application.usecase;
+
+import org.athlium.bookings.domain.model.Booking;
+import org.athlium.bookings.domain.model.BookingStatus;
+import org.athlium.bookings.domain.repository.BookingRepository;
+import org.athlium.clients.application.service.ClientPackageCreditService;
+import org.athlium.gym.domain.model.SessionInstance;
+import org.athlium.gym.domain.model.SessionStatus;
+import org.athlium.gym.domain.repository.SessionInstanceRepository;
+import org.athlium.shared.domain.PageResponse;
+import org.athlium.shared.exception.BadRequestException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class CreateBookingUseCaseTest {
+
+    private CreateBookingUseCase useCase;
+    private InMemoryBookingRepository bookingRepository;
+    private InMemorySessionRepository sessionRepository;
+    private StubClientPackageCreditService creditService;
+
+    @BeforeEach
+    void setUp() {
+        useCase = new CreateBookingUseCase();
+        bookingRepository = new InMemoryBookingRepository();
+        sessionRepository = new InMemorySessionRepository();
+        creditService = new StubClientPackageCreditService();
+        useCase.bookingRepository = bookingRepository;
+        useCase.sessionInstanceRepository = sessionRepository;
+        useCase.clientPackageCreditService = creditService;
+        sessionRepository.session.setActivityId(500L);
+    }
+
+    @Test
+    void shouldCreateConfirmedBookingWhenSlotAvailable() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(2);
+        bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
+
+        Booking created = useCase.execute(10L, 100L, "req-1");
+
+        assertEquals(BookingStatus.CONFIRMED, created.getStatus());
+        assertEquals(77L, created.getConsumedPackageId());
+        assertEquals(1, creditService.consumeCalls);
+    }
+
+    @Test
+    void shouldCreateWaitlistedBookingWhenSessionFull() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(1);
+        sessionRepository.session.setWaitlistEnabled(true);
+        sessionRepository.session.setWaitlistMaxSize(3);
+        bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
+
+        Booking created = useCase.execute(10L, 101L, "req-2");
+
+        assertEquals(BookingStatus.WAITLISTED, created.getStatus());
+        assertEquals(1, creditService.hasAvailableCalls);
+    }
+
+    @Test
+    void shouldRejectWhenConfirmedBookingHasNoCredits() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(1);
+        creditService.hasCredit = false;
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 100L, "req-no-credit"));
+
+        assertEquals("User has no available credits for this activity", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenWaitlistBookingHasNoCredits() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(1);
+        sessionRepository.session.setWaitlistEnabled(true);
+        sessionRepository.session.setWaitlistMaxSize(3);
+        bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
+        creditService.hasCredit = false;
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 100L, "req-no-credit-wait"));
+
+        assertEquals("User has no available credits for this activity", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenSessionIsFullAndWaitlistDisabled() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(1);
+        sessionRepository.session.setWaitlistEnabled(false);
+        bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 102L, "req-3"));
+        assertEquals("Session is full", ex.getMessage());
+    }
+
+    @Test
+    void shouldReturnExistingBookingForSameIdempotencyKey() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(5);
+
+        Booking first = useCase.execute(10L, 100L, "same-key");
+        Booking second = useCase.execute(10L, 100L, "same-key");
+
+        assertEquals(first.getId(), second.getId());
+    }
+
+    @Test
+    void shouldRejectWhenIdempotencyKeyIsReusedForDifferentRequest() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(5);
+
+        useCase.execute(10L, 100L, "same-key");
+
+        BadRequestException ex = assertThrows(
+                BadRequestException.class,
+                () -> useCase.execute(10L, 101L, "same-key")
+        );
+
+        assertEquals("Idempotency key already used for a different booking request", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenWaitlistIsFull() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(1);
+        sessionRepository.session.setWaitlistEnabled(true);
+        sessionRepository.session.setWaitlistMaxSize(1);
+
+        bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
+        bookingRepository.bookings.add(existingBooking(10L, 51L, BookingStatus.WAITLISTED));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 102L, "req-full"));
+
+        assertEquals("Waitlist is full for this session", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenIdempotencyKeyIsTooLong() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(5);
+
+        String longKey = "x".repeat(129);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 100L, longKey));
+
+        assertEquals("Idempotency key length must be less than or equal to 128", ex.getMessage());
+    }
+
+    private static class InMemoryBookingRepository implements BookingRepository {
+        private final List<Booking> bookings = new ArrayList<>();
+
+        @Override
+        public Booking save(Booking booking) {
+            booking.setId((long) (bookings.size() + 1));
+            bookings.add(booking);
+            return booking;
+        }
+
+        @Override
+        public Optional<Booking> findById(Long id) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Booking> findByIdForUpdate(Long id) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Booking> findByCreateRequestId(String requestId) {
+            return bookings.stream().filter(b -> requestId.equals(b.getCreateRequestId())).findFirst();
+        }
+
+        @Override
+        public Optional<Booking> findByCancelRequestId(String requestId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean existsActiveBooking(Long sessionId, Long userId) {
+            return bookings.stream().anyMatch(b -> b.getSessionId().equals(sessionId)
+                    && b.getUserId().equals(userId)
+                    && (b.getStatus() == BookingStatus.CONFIRMED || b.getStatus() == BookingStatus.WAITLISTED));
+        }
+
+        @Override
+        public long countBySessionAndStatus(Long sessionId, BookingStatus status) {
+            return bookings.stream().filter(b -> b.getSessionId().equals(sessionId) && b.getStatus() == status).count();
+        }
+
+        @Override
+        public Optional<Booking> findFirstWaitlistedBySessionId(Long sessionId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Booking> findFirstWaitlistedBySessionIdForUpdate(Long sessionId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public PageResponse<Booking> findBookings(Long sessionId, Long userId, BookingStatus status, Long branchId,
+                                                  Long activityId, Instant from, Instant to, int page,
+                                                  int size, boolean sortAscending) {
+            return new PageResponse<>(List.of(), page, size, 0);
+        }
+    }
+
+    private static class InMemorySessionRepository implements SessionInstanceRepository {
+        private final SessionInstance session = new SessionInstance();
+
+        @Override
+        public SessionInstance save(SessionInstance sessionInstance) {
+            return sessionInstance;
+        }
+
+        @Override
+        public boolean existsByOrganizationAndHeadquartersAndActivityAndStartsAt(Long organizationId,
+                                                                                  Long headquartersId,
+                                                                                  Long activityId,
+                                                                                  Instant startsAt) {
+            return false;
+        }
+
+        @Override
+        public Optional<SessionInstance> findById(Long id) {
+            session.setId(id);
+            return Optional.of(session);
+        }
+
+        @Override
+        public Optional<SessionInstance> findByIdForUpdate(Long id) {
+            return findById(id);
+        }
+
+        @Override
+        public PageResponse<SessionInstance> findSessions(Long organizationId, Long headquartersId,
+                                                          Long activityId, SessionStatus status,
+                                                          Instant from, Instant to, int page, int size,
+                                                          boolean sortAscending) {
+            return new PageResponse<>(List.of(), page, size, 0);
+        }
+    }
+
+    private static class StubClientPackageCreditService extends ClientPackageCreditService {
+        private boolean hasCredit = true;
+        private int consumeCalls;
+        private int hasAvailableCalls;
+
+        @Override
+        public boolean hasAvailableCredit(Long userId, Long activityId) {
+            hasAvailableCalls++;
+            return hasCredit;
+        }
+
+        @Override
+        public Long consumeCredit(Long userId, Long activityId) {
+            consumeCalls++;
+            if (!hasCredit) {
+                throw new BadRequestException("User has no available credits for this activity");
+            }
+            return 77L;
+        }
+    }
+
+    private static Booking existingBooking(Long sessionId, Long userId, BookingStatus status) {
+        Booking booking = new Booking();
+        booking.setSessionId(sessionId);
+        booking.setUserId(userId);
+        booking.setStatus(status);
+        return booking;
+    }
+}

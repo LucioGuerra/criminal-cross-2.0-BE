@@ -18,7 +18,7 @@ public class CreateHeadquartersUseCase {
 
     @Transactional
     public Headquarters execute(Headquarters headquarters) {
-        Organization organization = getOrganizationUseCase.execute(headquarters.getId());
+        Organization organization = getOrganizationUseCase.execute(headquarters.getOrganizationId());
         return headquartersRepository.save(headquarters);
     }
 }

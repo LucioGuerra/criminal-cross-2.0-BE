@@ -1,22 +1,46 @@
 package org.athlium.gym.presentation.dto;
 
 import lombok.Data;
-import org.eclipse.microprofile.graphql.Description;
-import org.eclipse.microprofile.graphql.Name;
 
 @Data
-@Name("ActivityUpdateInput")
-@Description("Input data for updating an existing activity")
 public class ActivityUpdateInput {
-    @Description("Unique identifier of the activity")
     private Long id;
-    
-    @Description("Name of the activity")
+
     private String name;
-    
-    @Description("Detailed description of the activity")
+
     private String description;
-    
-    @Description("Whether the activity is active or not")
+
     private Boolean isActive;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean active) {
+        isActive = active;
+    }
 }

@@ -15,8 +15,10 @@ import java.util.List;
 public interface ActivityDtoMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "isActive", ignore = true)
     Activity toDomain(ActivityInput input);
 
+    @Mapping(target = "hqId", ignore = true)
     Activity toDomain(ActivityUpdateInput input);
 
     ActivityResponse toResponse(Activity activity);
