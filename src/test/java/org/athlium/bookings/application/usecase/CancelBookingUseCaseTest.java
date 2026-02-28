@@ -3,6 +3,7 @@ package org.athlium.bookings.application.usecase;
 import org.athlium.bookings.domain.model.Booking;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.athlium.bookings.domain.repository.BookingRepository;
+import org.athlium.clients.application.service.ClientPackageCreditService;
 import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
@@ -27,14 +28,17 @@ class CancelBookingUseCaseTest {
     private CancelBookingUseCase useCase;
     private InMemoryBookingRepository bookingRepository;
     private InMemorySessionRepository sessionRepository;
+    private StubClientPackageCreditService creditService;
 
     @BeforeEach
     void setUp() {
         useCase = new CancelBookingUseCase();
         bookingRepository = new InMemoryBookingRepository();
         sessionRepository = new InMemorySessionRepository();
+        creditService = new StubClientPackageCreditService();
         useCase.bookingRepository = bookingRepository;
         useCase.sessionInstanceRepository = sessionRepository;
+        useCase.clientPackageCreditService = creditService;
     }
 
     @Test
@@ -50,6 +54,9 @@ class CancelBookingUseCaseTest {
         assertNotNull(result.promotedBooking());
         assertEquals(2L, result.promotedBooking().getId());
         assertEquals(BookingStatus.CONFIRMED, result.promotedBooking().getStatus());
+        assertEquals(88L, result.promotedBooking().getConsumedPackageId());
+        assertEquals(1, creditService.refundCalls);
+        assertEquals(1, creditService.consumeCalls);
     }
 
     @Test
@@ -61,6 +68,21 @@ class CancelBookingUseCaseTest {
 
         assertEquals(BookingStatus.CANCELLED, result.cancelledBooking().getStatus());
         assertNull(result.promotedBooking());
+        assertEquals(0, creditService.refundCalls);
+    }
+
+    @Test
+    void shouldFailPromotionWhenWaitlistedUserHasNoCredits() {
+        Booking confirmed = booking(1L, 10L, 100L, BookingStatus.CONFIRMED, Instant.parse("2026-01-01T10:00:00Z"));
+        confirmed.setConsumedPackageId(70L);
+        Booking waitlist = booking(2L, 10L, 101L, BookingStatus.WAITLISTED, Instant.parse("2026-01-01T10:01:00Z"));
+        bookingRepository.bookings.addAll(List.of(confirmed, waitlist));
+
+        creditService.hasCredit = false;
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(1L, "cancel-no-credit"));
+
+        assertEquals("Waitlisted user has no available credits for this activity", ex.getMessage());
     }
 
     @Test
@@ -201,6 +223,7 @@ class CancelBookingUseCaseTest {
             SessionInstance session = new SessionInstance();
             session.setId(id);
             session.setStatus(SessionStatus.OPEN);
+            session.setActivityId(500L);
             return Optional.of(session);
         }
 
@@ -231,5 +254,30 @@ class CancelBookingUseCaseTest {
         booking.setStatus(status);
         booking.setCreatedAt(createdAt);
         return booking;
+    }
+
+    private static class StubClientPackageCreditService extends ClientPackageCreditService {
+        private boolean hasCredit = true;
+        private int refundCalls;
+        private int consumeCalls;
+
+        @Override
+        public boolean hasAvailableCredit(Long userId, Long activityId) {
+            return hasCredit;
+        }
+
+        @Override
+        public Long consumeCredit(Long userId, Long activityId) {
+            consumeCalls++;
+            if (!hasCredit) {
+                throw new BadRequestException("User has no available credits for this activity");
+            }
+            return 88L;
+        }
+
+        @Override
+        public void refundCredit(Long userId, Long activityId, Long consumedPackageId) {
+            refundCalls++;
+        }
     }
 }

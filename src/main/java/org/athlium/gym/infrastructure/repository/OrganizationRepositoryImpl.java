@@ -23,10 +23,13 @@ public class OrganizationRepositoryImpl implements OrganizationRepository {
     @Override
     @Transactional
     public Organization save(Organization organization) {
-        var entity = mapper.toEntity(organization);
         if (organization.getId() != null) {
-            entity.id = organization.getId();
+            var managedEntity = panacheRepository.findById(organization.getId());
+            managedEntity.setName(organization.getName());
+            return mapper.toDomain(managedEntity);
         }
+
+        var entity = mapper.toEntity(organization);
         panacheRepository.persist(entity);
         return mapper.toDomain(entity);
     }

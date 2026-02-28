@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.athlium.bookings.domain.model.Booking;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.athlium.bookings.domain.repository.BookingRepository;
+import org.athlium.clients.application.service.ClientPackageCreditService;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
 import org.athlium.shared.exception.BadRequestException;
@@ -19,6 +20,9 @@ public class CreateBookingUseCase {
 
     @Inject
     SessionInstanceRepository sessionInstanceRepository;
+
+    @Inject
+    ClientPackageCreditService clientPackageCreditService;
 
     @Transactional
     public Booking execute(Long sessionId, Long userId, String requestId) {
@@ -43,6 +47,10 @@ public class CreateBookingUseCase {
             throw new BadRequestException("Session is not open for bookings");
         }
 
+        if (session.getActivityId() == null || session.getActivityId() <= 0) {
+            throw new BadRequestException("Session activityId must be defined to create bookings");
+        }
+
         if (bookingRepository.existsActiveBooking(sessionId, userId)) {
             throw new BadRequestException("User already has an active booking for this session");
         }
@@ -54,6 +62,14 @@ public class CreateBookingUseCase {
         booking.setSessionId(sessionId);
         booking.setUserId(userId);
         booking.setStatus(targetStatus);
+        if (targetStatus == BookingStatus.CONFIRMED) {
+            Long consumedPackageId = clientPackageCreditService.consumeCredit(userId, session.getActivityId());
+            booking.setConsumedPackageId(consumedPackageId);
+        } else {
+            if (!clientPackageCreditService.hasAvailableCredit(userId, session.getActivityId())) {
+                throw new BadRequestException("User has no available credits for this activity");
+            }
+        }
         booking.setCreateRequestId(normalizedRequestId);
         return bookingRepository.save(booking);
     }

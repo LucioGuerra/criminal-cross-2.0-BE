@@ -11,3 +11,20 @@ src/main/resources/publicKey.pem
 .project
 .factorypath
 .settings/
+/AGENTS.md
+
+# Environment and Data
+.env
+data/
+mongo_data/
+postgres_data/
+secrets/
+
+# Scripts & Binaries
+*.sh
+jdk-21.0.2/
+openjdk-*.tar.gz
+
+# Local configs
+.agents/
+skills-lock.json

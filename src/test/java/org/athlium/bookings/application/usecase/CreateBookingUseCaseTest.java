@@ -3,6 +3,7 @@ package org.athlium.bookings.application.usecase;
 import org.athlium.bookings.domain.model.Booking;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.athlium.bookings.domain.repository.BookingRepository;
+import org.athlium.clients.application.service.ClientPackageCreditService;
 import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
@@ -24,14 +25,18 @@ class CreateBookingUseCaseTest {
     private CreateBookingUseCase useCase;
     private InMemoryBookingRepository bookingRepository;
     private InMemorySessionRepository sessionRepository;
+    private StubClientPackageCreditService creditService;
 
     @BeforeEach
     void setUp() {
         useCase = new CreateBookingUseCase();
         bookingRepository = new InMemoryBookingRepository();
         sessionRepository = new InMemorySessionRepository();
+        creditService = new StubClientPackageCreditService();
         useCase.bookingRepository = bookingRepository;
         useCase.sessionInstanceRepository = sessionRepository;
+        useCase.clientPackageCreditService = creditService;
+        sessionRepository.session.setActivityId(500L);
     }
 
     @Test
@@ -43,6 +48,8 @@ class CreateBookingUseCaseTest {
         Booking created = useCase.execute(10L, 100L, "req-1");
 
         assertEquals(BookingStatus.CONFIRMED, created.getStatus());
+        assertEquals(77L, created.getConsumedPackageId());
+        assertEquals(1, creditService.consumeCalls);
     }
 
     @Test
@@ -56,6 +63,32 @@ class CreateBookingUseCaseTest {
         Booking created = useCase.execute(10L, 101L, "req-2");
 
         assertEquals(BookingStatus.WAITLISTED, created.getStatus());
+        assertEquals(1, creditService.hasAvailableCalls);
+    }
+
+    @Test
+    void shouldRejectWhenConfirmedBookingHasNoCredits() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(1);
+        creditService.hasCredit = false;
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 100L, "req-no-credit"));
+
+        assertEquals("User has no available credits for this activity", ex.getMessage());
+    }
+
+    @Test
+    void shouldRejectWhenWaitlistBookingHasNoCredits() {
+        sessionRepository.session.setStatus(SessionStatus.OPEN);
+        sessionRepository.session.setMaxParticipants(1);
+        sessionRepository.session.setWaitlistEnabled(true);
+        sessionRepository.session.setWaitlistMaxSize(3);
+        bookingRepository.bookings.add(existingBooking(10L, 50L, BookingStatus.CONFIRMED));
+        creditService.hasCredit = false;
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(10L, 100L, "req-no-credit-wait"));
+
+        assertEquals("User has no available credits for this activity", ex.getMessage());
     }
 
     @Test
@@ -215,6 +248,27 @@ class CreateBookingUseCaseTest {
                                                           Instant from, Instant to, int page, int size,
                                                           boolean sortAscending) {
             return new PageResponse<>(List.of(), page, size, 0);
+        }
+    }
+
+    private static class StubClientPackageCreditService extends ClientPackageCreditService {
+        private boolean hasCredit = true;
+        private int consumeCalls;
+        private int hasAvailableCalls;
+
+        @Override
+        public boolean hasAvailableCredit(Long userId, Long activityId) {
+            hasAvailableCalls++;
+            return hasCredit;
+        }
+
+        @Override
+        public Long consumeCredit(Long userId, Long activityId) {
+            consumeCalls++;
+            if (!hasCredit) {
+                throw new BadRequestException("User has no available credits for this activity");
+            }
+            return 77L;
         }
     }
 
