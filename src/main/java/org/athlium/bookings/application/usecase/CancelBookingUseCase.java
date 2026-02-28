@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.athlium.bookings.domain.model.Booking;
 import org.athlium.bookings.domain.model.BookingStatus;
 import org.athlium.bookings.domain.repository.BookingRepository;
+import org.athlium.clients.application.service.ClientPackageCreditService;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
 import org.athlium.shared.exception.BadRequestException;
 import org.athlium.shared.exception.EntityNotFoundException;
@@ -20,6 +21,9 @@ public class CancelBookingUseCase {
 
     @Inject
     SessionInstanceRepository sessionInstanceRepository;
+
+    @Inject
+    ClientPackageCreditService clientPackageCreditService;
 
     @Transactional
     public CancelBookingResult execute(Long bookingId, String requestId) {
@@ -45,8 +49,12 @@ public class CancelBookingUseCase {
         Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking", bookingId));
 
-        sessionInstanceRepository.findByIdForUpdate(booking.getSessionId())
+        var session = sessionInstanceRepository.findByIdForUpdate(booking.getSessionId())
                 .orElseThrow(() -> new EntityNotFoundException("Session", booking.getSessionId()));
+
+        if (session.getActivityId() == null || session.getActivityId() <= 0) {
+            throw new BadRequestException("Session activityId must be defined to cancel bookings");
+        }
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new BadRequestException("Booking is already cancelled");
@@ -61,12 +69,27 @@ public class CancelBookingUseCase {
         booking.setCancelRequestId(normalizedRequestId);
         Booking cancelled = bookingRepository.save(booking);
 
+        if (previousStatus == BookingStatus.CONFIRMED) {
+            clientPackageCreditService.refundCredit(
+                    cancelled.getUserId(),
+                    session.getActivityId(),
+                    cancelled.getConsumedPackageId()
+            );
+        }
+
         Booking promoted = null;
         if (previousStatus == BookingStatus.CONFIRMED) {
             var waitlisted = bookingRepository.findFirstWaitlistedBySessionIdForUpdate(booking.getSessionId());
             if (waitlisted.isPresent()) {
                 Booking candidate = waitlisted.get();
+                if (!clientPackageCreditService.hasAvailableCredit(candidate.getUserId(), session.getActivityId())) {
+                    // TODO: Emit domain event to notify/handle waitlist user without credits.
+                    throw new BadRequestException("Waitlisted user has no available credits for this activity");
+                }
+
+                Long consumedPackageId = clientPackageCreditService.consumeCredit(candidate.getUserId(), session.getActivityId());
                 candidate.setStatus(BookingStatus.CONFIRMED);
+                candidate.setConsumedPackageId(consumedPackageId);
                 promoted = bookingRepository.save(candidate);
                 cancelled.setPromotedBookingId(promoted.getId());
                 cancelled = bookingRepository.save(cancelled);

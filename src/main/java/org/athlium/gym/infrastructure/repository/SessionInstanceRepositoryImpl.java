@@ -28,10 +28,27 @@ public class SessionInstanceRepositoryImpl implements SessionInstanceRepository 
 
     @Override
     public SessionInstance save(SessionInstance sessionInstance) {
-        SessionInstanceEntity entity = mapper.toEntity(sessionInstance);
         if (sessionInstance.getId() != null) {
-            entity.id = sessionInstance.getId();
+            SessionInstanceEntity managedEntity = panacheRepository.findById(sessionInstance.getId());
+            if (managedEntity != null) {
+                managedEntity.setOrganizationId(sessionInstance.getOrganizationId());
+                managedEntity.setHeadquartersId(sessionInstance.getHeadquartersId());
+                managedEntity.setActivityId(sessionInstance.getActivityId());
+                managedEntity.setStartsAt(sessionInstance.getStartsAt());
+                managedEntity.setEndsAt(sessionInstance.getEndsAt());
+                managedEntity.setStatus(sessionInstance.getStatus());
+                managedEntity.setSource(sessionInstance.getSource());
+                managedEntity.setMaxParticipants(sessionInstance.getMaxParticipants());
+                managedEntity.setWaitlistEnabled(sessionInstance.getWaitlistEnabled());
+                managedEntity.setWaitlistMaxSize(sessionInstance.getWaitlistMaxSize());
+                managedEntity.setWaitlistStrategy(sessionInstance.getWaitlistStrategy());
+                managedEntity.setCancellationMinHoursBeforeStart(sessionInstance.getCancellationMinHoursBeforeStart());
+                managedEntity.setCancellationAllowLateCancel(sessionInstance.getCancellationAllowLateCancel());
+                return mapper.toDomain(managedEntity);
+            }
         }
+
+        SessionInstanceEntity entity = mapper.toEntity(sessionInstance);
         panacheRepository.persist(entity);
         return mapper.toDomain(entity);
     }

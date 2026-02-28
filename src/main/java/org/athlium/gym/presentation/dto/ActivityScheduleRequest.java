@@ -1,14 +1,22 @@
 package org.athlium.gym.presentation.dto;
 
+import java.util.List;
+
 public class ActivityScheduleRequest {
 
     private Long organizationId;
     private Long headquartersId;
     private Long activityId;
     private Integer dayOfWeek;
+    private List<String> weekDays;
     private String startTime;
     private Integer durationMinutes;
     private Boolean active;
+    private String schedulerType;
+    private String templateType;
+    private String activeFrom;
+    private String activeUntil;
+    private String scheduledDate;
 
     public Long getOrganizationId() {
         return organizationId;
@@ -42,6 +50,14 @@ public class ActivityScheduleRequest {
         this.dayOfWeek = dayOfWeek;
     }
 
+    public List<String> getWeekDays() {
+        return weekDays;
+    }
+
+    public void setWeekDays(List<String> weekDays) {
+        this.weekDays = weekDays;
+    }
+
     public String getStartTime() {
         return startTime;
     }
@@ -64,5 +80,45 @@ public class ActivityScheduleRequest {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public String getSchedulerType() {
+        return schedulerType;
+    }
+
+    public void setSchedulerType(String schedulerType) {
+        this.schedulerType = schedulerType;
+    }
+
+    public String getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(String templateType) {
+        this.templateType = templateType;
+    }
+
+    public String getActiveFrom() {
+        return activeFrom;
+    }
+
+    public void setActiveFrom(String activeFrom) {
+        this.activeFrom = activeFrom;
+    }
+
+    public String getActiveUntil() {
+        return activeUntil;
+    }
+
+    public void setActiveUntil(String activeUntil) {
+        this.activeUntil = activeUntil;
+    }
+
+    public String getScheduledDate() {
+        return scheduledDate;
+    }
+
+    public void setScheduledDate(String scheduledDate) {
+        this.scheduledDate = scheduledDate;
     }
 }

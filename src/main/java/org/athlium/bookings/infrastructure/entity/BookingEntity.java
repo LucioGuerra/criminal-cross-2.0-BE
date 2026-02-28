@@ -58,4 +58,7 @@ public class BookingEntity extends PanacheEntity {
 
     @Column(name = "promoted_booking_id")
     public Long promotedBookingId;
+
+    @Column(name = "consumed_package_id")
+    public Long consumedPackageId;
 }

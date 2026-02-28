@@ -44,6 +44,7 @@ public class BookingRepositoryImpl implements BookingRepository {
             entity.createRequestId = booking.getCreateRequestId();
             entity.cancelRequestId = booking.getCancelRequestId();
             entity.promotedBookingId = booking.getPromotedBookingId();
+            entity.consumedPackageId = booking.getConsumedPackageId();
             return bookingMapper.toDomain(entity);
         }
 

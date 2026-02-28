@@ -125,7 +125,8 @@ class GymBookingsE2ETest {
                 .post("/api/activity-schedules/generate-next-week")
                 .then()
                 .statusCode(200)
-                .body("success", equalTo(true));
+                .body("success", equalTo(true))
+                .log().all();
 
         JsonPath sessionList = given()
                 .queryParam("organizationId", organizationId)
@@ -144,6 +145,10 @@ class GymBookingsE2ETest {
 
         Long sessionId = sessionList.getLong("data.items[0].id");
         assertNotNull(sessionId);
+
+        grantCredits(101L, activityId, 10);
+        grantCredits(102L, activityId, 10);
+        grantCredits(103L, activityId, 10);
 
         Long booking1 = createBooking(sessionId, 101L, "e2e-bk-1");
         Long booking2 = createBooking(sessionId, 102L, "e2e-bk-2");
@@ -243,7 +248,9 @@ class GymBookingsE2ETest {
                         "dayOfWeek", 1,
                         "startTime", "20:00",
                         "durationMinutes", 60,
-                        "active", true
+                        "active", true,
+                        "activeFrom", "2024-01-01",
+                        "activeUntil", "2030-01-01"
                 ))
                 .when()
                 .post("/api/activity-schedules")
@@ -258,7 +265,8 @@ class GymBookingsE2ETest {
                 .post("/api/activity-schedules/generate-next-week")
                 .then()
                 .statusCode(200)
-                .body("success", equalTo(true));
+                .body("success", equalTo(true))
+                .log().all();
 
         Long sessionId = given()
                 .queryParam("organizationId", organizationId)
@@ -274,6 +282,8 @@ class GymBookingsE2ETest {
                 .extract()
                 .jsonPath()
                 .getLong("data.items[0].id");
+
+        grantCredits(999L, activityId, 10);
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
@@ -330,10 +340,37 @@ class GymBookingsE2ETest {
     }
 
     @Transactional
+    void insertUserIfAbsent(Long userId) {
+        try {
+            entityManager.createNativeQuery("INSERT INTO payments (id, amount, method, paid_at) VALUES (1, 100, 'CASH', CURRENT_DATE) ON CONFLICT DO NOTHING").executeUpdate();
+            entityManager.createNativeQuery("INSERT INTO users (id, active, email, firebase_uid, last_name, name) VALUES (?, true, ?, ?, 'Last', 'Name') ON CONFLICT DO NOTHING")
+                    .setParameter(1, userId)
+                    .setParameter(2, "user" + userId + "@test.com")
+                    .setParameter(3, "mock-user-" + userId)
+                    .executeUpdate();
+        } catch (Exception e) {}
+    }
+
+    private void grantCredits(Long userId, Long activityId, int tokens) {
+        insertUserIfAbsent(userId);
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "paymentId", 1,
+                        "activityTokens", Map.of(activityId.toString(), tokens)
+                ))
+                .when()
+                .post("/api/clients/{userId}/packages", userId)
+                .then()
+                .statusCode(201)
+                .body("success", equalTo(true));
+    }
+
+    @Transactional
     void cleanRelational() {
         bookingRepository.deleteAll();
         sessionInstanceRepository.deleteAll();
-        activityScheduleRepository.deleteAll();
         entityManager.createNativeQuery("DELETE FROM activity").executeUpdate();
         headquartersRepository.deleteAll();
         organizationRepository.deleteAll();
@@ -395,6 +432,7 @@ class GymBookingsE2ETest {
     }
 
     void cleanMongo() {
+        activityScheduleRepository.deleteAll();
         sessionConfigRepository.deleteAll();
         activityConfigRepository.deleteAll();
         headquartersConfigRepository.deleteAll();

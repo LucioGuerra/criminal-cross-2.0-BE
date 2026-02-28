@@ -23,10 +23,16 @@ public class HeadquartersRepositoryImpl implements HeadquartersRepository {
     @Override
     @Transactional
     public Headquarters save(Headquarters headquarters) {
-        var entity = mapper.toEntity(headquarters);
         if (headquarters.getId() != null) {
-            entity.id = headquarters.getId();
+            var managedEntity = panacheRepository.findById(headquarters.getId());
+            if (managedEntity != null) {
+                managedEntity.setOrganizationId(headquarters.getOrganizationId());
+                managedEntity.setName(headquarters.getName());
+                return mapper.toDomain(managedEntity);
+            }
         }
+
+        var entity = mapper.toEntity(headquarters);
         panacheRepository.persist(entity);
         return mapper.toDomain(entity);
     }
