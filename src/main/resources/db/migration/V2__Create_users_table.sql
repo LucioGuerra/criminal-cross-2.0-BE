@@ -1,5 +1,5 @@
 -- Create users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE users (
 );
 
 -- Create user_roles table for many-to-many relationship
-CREATE TABLE user_roles (
+CREATE TABLE IF NOT EXISTS user_roles (
     user_id BIGINT NOT NULL,
     role VARCHAR(50) NOT NULL,
     PRIMARY KEY (user_id, role),
@@ -17,6 +17,15 @@ CREATE TABLE user_roles (
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_users_firebase_uid ON users(firebase_uid);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_roles_pkey') THEN
+        ALTER TABLE user_roles
+            ADD CONSTRAINT user_roles_pkey PRIMARY KEY (user_id, role);
+    END IF;
+END
+$$;

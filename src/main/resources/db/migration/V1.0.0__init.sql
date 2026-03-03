@@ -1,25 +1,25 @@
 
-    create sequence activity_schedules_SEQ start with 1 increment by 50;
+    create sequence if not exists activity_schedules_SEQ start with 1 increment by 50;
 
-    create sequence activity_SEQ start with 1 increment by 50;
+    create sequence if not exists activity_SEQ start with 1 increment by 50;
 
-    create sequence bookings_SEQ start with 1 increment by 50;
+    create sequence if not exists bookings_SEQ start with 1 increment by 50;
 
-    create sequence client_package_credits_SEQ start with 1 increment by 50;
+    create sequence if not exists client_package_credits_SEQ start with 1 increment by 50;
 
-    create sequence client_packages_SEQ start with 1 increment by 50;
+    create sequence if not exists client_packages_SEQ start with 1 increment by 50;
 
-    create sequence headquarters_SEQ start with 1 increment by 50;
+    create sequence if not exists headquarters_SEQ start with 1 increment by 50;
 
-    create sequence organizations_SEQ start with 1 increment by 50;
+    create sequence if not exists organizations_SEQ start with 1 increment by 50;
 
-    create sequence payments_SEQ start with 1 increment by 50;
+    create sequence if not exists payments_SEQ start with 1 increment by 50;
 
-    create sequence session_instances_SEQ start with 1 increment by 50;
+    create sequence if not exists session_instances_SEQ start with 1 increment by 50;
 
-    create sequence users_SEQ start with 1 increment by 50;
+    create sequence if not exists users_SEQ start with 1 increment by 50;
 
-    create table activity (
+    create table if not exists activity (
         isActive boolean not null,
         createdAt timestamp(6),
         deletedAt timestamp(6),
@@ -35,7 +35,7 @@
     comment on column activity.deleted_at is
         'Soft-delete indicator';
 
-    create table activity_schedules (
+    create table if not exists activity_schedules (
         active_from date,
         active_until date,
         day_of_week integer not null,
@@ -51,7 +51,7 @@
         primary key (id)
     );
 
-    create table bookings (
+    create table if not exists bookings (
         cancelled_at timestamp(6) with time zone,
         consumed_package_id bigint,
         created_at timestamp(6) with time zone,
@@ -68,7 +68,7 @@
         constraint uq_bookings_cancel_request_id unique (cancel_request_id)
     );
 
-    create table client_package_credits (
+    create table if not exists client_package_credits (
         tokens integer not null,
         activity_id bigint not null,
         id bigint not null,
@@ -77,7 +77,7 @@
         constraint uq_client_package_activity unique (package_id, activity_id)
     );
 
-    create table client_packages (
+    create table if not exists client_packages (
         active boolean not null,
         period_end date not null,
         period_start date not null,
@@ -89,20 +89,20 @@
         primary key (id)
     );
 
-    create table headquarters (
+    create table if not exists headquarters (
         id bigint not null,
         organization_id bigint not null,
         name varchar(255) not null,
         primary key (id)
     );
 
-    create table organizations (
+    create table if not exists organizations (
         id bigint not null,
         name varchar(255) not null,
         primary key (id)
     );
 
-    create table payments (
+    create table if not exists payments (
         amount numeric(12,2) not null,
         paid_at date not null,
         created_at timestamp(6) with time zone,
@@ -112,7 +112,7 @@
         primary key (id)
     );
 
-    create table refresh_tokens (
+    create table if not exists refresh_tokens (
         revoked boolean not null,
         createdAt timestamp(6) with time zone not null,
         expiresAt timestamp(6) with time zone not null,
@@ -126,7 +126,7 @@
         primary key (id)
     );
 
-    create table session_instances (
+    create table if not exists session_instances (
         cancellation_allow_late_cancel boolean,
         cancellation_min_hours_before_start integer,
         max_participants integer,
@@ -147,12 +147,12 @@
         constraint uq_session_instances_slot unique (organization_id, headquarters_id, activity_id, starts_at)
     );
 
-    create table user_roles (
+    create table if not exists user_roles (
         user_id bigint not null,
         role varchar(255) check ((role in ('CLIENT','PROFESSOR','ORG_ADMIN','ORG_OWNER','SUPERADMIN')))
     );
 
-    create table users (
+    create table if not exists users (
         active boolean not null,
         id bigint not null,
         email varchar(255) not null unique,
@@ -162,70 +162,94 @@
         primary key (id)
     );
 
-    create index idx_activity_schedules_hq_day 
+    create index if not exists idx_activity_schedules_hq_day 
        on activity_schedules (headquarters_id, day_of_week);
 
-    create index idx_activity_schedules_activity_day 
+    create index if not exists idx_activity_schedules_activity_day 
        on activity_schedules (activity_id, day_of_week);
 
-    create index idx_bookings_session_status 
+    create index if not exists idx_bookings_session_status 
        on bookings (session_id, status);
 
-    create index idx_bookings_user_status 
+    create index if not exists idx_bookings_user_status 
        on bookings (user_id, status);
 
-    create index idx_bookings_created_at 
+    create index if not exists idx_bookings_created_at 
        on bookings (created_at);
 
-    create index idx_client_package_credits_package 
+    create index if not exists idx_client_package_credits_package 
        on client_package_credits (package_id);
 
-    create index idx_client_package_credits_activity 
+    create index if not exists idx_client_package_credits_activity 
        on client_package_credits (activity_id);
 
-    create index idx_client_packages_user_active 
+    create index if not exists idx_client_packages_user_active 
        on client_packages (user_id, active);
 
-    create index idx_client_packages_period_end 
+    create index if not exists idx_client_packages_period_end 
        on client_packages (period_end);
 
-    create index idx_payments_paid_at 
+    create index if not exists idx_payments_paid_at 
        on payments (paid_at);
 
-    create index idx_payments_method 
+    create index if not exists idx_payments_method 
        on payments (method);
 
-    create index idx_refresh_token_firebase_uid 
+    create index if not exists idx_refresh_token_firebase_uid 
        on refresh_tokens (firebaseUid);
 
-    create index idx_refresh_token_user_id 
+    create index if not exists idx_refresh_token_user_id 
        on refresh_tokens (userId);
 
-    create index idx_session_instances_hq_starts_at 
+    create index if not exists idx_session_instances_hq_starts_at 
        on session_instances (headquarters_id, starts_at);
 
-    create index idx_session_instances_activity_starts_at 
+    create index if not exists idx_session_instances_activity_starts_at 
        on session_instances (activity_id, starts_at);
 
-    create index idx_session_instances_status_starts_at 
+    create index if not exists idx_session_instances_status_starts_at 
        on session_instances (status, starts_at);
 
-    alter table if exists activity 
-       add constraint FKh5qajputrmmneuesbit34v88h 
-       foreign key (hq_id) 
-       references headquarters;
+    do $$
+    begin
+        if not exists (select 1 from pg_constraint where conname = 'fkh5qajputrmmneuesbit34v88h') then
+            alter table if exists activity
+                add constraint FKh5qajputrmmneuesbit34v88h
+                    foreign key (hq_id)
+                        references headquarters;
+        end if;
+    end
+    $$;
 
-    alter table if exists client_package_credits 
-       add constraint FK2yiyc9ssh9r5xrk10lpg8m4g7 
-       foreign key (package_id) 
-       references client_packages;
+    do $$
+    begin
+        if not exists (select 1 from pg_constraint where conname = 'fk2yiyc9ssh9r5xrk10lpg8m4g7') then
+            alter table if exists client_package_credits
+                add constraint FK2yiyc9ssh9r5xrk10lpg8m4g7
+                    foreign key (package_id)
+                        references client_packages;
+        end if;
+    end
+    $$;
 
-    alter table if exists headquarters 
-       add constraint FKd6d07vdg6dwrbns70v521u1ee 
-       foreign key (organization_id) 
-       references organizations;
+    do $$
+    begin
+        if not exists (select 1 from pg_constraint where conname = 'fkd6d07vdg6dwrbns70v521u1ee') then
+            alter table if exists headquarters
+                add constraint FKd6d07vdg6dwrbns70v521u1ee
+                    foreign key (organization_id)
+                        references organizations;
+        end if;
+    end
+    $$;
 
-    alter table if exists user_roles 
-       add constraint FKhfh9dx7w3ubf1co1vdev94g3f 
-       foreign key (user_id) 
-       references users;
+    do $$
+    begin
+        if not exists (select 1 from pg_constraint where conname = 'fkhfh9dx7w3ubf1co1vdev94g3f') then
+            alter table if exists user_roles
+                add constraint FKhfh9dx7w3ubf1co1vdev94g3f
+                    foreign key (user_id)
+                        references users;
+        end if;
+    end
+    $$;
