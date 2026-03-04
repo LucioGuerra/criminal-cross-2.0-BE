@@ -55,26 +55,26 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| USER-01 | Phase ? | Pending |
-| USER-02 | Phase ? | Pending |
-| USER-03 | Phase ? | Pending |
-| USER-04 | Phase ? | Pending |
-| USER-05 | Phase ? | Pending |
-| USER-06 | Phase ? | Pending |
-| USER-07 | Phase ? | Pending |
-| USER-08 | Phase ? | Pending |
-| SCHED-01 | Phase ? | Pending |
-| SCHED-02 | Phase ? | Pending |
-| SCHED-03 | Phase ? | Pending |
-| SCHED-04 | Phase ? | Pending |
-| AUTH-01 | Phase ? | Pending |
-| AUTH-02 | Phase ? | Pending |
+| USER-01 | Phase 1 | Pending |
+| USER-02 | Phase 1 | Pending |
+| USER-03 | Phase 1 | Pending |
+| USER-04 | Phase 1 | Pending |
+| USER-05 | Phase 1 | Pending |
+| USER-06 | Phase 1 | Pending |
+| USER-07 | Phase 1 | Pending |
+| USER-08 | Phase 1 | Pending |
+| SCHED-01 | Phase 2 | Pending |
+| SCHED-02 | Phase 2 | Pending |
+| SCHED-03 | Phase 2 | Pending |
+| SCHED-04 | Phase 2 | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-04 after initial definition*
+*Last updated: 2026-03-04 after roadmap creation*
