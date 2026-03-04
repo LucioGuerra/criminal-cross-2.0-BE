@@ -102,6 +102,11 @@ class CreateActivityScheduleUseCaseTest {
         }
 
         @Override
+        public ActivitySchedule findById(Long id) {
+            return saved.stream().filter(s -> id.equals(s.getId())).findFirst().orElse(null);
+        }
+
+        @Override
         public List<ActivitySchedule> findAllActive() {
             return saved;
         }
