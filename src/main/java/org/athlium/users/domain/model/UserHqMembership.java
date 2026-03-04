@@ -4,11 +4,20 @@ import java.time.LocalDate;
 
 public class UserHqMembership {
 
+    private Long userId;
     private Long hqId;
     private String hqName;
     private PackageStatus packageStatus;
     private LocalDate periodEnd;
     private Integer daysRemaining;
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
     public Long getHqId() {
         return hqId;
