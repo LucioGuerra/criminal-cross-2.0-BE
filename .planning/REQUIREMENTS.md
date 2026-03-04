@@ -11,10 +11,10 @@
 - [x] **USER-02**: Admin can get all users belonging to a specific organization (via HQ chain) with package status + HQ name
 - [x] **USER-03**: Admin can get all users with pagination (page/size params) returning PageResponse
 - [x] **USER-04**: Admin can get a user by internal database ID
-- [ ] **USER-05**: Unit tests for GetUsersByHq use case and controller
-- [ ] **USER-06**: Unit tests for GetUsersByOrg use case and controller
-- [ ] **USER-07**: Unit tests for GetAllUsers use case and controller
-- [ ] **USER-08**: Unit tests for GetUserById use case and controller
+- [x] **USER-05**: Unit tests for GetUsersByHq use case and controller
+- [x] **USER-06**: Unit tests for GetUsersByOrg use case and controller
+- [x] **USER-07**: Unit tests for GetAllUsers use case and controller
+- [x] **USER-08**: Unit tests for GetUserById use case and controller
 
 ### Activity Schedule Management
 
@@ -59,10 +59,10 @@
 | USER-02 | Phase 1 | Complete |
 | USER-03 | Phase 1 | Complete |
 | USER-04 | Phase 1 | Complete |
-| USER-05 | Phase 1 | Pending |
-| USER-06 | Phase 1 | Pending |
-| USER-07 | Phase 1 | Pending |
-| USER-08 | Phase 1 | Pending |
+| USER-05 | Phase 1 | Complete |
+| USER-06 | Phase 1 | Complete |
+| USER-07 | Phase 1 | Complete |
+| USER-08 | Phase 1 | Complete |
 | SCHED-01 | Phase 2 | Pending |
 | SCHED-02 | Phase 2 | Pending |
 | SCHED-03 | Phase 2 | Pending |
