@@ -20,8 +20,8 @@
 
 - [x] **SCHED-01**: Admin can soft-delete an activity schedule (sets active=false)
 - [x] **SCHED-02**: Admin can update all fields of an activity schedule (PUT/PATCH)
-- [ ] **SCHED-03**: Unit tests for DeleteActivitySchedule use case and controller
-- [ ] **SCHED-04**: Unit tests for UpdateActivitySchedule use case and controller
+- [x] **SCHED-03**: Unit tests for DeleteActivitySchedule use case and controller
+- [x] **SCHED-04**: Unit tests for UpdateActivitySchedule use case and controller
 
 ### Cross-Cutting
 
@@ -65,8 +65,8 @@
 | USER-08 | Phase 1 | Complete |
 | SCHED-01 | Phase 2 | Complete |
 | SCHED-02 | Phase 2 | Complete |
-| SCHED-03 | Phase 2 | Pending |
-| SCHED-04 | Phase 2 | Pending |
+| SCHED-03 | Phase 2 | Complete |
+| SCHED-04 | Phase 2 | Complete |
 | AUTH-01 | Phase 1 | Complete |
 | AUTH-02 | Phase 2 | Complete |
 
