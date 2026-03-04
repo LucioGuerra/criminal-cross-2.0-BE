@@ -12,26 +12,26 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 Phase: 2 of 2 (Schedule CRUD Completion)
 Plan: 2 of 2 in current phase (COMPLETE)
 Status: Phase 2 Complete
-Last activity: 2026-03-04 — Completed 02-02-PLAN.md
+Last activity: 2026-03-04 — Completed 01-04-PLAN.md (gap closure)
 
 Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 4 min
-- Total execution time: 0.33 hours
+- Total execution time: 0.37 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 3/3 | 12 min | 4 min |
+| 01 | 4/4 | 13 min | 3 min |
 | 02 | 2/2 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 4 min, 5 min, 5 min, 3 min
+- Last 5 plans: 4 min, 5 min, 5 min, 3 min, 1 min
 - Trend: Stable
 
 ## Accumulated Context
@@ -61,6 +61,7 @@ Recent decisions affecting current work:
 
 - InMemoryActivityScheduleRepository with HashMap storage for ID-based lookup in delete/update tests
 - Fixed pre-existing test doubles missing findById after 02-01 interface change
+- [Phase 01]: Removed 'u.' table alias prefix from SORT_FIELD_MAP — ORDER BY is outside CTE scope
 
 ### Pending Todos
 
@@ -73,5 +74,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 02-02-PLAN.md
+Stopped at: Completed 01-04-PLAN.md (gap closure)
 Resume file: None

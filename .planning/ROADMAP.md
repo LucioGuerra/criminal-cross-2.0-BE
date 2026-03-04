@@ -6,8 +6,8 @@ Two-phase delivery: first, the core value — user query endpoints that resolve 
 
 ## Phases
 
-- [ ] **Phase 1: User Query Endpoints** - Four user query endpoints (by HQ, by Org, all paginated, by ID) with package status, auth, and unit tests
-- [ ] **Phase 2: Schedule CRUD Completion** - Update and soft-delete endpoints for activity schedules with auth and unit tests
+- [x] **Phase 1: User Query Endpoints** - Four user query endpoints (by HQ, by Org, all paginated, by ID) with package status, auth, and unit tests
+- [x] **Phase 2: Schedule CRUD Completion** - Update and soft-delete endpoints for activity schedules with auth and unit tests
 
 ## Phase Details
 
@@ -24,10 +24,10 @@ Two-phase delivery: first, the core value — user query endpoints that resolve 
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Domain + application layer (use cases, ports, package status logic)
-- [ ] 01-02: Infrastructure + presentation layer (repository impls, REST controllers, auth)
-- [ ] 01-03: Unit tests for all use cases and controllers
-- [ ] 01-04: Gap closure — Fix SORT_FIELD_MAP alias prefix causing SQL errors on sorted queries
+- [x] 01-01: Domain + application layer (use cases, ports, package status logic)
+- [x] 01-02: Infrastructure + presentation layer (repository impls, REST controllers, auth)
+- [x] 01-03: Unit tests for all use cases and controllers
+- [x] 01-04: Gap closure — Fix SORT_FIELD_MAP alias prefix causing SQL errors on sorted queries
 
 ### Phase 2: Schedule CRUD Completion
 **Goal**: Admins can update and soft-delete activity schedules, completing the CRUD operations for the schedule management feature
@@ -41,12 +41,12 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: Update and soft-delete use cases, controllers, and auth
-- [ ] 02-02: Unit tests for update and delete (use cases + controllers)
+- [x] 02-01: Update and soft-delete use cases, controllers, and auth
+- [x] 02-02: Unit tests for update and delete (use cases + controllers)
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. User Query Endpoints | 3/4 | Gap closure | - |
-| 2. Schedule CRUD Completion | 0/2 | Not started | - |
+| 1. User Query Endpoints | 4/4 | Complete | 2026-03-04 |
+| 2. Schedule CRUD Completion | 2/2 | Complete | 2026-03-04 |
