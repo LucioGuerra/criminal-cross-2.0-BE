@@ -77,6 +77,18 @@ public class ActivityScheduleRepositoryImpl implements ActivityScheduleRepositor
     }
 
     @Override
+    public ActivitySchedule findById(Long id) {
+        if (id == null) {
+            return null;
+        }
+        ActivityScheduleDocument document = panacheRepository.find("scheduleId", id).firstResult();
+        if (document == null) {
+            return null;
+        }
+        return toDomain(document);
+    }
+
+    @Override
     public List<ActivitySchedule> findAllActive() {
         return toDomainList(panacheRepository.find("active", true).list());
     }
