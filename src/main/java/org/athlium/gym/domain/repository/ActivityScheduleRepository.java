@@ -8,6 +8,8 @@ public interface ActivityScheduleRepository {
 
     ActivitySchedule save(ActivitySchedule schedule);
 
+    ActivitySchedule findById(Long id);
+
     List<ActivitySchedule> findAllActive();
 
     List<ActivitySchedule> findByHeadquartersId(Long headquartersId);

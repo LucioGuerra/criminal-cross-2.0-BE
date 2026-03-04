@@ -298,6 +298,11 @@ class GenerateNextWeekSessionsUseCaseTest {
         }
 
         @Override
+        public ActivitySchedule findById(Long id) {
+            return schedules.stream().filter(s -> id.equals(s.getId())).findFirst().orElse(null);
+        }
+
+        @Override
         public List<ActivitySchedule> findAllActive() {
             return schedules;
         }

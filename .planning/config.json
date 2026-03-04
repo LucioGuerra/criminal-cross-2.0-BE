@@ -1,0 +1,16 @@
+{
+  "mode": "yolo",
+  "depth": "quick",
+  "parallelization": true,
+  "commit_docs": true,
+  "model_profile": "balanced",
+  "workflow": {
+    "research": true,
+    "plan_check": true,
+    "verifier": true
+  },
+  "model_notes": {
+    "coding": "sonnet 4.6 (github copilot) for writing code",
+    "testing_debugging": "gpt 5.3 codex (openai) for fixing bugs and writing tests"
+  }
+}
