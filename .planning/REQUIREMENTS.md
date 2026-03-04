@@ -18,15 +18,15 @@
 
 ### Activity Schedule Management
 
-- [ ] **SCHED-01**: Admin can soft-delete an activity schedule (sets active=false)
-- [ ] **SCHED-02**: Admin can update all fields of an activity schedule (PUT/PATCH)
+- [x] **SCHED-01**: Admin can soft-delete an activity schedule (sets active=false)
+- [x] **SCHED-02**: Admin can update all fields of an activity schedule (PUT/PATCH)
 - [ ] **SCHED-03**: Unit tests for DeleteActivitySchedule use case and controller
 - [ ] **SCHED-04**: Unit tests for UpdateActivitySchedule use case and controller
 
 ### Cross-Cutting
 
 - [x] **AUTH-01**: All new user endpoints require SUPERADMIN or ORG_ADMIN role
-- [ ] **AUTH-02**: All new schedule endpoints require authentication
+- [x] **AUTH-02**: All new schedule endpoints require authentication
 
 ## v2 Requirements
 
@@ -63,12 +63,12 @@
 | USER-06 | Phase 1 | Complete |
 | USER-07 | Phase 1 | Complete |
 | USER-08 | Phase 1 | Complete |
-| SCHED-01 | Phase 2 | Pending |
-| SCHED-02 | Phase 2 | Pending |
+| SCHED-01 | Phase 2 | Complete |
+| SCHED-02 | Phase 2 | Complete |
 | SCHED-03 | Phase 2 | Pending |
 | SCHED-04 | Phase 2 | Pending |
 | AUTH-01 | Phase 1 | Complete |
-| AUTH-02 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 14 total

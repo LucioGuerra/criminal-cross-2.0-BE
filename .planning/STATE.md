@@ -5,32 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Users can be queried by their gym membership (via packages) with real-time package status, enabling admins to manage members across HQs and organizations.
-**Current focus:** Phase 1 — User Query Endpoints
+**Current focus:** Phase 2 — Schedule CRUD Completion
 
 ## Current Position
 
-Phase: 1 of 2 (User Query Endpoints) — COMPLETE
-Plan: 3 of 3 in current phase (all done)
-Status: Phase 1 Complete — Ready for Phase 2
-Last activity: 2026-03-04 — Completed 01-03-PLAN.md
+Phase: 2 of 2 (Schedule CRUD Completion)
+Plan: 2 of 2 in current phase
+Status: Executing Phase 2
+Last activity: 2026-03-04 — Completed 02-01-PLAN.md
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 4 min
-- Total execution time: 0.20 hours
+- Total execution time: 0.28 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 3/3 | 12 min | 4 min |
+| 02 | 1/2 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 4 min, 5 min
+- Last 5 plans: 3 min, 4 min, 5 min, 5 min
 - Trend: Stable
 
 ## Accumulated Context
@@ -54,6 +55,10 @@ Recent decisions affecting current work:
 - No Mockito — all test doubles are hand-written inner static classes following project convention
 - Stub use cases extend concrete classes (not interfaces) since CDI beans have no-arg constructors
 
+- Class-level @Authenticated (no roles) on ActivityScheduleResource — any authenticated user can manage schedules
+- Partial update pattern for PUT: only non-null fields overwrite existing values
+- Identity fields (id, organizationId, headquartersId, activityId) are immutable on update
+
 ### Pending Todos
 
 None yet.
@@ -65,5 +70,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 01-03-PLAN.md — Phase 1 complete
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
