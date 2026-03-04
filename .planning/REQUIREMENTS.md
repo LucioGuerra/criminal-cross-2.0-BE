@@ -7,10 +7,10 @@
 
 ### User Query Endpoints
 
-- [ ] **USER-01**: Admin can get all users belonging to a specific headquarters (via client packages → credits → activities → HQ) with package status (active/expiring/inactive)
-- [ ] **USER-02**: Admin can get all users belonging to a specific organization (via HQ chain) with package status + HQ name
-- [ ] **USER-03**: Admin can get all users with pagination (page/size params) returning PageResponse
-- [ ] **USER-04**: Admin can get a user by internal database ID
+- [x] **USER-01**: Admin can get all users belonging to a specific headquarters (via client packages → credits → activities → HQ) with package status (active/expiring/inactive)
+- [x] **USER-02**: Admin can get all users belonging to a specific organization (via HQ chain) with package status + HQ name
+- [x] **USER-03**: Admin can get all users with pagination (page/size params) returning PageResponse
+- [x] **USER-04**: Admin can get a user by internal database ID
 - [ ] **USER-05**: Unit tests for GetUsersByHq use case and controller
 - [ ] **USER-06**: Unit tests for GetUsersByOrg use case and controller
 - [ ] **USER-07**: Unit tests for GetAllUsers use case and controller
@@ -25,7 +25,7 @@
 
 ### Cross-Cutting
 
-- [ ] **AUTH-01**: All new user endpoints require SUPERADMIN or ORG_ADMIN role
+- [x] **AUTH-01**: All new user endpoints require SUPERADMIN or ORG_ADMIN role
 - [ ] **AUTH-02**: All new schedule endpoints require authentication
 
 ## v2 Requirements
@@ -55,10 +55,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| USER-01 | Phase 1 | Pending |
-| USER-02 | Phase 1 | Pending |
-| USER-03 | Phase 1 | Pending |
-| USER-04 | Phase 1 | Pending |
+| USER-01 | Phase 1 | Complete |
+| USER-02 | Phase 1 | Complete |
+| USER-03 | Phase 1 | Complete |
+| USER-04 | Phase 1 | Complete |
 | USER-05 | Phase 1 | Pending |
 | USER-06 | Phase 1 | Pending |
 | USER-07 | Phase 1 | Pending |
@@ -67,7 +67,7 @@
 | SCHED-02 | Phase 2 | Pending |
 | SCHED-03 | Phase 2 | Pending |
 | SCHED-04 | Phase 2 | Pending |
-| AUTH-01 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
 | AUTH-02 | Phase 2 | Pending |
 
 **Coverage:**
