@@ -21,12 +21,13 @@ Two-phase delivery: first, the core value — user query endpoints that resolve 
   3. GET request for all users returns a paginated response (page/size params) with correct total counts
   4. GET request with an internal user ID returns that single user's full details
   5. All four endpoints reject requests from users without SUPERADMIN or ORG_ADMIN roles (401/403)
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
 - [ ] 01-01: Domain + application layer (use cases, ports, package status logic)
 - [ ] 01-02: Infrastructure + presentation layer (repository impls, REST controllers, auth)
 - [ ] 01-03: Unit tests for all use cases and controllers
+- [ ] 01-04: Gap closure — Fix SORT_FIELD_MAP alias prefix causing SQL errors on sorted queries
 
 ### Phase 2: Schedule CRUD Completion
 **Goal**: Admins can update and soft-delete activity schedules, completing the CRUD operations for the schedule management feature
@@ -47,5 +48,5 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. User Query Endpoints | 3/3 | Complete | 2026-03-04 |
+| 1. User Query Endpoints | 3/4 | Gap closure | - |
 | 2. Schedule CRUD Completion | 0/2 | Not started | - |
