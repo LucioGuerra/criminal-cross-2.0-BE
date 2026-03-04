@@ -26,9 +26,9 @@ import java.util.Set;
 public class UserQueryRepositoryImpl implements UserQueryRepository {
 
     private static final Map<String, String> SORT_FIELD_MAP = Map.of(
-            "name", "u.name",
-            "lastName", "u.last_name",
-            "email", "u.email"
+            "name", "name",
+            "lastName", "last_name",
+            "email", "email"
     );
 
     @Inject
