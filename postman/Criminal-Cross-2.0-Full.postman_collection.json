@@ -635,9 +635,23 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 20000,\n  \"paymentMethod\": \"CASH\"\n}"
+              "raw": "{\n  \"amount\": 20000,\n  \"paymentMethod\": \"CASH\",\n  \"clientId\": {{user_id}},\n  \"headquartersId\": {{headquarters_id}},\n  \"organizationId\": {{organization_id}}\n}"
             },
             "url": "{{base_url}}/api/payments"
+          }
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/payments?player=ana&paidAtFrom=2026-01-01&paidAtTo=2026-12-31&clientId={{user_id}}&paymentMethod=CASH&amountMin=100&amountMax=50000&headquartersId={{headquarters_id}}&organizationId={{organization_id}}&page=1&size=20&sort=paidAt:desc"
+          }
+        },
+        {
+          "name": "Get Payment By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/payments/{{payment_id}}"
           }
         }
       ]

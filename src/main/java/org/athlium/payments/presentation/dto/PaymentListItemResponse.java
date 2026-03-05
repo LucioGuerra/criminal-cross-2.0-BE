@@ -1,13 +1,21 @@
 package org.athlium.payments.presentation.dto;
 
-import java.math.BigDecimal;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
-public class PaymentResponse {
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+public class PaymentListItemResponse {
 
     private Long id;
     private BigDecimal amount;
     private String paymentMethod;
-    private String paidAt;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate paidAt;
+
+    private String userName;
+    private String userLastName;
     private Long clientId;
     private Long headquartersId;
     private Long organizationId;
@@ -36,12 +44,28 @@ public class PaymentResponse {
         this.paymentMethod = paymentMethod;
     }
 
-    public String getPaidAt() {
+    public LocalDate getPaidAt() {
         return paidAt;
     }
 
-    public void setPaidAt(String paidAt) {
+    public void setPaidAt(LocalDate paidAt) {
         this.paidAt = paidAt;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUserLastName() {
+        return userLastName;
+    }
+
+    public void setUserLastName(String userLastName) {
+        this.userLastName = userLastName;
     }
 
     public Long getClientId() {

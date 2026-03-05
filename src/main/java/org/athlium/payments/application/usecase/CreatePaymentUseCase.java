@@ -19,10 +19,13 @@ public class CreatePaymentUseCase {
     PaymentRepository paymentRepository;
 
     @Transactional
-    public Payment execute(BigDecimal amount, String method) {
+    public Payment execute(BigDecimal amount, String method, Long clientId, Long headquartersId, Long organizationId) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("amount must be greater than 0");
         }
+        validateRequiredId(clientId, "clientId");
+        validateRequiredId(headquartersId, "headquartersId");
+        validateRequiredId(organizationId, "organizationId");
 
         PaymentMethod paymentMethod = parseMethod(method);
 
@@ -30,7 +33,19 @@ public class CreatePaymentUseCase {
         payment.setAmount(amount);
         payment.setMethod(paymentMethod);
         payment.setPaidAt(LocalDate.now(ZoneOffset.UTC));
+        payment.setClientId(clientId);
+        payment.setHeadquartersId(headquartersId);
+        payment.setOrganizationId(organizationId);
         return paymentRepository.save(payment);
+    }
+
+    private void validateRequiredId(Long value, String fieldName) {
+        if (value == null) {
+            throw new BadRequestException(fieldName + " is required");
+        }
+        if (value <= 0) {
+            throw new BadRequestException(fieldName + " must be a positive number");
+        }
     }
 
     private PaymentMethod parseMethod(String method) {

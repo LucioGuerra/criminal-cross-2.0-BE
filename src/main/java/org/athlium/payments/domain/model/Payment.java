@@ -10,6 +10,9 @@ public class Payment {
     private BigDecimal amount;
     private PaymentMethod method;
     private LocalDate paidAt;
+    private Long clientId;
+    private Long headquartersId;
+    private Long organizationId;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -43,6 +46,30 @@ public class Payment {
 
     public void setPaidAt(LocalDate paidAt) {
         this.paidAt = paidAt;
+    }
+
+    public Long getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(Long clientId) {
+        this.clientId = clientId;
+    }
+
+    public Long getHeadquartersId() {
+        return headquartersId;
+    }
+
+    public void setHeadquartersId(Long headquartersId) {
+        this.headquartersId = headquartersId;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public Instant getCreatedAt() {

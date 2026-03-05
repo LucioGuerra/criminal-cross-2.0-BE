@@ -4,7 +4,10 @@ import org.athlium.clients.domain.model.ClientPackage;
 import org.athlium.clients.domain.model.ClientPackageCredit;
 import org.athlium.clients.domain.repository.ClientPackageRepository;
 import org.athlium.payments.domain.model.Payment;
+import org.athlium.payments.domain.model.PaymentListItem;
+import org.athlium.payments.domain.model.PaymentSearchCriteria;
 import org.athlium.payments.domain.repository.PaymentRepository;
+import org.athlium.shared.domain.PageResponse;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.domain.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -186,6 +189,11 @@ class CreateClientPackageUseCaseTest {
         @Override
         public Optional<Payment> findById(Long paymentId) {
             return payments.stream().filter(payment -> paymentId.equals(payment.getId())).findFirst();
+        }
+
+        @Override
+        public PageResponse<PaymentListItem> findPayments(PaymentSearchCriteria criteria) {
+            return new PageResponse<>(List.of(), criteria.page(), criteria.size(), 0);
         }
     }
 }
