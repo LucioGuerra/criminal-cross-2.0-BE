@@ -67,6 +67,16 @@ class UserQueryResourceUnitTest {
     }
 
     @Test
+    void shouldPassSearchToHqUseCase() {
+        hqUseCase.setResult(new PageResponse<>(
+                List.of(createTestUser(1L, "Alice")), 0, 20, 1));
+
+        resource.getUsers(1L, null, null, "ali", 1, 20, "name:asc");
+
+        assertEquals("ali", hqUseCase.lastSearch);
+    }
+
+    @Test
     void shouldReturn200WithUsersFilteredByOrg() {
         orgUseCase.setResult(new PageResponse<>(
                 List.of(createTestUser(2L, "Bob")), 0, 20, 1));
@@ -82,6 +92,16 @@ class UserQueryResourceUnitTest {
     }
 
     @Test
+    void shouldPassSearchToOrgUseCase() {
+        orgUseCase.setResult(new PageResponse<>(
+                List.of(createTestUser(2L, "Bob")), 0, 20, 1));
+
+        resource.getUsers(null, 1L, null, "bo", 1, 20, "name:asc");
+
+        assertEquals("bo", orgUseCase.lastSearch);
+    }
+
+    @Test
     void shouldReturn200WithAllUsers() {
         allUsersUseCase.setResult(new PageResponse<>(
                 List.of(createTestUser(3L, "Charlie")), 0, 20, 1));
@@ -94,6 +114,16 @@ class UserQueryResourceUnitTest {
         assertFalse(hqUseCase.executeCalled);
         assertFalse(orgUseCase.executeCalled);
         assertTrue(allUsersUseCase.executeCalled);
+    }
+
+    @Test
+    void shouldPassSearchToAllUsersUseCase() {
+        allUsersUseCase.setResult(new PageResponse<>(
+                List.of(createTestUser(3L, "Charlie")), 0, 20, 1));
+
+        resource.getUsers(null, null, null, "char", 1, 20, "name:asc");
+
+        assertEquals("char", allUsersUseCase.lastSearch);
     }
 
     @Test
@@ -186,6 +216,7 @@ class UserQueryResourceUnitTest {
     static class StubGetUsersByHqUseCase extends GetUsersByHqUseCase {
         private PageResponse<UserWithPackageStatus> result;
         private RuntimeException exception;
+        String lastSearch;
         boolean executeCalled;
 
         void setResult(PageResponse<UserWithPackageStatus> result) {
@@ -200,6 +231,7 @@ class UserQueryResourceUnitTest {
         public PageResponse<UserWithPackageStatus> execute(Long headquartersId, String status,
                 String search, int page, int size, String sort) {
             executeCalled = true;
+            lastSearch = search;
             if (exception != null) throw exception;
             return result;
         }
@@ -208,6 +240,7 @@ class UserQueryResourceUnitTest {
     static class StubGetUsersByOrgUseCase extends GetUsersByOrgUseCase {
         private PageResponse<UserWithPackageStatus> result;
         private RuntimeException exception;
+        String lastSearch;
         boolean executeCalled;
 
         void setResult(PageResponse<UserWithPackageStatus> result) {
@@ -222,6 +255,7 @@ class UserQueryResourceUnitTest {
         public PageResponse<UserWithPackageStatus> execute(Long organizationId, String status,
                 String search, int page, int size, String sort) {
             executeCalled = true;
+            lastSearch = search;
             if (exception != null) throw exception;
             return result;
         }
@@ -230,6 +264,7 @@ class UserQueryResourceUnitTest {
     static class StubGetAllUsersUseCase extends GetAllUsersUseCase {
         private PageResponse<UserWithPackageStatus> result;
         private RuntimeException exception;
+        String lastSearch;
         boolean executeCalled;
 
         void setResult(PageResponse<UserWithPackageStatus> result) {
@@ -244,6 +279,7 @@ class UserQueryResourceUnitTest {
         public PageResponse<UserWithPackageStatus> execute(String status, String search,
                 int page, int size, String sort) {
             executeCalled = true;
+            lastSearch = search;
             if (exception != null) throw exception;
             return result;
         }

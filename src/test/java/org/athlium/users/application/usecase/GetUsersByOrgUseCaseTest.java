@@ -81,6 +81,15 @@ class GetUsersByOrgUseCaseTest {
     }
 
     @Test
+    void shouldPassSearchToRepository() {
+        repository.addUser(createTestUser(1L, "Alice", PackageStatus.ACTIVE));
+
+        useCase.execute(1L, null, "ali", 1, 20, null);
+
+        assertEquals("ali", repository.lastSearch);
+    }
+
+    @Test
     void shouldEnrichUsersWithHqMemberships() {
         repository.addUser(createTestUser(1L, "Alice", PackageStatus.ACTIVE));
         repository.addUser(createTestUser(2L, "Bob", PackageStatus.EXPIRING));
@@ -157,6 +166,7 @@ class GetUsersByOrgUseCaseTest {
         private final List<UserHqMembership> hqMemberships = new ArrayList<>();
 
         Long lastOrganizationId;
+        String lastSearch;
         int lastPage;
         int lastSize;
         String lastSort;
@@ -180,6 +190,7 @@ class GetUsersByOrgUseCaseTest {
         public PageResponse<UserWithPackageStatus> findUsersByOrganization(Long organizationId, String status,
                 String search, int page, int size, String sort) {
             this.lastOrganizationId = organizationId;
+            this.lastSearch = search;
             this.lastPage = page;
             this.lastSize = size;
             this.lastSort = sort;

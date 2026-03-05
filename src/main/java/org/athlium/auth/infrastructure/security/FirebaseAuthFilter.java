@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
+import org.athlium.auth.domain.model.AuthProvider;
 import org.athlium.auth.application.ports.TokenValidator;
 import org.athlium.auth.application.ports.UserProvider;
 import org.athlium.auth.domain.exception.AuthenticationException;
@@ -17,11 +18,13 @@ import org.athlium.auth.domain.model.AuthenticatedUser;
 import org.athlium.auth.domain.model.DecodedToken;
 import org.athlium.shared.dto.ApiResponse;
 import org.athlium.users.domain.model.Role;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.EnumSet;
 
 /**
  * JAX-RS filter that intercepts requests and validates tokens.
@@ -49,6 +52,15 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
     @Inject
     SecurityContext securityContext;
 
+    @ConfigProperty(name = "auth.dev-bypass.enabled", defaultValue = "false")
+    boolean authBypassEnabled;
+
+    @ConfigProperty(name = "auth.dev-bypass.firebase-uid", defaultValue = "dev-bypass-user")
+    String authBypassFirebaseUid;
+
+    @ConfigProperty(name = "auth.dev-bypass.email", defaultValue = "dev-bypass@local")
+    String authBypassEmail;
+
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         Method method = resourceInfo.getResourceMethod();
@@ -68,6 +80,11 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
         // If no @Authenticated annotation, allow access (public by default)
         if (auth == null) {
             tryOptionalAuthentication(requestContext);
+            return;
+        }
+
+        if (authBypassEnabled) {
+            setBypassAuthentication();
             return;
         }
 
@@ -109,6 +126,22 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
             LOG.warn("Authentication failed: " + e.getMessage());
             abortUnauthorized(requestContext, e.getMessage());
         }
+    }
+
+    private void setBypassAuthentication() {
+        AuthenticatedUser bypassUser = AuthenticatedUser.builder()
+                .firebaseUid(authBypassFirebaseUid)
+                .email(authBypassEmail)
+                .name("Dev Bypass User")
+                .emailVerified(true)
+                .provider(AuthProvider.EMAIL)
+                .roles(EnumSet.allOf(Role.class))
+                .active(true)
+                .build();
+
+        securityContext.setCurrentUser(bypassUser);
+        securityContext.setRawToken("DEV_BYPASS");
+        securityContext.setAuthenticated(true);
     }
 
     private boolean isPublicEndpoint(Method method) {

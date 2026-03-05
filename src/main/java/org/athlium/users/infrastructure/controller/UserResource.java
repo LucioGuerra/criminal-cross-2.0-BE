@@ -12,9 +12,14 @@ import org.athlium.auth.infrastructure.security.SecurityContext;
 import org.athlium.shared.dto.ApiResponse;
 import org.athlium.shared.exception.DomainException;
 import org.athlium.users.application.usecase.*;
+import org.athlium.users.domain.model.Role;
+import org.athlium.users.domain.model.User;
 import org.athlium.users.infrastructure.dto.CreateUserRequestDto;
 import org.athlium.users.infrastructure.dto.UpdateRolesRequestDto;
 import org.athlium.users.infrastructure.mapper.UserDtoMapper;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.util.EnumSet;
 
 @Path("/api/users")
 @Produces(MediaType.APPLICATION_JSON)
@@ -38,6 +43,9 @@ public class UserResource {
 
     @Inject
     SecurityContext securityContext;
+
+    @ConfigProperty(name = "auth.dev-bypass.enabled", defaultValue = "false")
+    boolean authBypassEnabled;
 
     @POST
     @Transactional
@@ -81,8 +89,7 @@ public class UserResource {
         try {
             AuthenticatedUser authUser = securityContext.requireCurrentUser();
 
-            var currentUser = getUserByUidUseCase.execute(authUser.getFirebaseUid())
-                    .orElseThrow(() -> new DomainException("Current user not found"));
+            User currentUser = getCurrentUserForRoleUpdate(authUser);
 
             var user = updateUserRolesUseCase.execute(firebaseUid, request.getRoles(), currentUser);
             var response = userDtoMapper.toResponseDto(user);
@@ -121,5 +128,20 @@ public class UserResource {
                     .entity(ApiResponse.error(e.getMessage()))
                     .build();
         }
+    }
+
+    private User getCurrentUserForRoleUpdate(AuthenticatedUser authUser) {
+        if (authBypassEnabled) {
+            return User.builder()
+                    .firebaseUid(authUser.getFirebaseUid())
+                    .email(authUser.getEmail())
+                    .name(authUser.getName())
+                    .roles(EnumSet.of(Role.SUPERADMIN))
+                    .active(true)
+                    .build();
+        }
+
+        return getUserByUidUseCase.execute(authUser.getFirebaseUid())
+                .orElseThrow(() -> new DomainException("Current user not found"));
     }
 }
