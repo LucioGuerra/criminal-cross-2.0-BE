@@ -6,6 +6,8 @@ import org.athlium.clients.domain.model.ClientPackageCredit;
 import org.athlium.clients.presentation.dto.ClientPackageCreditResponse;
 import org.athlium.clients.presentation.dto.ClientPackageResponse;
 import org.athlium.clients.presentation.dto.ClientPackageUpsertRequest;
+import org.athlium.gym.domain.model.Activity;
+import org.athlium.gym.presentation.dto.ActivityResponse;
 import org.athlium.shared.exception.BadRequestException;
 
 import java.util.ArrayList;
@@ -47,7 +49,7 @@ public class ClientPackageDtoMapper {
 
         List<ClientPackageCreditResponse> credits = clientPackage.getCredits().stream().map(credit -> {
             ClientPackageCreditResponse creditResponse = new ClientPackageCreditResponse();
-            creditResponse.setActivityId(credit.getActivityId());
+            creditResponse.setActivity(toActivityResponse(credit.getActivity()));
             creditResponse.setTokens(credit.getTokens());
             return creditResponse;
         }).toList();
@@ -58,6 +60,20 @@ public class ClientPackageDtoMapper {
 
     public List<ClientPackageResponse> toResponseList(List<ClientPackage> packages) {
         return packages.stream().map(this::toResponse).toList();
+    }
+
+    private ActivityResponse toActivityResponse(Activity activity) {
+        if (activity == null) {
+            return null;
+        }
+
+        ActivityResponse response = new ActivityResponse();
+        response.setId(activity.getId());
+        response.setName(activity.getName());
+        response.setDescription(activity.getDescription());
+        response.setIsActive(activity.getIsActive());
+        response.setHqId(activity.getHqId());
+        return response;
     }
 
     private Long parseActivityId(String rawActivityId) {

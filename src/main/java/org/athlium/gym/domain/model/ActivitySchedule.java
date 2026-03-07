@@ -10,6 +10,7 @@ public class ActivitySchedule {
     private Long organizationId;
     private Long headquartersId;
     private Long activityId;
+    private Activity activity;
     private Integer dayOfWeek;
     private List<WeekDay> weekDays;
     private LocalTime startTime;
@@ -51,6 +52,14 @@ public class ActivitySchedule {
 
     public void setActivityId(Long activityId) {
         this.activityId = activityId;
+    }
+
+    public Activity getActivity() {
+        return activity;
+    }
+
+    public void setActivity(Activity activity) {
+        this.activity = activity;
     }
 
     public Integer getDayOfWeek() {

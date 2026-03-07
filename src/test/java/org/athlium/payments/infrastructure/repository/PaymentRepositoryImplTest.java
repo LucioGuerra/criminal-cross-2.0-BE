@@ -38,8 +38,16 @@ class PaymentRepositoryImplTest {
                 3L,
                 1L
         }));
+        QuerySpec activitiesQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+                9L,
+                21L,
+                "Yoga",
+                "Mind and body",
+                true,
+                3L
+        }));
 
-        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery));
+        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, activitiesQuery));
         PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
         repository.em = fakeEntityManager.proxy();
 
@@ -69,6 +77,8 @@ class PaymentRepositoryImplTest {
         assertEquals(LocalDate.of(2026, 1, 5), item.getPaidAt());
         assertEquals("Ana", item.getUserName());
         assertEquals("Lopez", item.getUserLastName());
+        assertEquals(1, item.getActivities().size());
+        assertEquals("Yoga", item.getActivities().getFirst().getName());
         assertEquals(88L, item.getClientId());
         assertEquals(3L, item.getHeadquartersId());
         assertEquals(1L, item.getOrganizationId());
@@ -94,6 +104,7 @@ class PaymentRepositoryImplTest {
         assertEquals(1L, countQuery.params.get("organizationId"));
         assertEquals(5, dataQuery.params.get("size"));
         assertEquals(10, dataQuery.params.get("offset"));
+        assertEquals(List.of(9L), activitiesQuery.params.get("paymentIds"));
     }
 
     @Test

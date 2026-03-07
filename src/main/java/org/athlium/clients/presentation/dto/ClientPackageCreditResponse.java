@@ -1,16 +1,18 @@
 package org.athlium.clients.presentation.dto;
 
+import org.athlium.gym.presentation.dto.ActivityResponse;
+
 public class ClientPackageCreditResponse {
 
-    private Long activityId;
+    private ActivityResponse activity;
     private Integer tokens;
 
-    public Long getActivityId() {
-        return activityId;
+    public ActivityResponse getActivity() {
+        return activity;
     }
 
-    public void setActivityId(Long activityId) {
-        this.activityId = activityId;
+    public void setActivity(ActivityResponse activity) {
+        this.activity = activity;
     }
 
     public Integer getTokens() {

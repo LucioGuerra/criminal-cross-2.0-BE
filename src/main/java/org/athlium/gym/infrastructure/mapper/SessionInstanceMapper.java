@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "jakarta-cdi")
 public interface SessionInstanceMapper {
 
+    @Mapping(target = "activity", ignore = true)
     SessionInstance toDomain(SessionInstanceEntity entity);
 
     @Mapping(target = "createdAt", ignore = true)

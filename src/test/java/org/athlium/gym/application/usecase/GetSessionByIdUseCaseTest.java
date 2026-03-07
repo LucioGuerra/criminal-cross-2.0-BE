@@ -1,7 +1,9 @@
 package org.athlium.gym.application.usecase;
 
+import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.domain.model.SessionStatus;
+import org.athlium.gym.domain.repository.ActivityRepository;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
 import org.athlium.shared.domain.PageResponse;
 import org.athlium.shared.exception.BadRequestException;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +28,7 @@ class GetSessionByIdUseCaseTest {
     void setUp() {
         useCase = new GetSessionByIdUseCase();
         useCase.sessionInstanceRepository = new InMemorySessionRepository();
+        useCase.activityRepository = new StubActivityRepository();
     }
 
     @Test
@@ -43,6 +47,7 @@ class GetSessionByIdUseCaseTest {
         SessionInstance session = useCase.execute(1L);
         assertNotNull(session);
         assertEquals(SessionStatus.OPEN, session.getStatus());
+        assertEquals("Yoga", session.getActivity().getName());
     }
 
     private static class InMemorySessionRepository implements SessionInstanceRepository {
@@ -96,6 +101,59 @@ class GetSessionByIdUseCaseTest {
                 boolean sortAscending
         ) {
             return new PageResponse<>(List.of(), page, size, 0);
+        }
+    }
+
+    private static class StubActivityRepository implements ActivityRepository {
+
+        @Override
+        public Activity save(Activity activity) {
+            return activity;
+        }
+
+        @Override
+        public Activity findById(Long id) {
+            return null;
+        }
+
+        @Override
+        public Map<Long, Activity> findByIds(List<Long> ids) {
+            Activity activity = new Activity();
+            activity.setId(30L);
+            activity.setName("Yoga");
+            return Map.of(30L, activity);
+        }
+
+        @Override
+        public Activity update(Activity activity) {
+            return activity;
+        }
+
+        @Override
+        public void delete(Long id) {
+        }
+
+        @Override
+        public org.athlium.shared.domain.PageResponse<Activity> findPagedByHqId(
+                Long hqId,
+                Boolean isActive,
+                io.quarkus.panache.common.Page page
+        ) {
+            return null;
+        }
+
+        @Override
+        public List<Activity> findAllByHqId(Long hqId, Boolean isActive) {
+            return List.of();
+        }
+
+        @Override
+        public org.athlium.shared.domain.PageResponse<Activity> findByNameAndHqId(
+                String name,
+                Long hqId,
+                io.quarkus.panache.common.Page page
+        ) {
+            return null;
         }
     }
 }

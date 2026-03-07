@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+import org.athlium.gym.domain.model.Activity;
 import org.athlium.payments.domain.model.Payment;
 import org.athlium.payments.domain.model.PaymentListItem;
 import org.athlium.payments.domain.model.PaymentMethod;
@@ -15,11 +16,14 @@ import org.athlium.shared.domain.PageResponse;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @ApplicationScoped
 public class PaymentRepositoryImpl implements PaymentRepository {
@@ -70,7 +74,24 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         List<Object[]> rows = dataQuery.getResultList();
         List<PaymentListItem> items = rows.stream().map(this::mapRow).toList();
 
-        return new PageResponse<>(items, criteria.page(), criteria.size(), total);
+        List<Long> paymentIds = items.stream().map(PaymentListItem::getId).toList();
+        Map<Long, List<Activity>> activitiesByPayment = findActivitiesByPaymentIds(paymentIds);
+        List<PaymentListItem> enrichedItems = items.stream()
+                .map(item -> new PaymentListItem(
+                        item.getId(),
+                        item.getAmount(),
+                        item.getPaymentMethod(),
+                        item.getPaidAt(),
+                        item.getUserName(),
+                        item.getUserLastName(),
+                        activitiesByPayment.getOrDefault(item.getId(), List.of()),
+                        item.getClientId(),
+                        item.getHeadquartersId(),
+                        item.getOrganizationId()
+                ))
+                .toList();
+
+        return new PageResponse<>(enrichedItems, criteria.page(), criteria.size(), total);
     }
 
     private Payment toDomain(PaymentEntity entity) {
@@ -173,8 +194,67 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         Long clientId = ((Number) row[6]).longValue();
         Long headquartersId = ((Number) row[7]).longValue();
         Long organizationId = ((Number) row[8]).longValue();
-        return new PaymentListItem(id, amount, paymentMethod, paidAt, userName, userLastName, clientId,
+        return new PaymentListItem(id, amount, paymentMethod, paidAt, userName, userLastName, List.of(), clientId,
                 headquartersId, organizationId);
+    }
+
+    private Map<Long, List<Activity>> findActivitiesByPaymentIds(List<Long> paymentIds) {
+        if (paymentIds == null || paymentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Query query = em.createNativeQuery("""
+                SELECT cp.payment_id,
+                       a.id,
+                       a.name,
+                       a.description,
+                       a.is_active,
+                       a.hq_id
+                FROM client_packages cp
+                JOIN client_package_credits cpc ON cpc.package_id = cp.id
+                JOIN activity a ON a.id = cpc.activity_id
+                WHERE cp.payment_id IN (:paymentIds)
+                ORDER BY cp.payment_id, a.name
+                """);
+        query.setParameter("paymentIds", paymentIds);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+
+        Map<Long, List<Activity>> activitiesByPayment = new LinkedHashMap<>();
+        Map<Long, Set<Long>> activityIdsByPayment = new LinkedHashMap<>();
+
+        for (Object[] row : rows) {
+            Long paymentId = ((Number) row[0]).longValue();
+            Long activityId = ((Number) row[1]).longValue();
+
+            Set<Long> seenIds = activityIdsByPayment.computeIfAbsent(paymentId, key -> new HashSet<>());
+            if (seenIds.contains(activityId)) {
+                continue;
+            }
+
+            Activity activity = new Activity();
+            activity.setId(activityId);
+            activity.setName((String) row[2]);
+            activity.setDescription((String) row[3]);
+            activity.setIsActive(parseBoolean(row[4]));
+            activity.setHqId(((Number) row[5]).longValue());
+
+            activitiesByPayment.computeIfAbsent(paymentId, key -> new ArrayList<>()).add(activity);
+            seenIds.add(activityId);
+        }
+
+        return activitiesByPayment;
+    }
+
+    private Boolean parseBoolean(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value == null) {
+            return null;
+        }
+        return Boolean.parseBoolean(value.toString());
     }
 
     private PaymentMethod parsePaymentMethod(Object value) {

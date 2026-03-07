@@ -1,7 +1,10 @@
 package org.athlium.payments.domain.model;
 
+import org.athlium.gym.domain.model.Activity;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public class PaymentListItem {
 
@@ -11,18 +14,21 @@ public class PaymentListItem {
     private final LocalDate paidAt;
     private final String userName;
     private final String userLastName;
+    private final List<Activity> activities;
     private final Long clientId;
     private final Long headquartersId;
     private final Long organizationId;
 
     public PaymentListItem(Long id, BigDecimal amount, PaymentMethod paymentMethod, LocalDate paidAt,
-            String userName, String userLastName, Long clientId, Long headquartersId, Long organizationId) {
+            String userName, String userLastName, List<Activity> activities, Long clientId, Long headquartersId,
+            Long organizationId) {
         this.id = id;
         this.amount = amount;
         this.paymentMethod = paymentMethod;
         this.paidAt = paidAt;
         this.userName = userName;
         this.userLastName = userLastName;
+        this.activities = activities;
         this.clientId = clientId;
         this.headquartersId = headquartersId;
         this.organizationId = organizationId;
@@ -50,6 +56,10 @@ public class PaymentListItem {
 
     public String getUserLastName() {
         return userLastName;
+    }
+
+    public List<Activity> getActivities() {
+        return activities;
     }
 
     public Long getClientId() {

@@ -10,7 +10,9 @@ import org.athlium.gym.infrastructure.entity.ActivityEntity;
 import org.athlium.gym.infrastructure.mapper.ActivityMapper;
 import org.athlium.shared.domain.PageResponse;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -33,6 +35,23 @@ public class ActivityRepositoryImpl implements ActivityRepository {
     public Activity findById(Long id) {
         ActivityEntity entity = panacheRepo.findById(id);
         return mapper.toDomain(entity);
+    }
+
+    @Override
+    public Map<Long, Activity> findByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+
+        return panacheRepo.find("id in ?1", ids)
+                .list()
+                .stream()
+                .collect(Collectors.toMap(
+                        entity -> entity.id,
+                        mapper::toDomain,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
     }
 
     @Override

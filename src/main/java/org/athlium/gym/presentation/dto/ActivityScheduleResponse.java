@@ -7,7 +7,7 @@ public class ActivityScheduleResponse {
     private Long id;
     private Long organizationId;
     private Long headquartersId;
-    private Long activityId;
+    private ActivityResponse activity;
     private Integer dayOfWeek;
     private List<String> weekDays;
     private String startTime;
@@ -43,12 +43,12 @@ public class ActivityScheduleResponse {
         this.headquartersId = headquartersId;
     }
 
-    public Long getActivityId() {
-        return activityId;
+    public ActivityResponse getActivity() {
+        return activity;
     }
 
-    public void setActivityId(Long activityId) {
-        this.activityId = activityId;
+    public void setActivity(ActivityResponse activity) {
+        this.activity = activity;
     }
 
     public Integer getDayOfWeek() {

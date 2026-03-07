@@ -1,7 +1,9 @@
 package org.athlium.gym.application.usecase;
 
+import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.domain.model.SessionStatus;
+import org.athlium.gym.domain.repository.ActivityRepository;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
 import org.athlium.shared.domain.PageResponse;
 import org.athlium.shared.exception.BadRequestException;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,6 +29,7 @@ class GetSessionsUseCaseTest {
         useCase = new GetSessionsUseCase();
         repository = new InMemorySessionRepository();
         useCase.sessionInstanceRepository = repository;
+        useCase.activityRepository = new StubActivityRepository();
     }
 
     @Test
@@ -69,9 +73,31 @@ class GetSessionsUseCaseTest {
         assertEquals(0, response.getTotalElements());
     }
 
+    @Test
+    void shouldIncludeActivityInReturnedSessions() {
+        SessionInstance session = new SessionInstance();
+        session.setActivityId(3L);
+        repository.responseContent = List.of(session);
+
+        PageResponse<SessionInstance> response = useCase.execute(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                1,
+                20,
+                "startsAt:asc"
+        );
+
+        assertEquals("Yoga", response.getContent().getFirst().getActivity().getName());
+    }
+
     private static class InMemorySessionRepository implements SessionInstanceRepository {
         int capturedPage;
         boolean capturedSortAscending;
+        List<SessionInstance> responseContent = List.of();
 
         @Override
         public SessionInstance save(SessionInstance sessionInstance) {
@@ -112,7 +138,60 @@ class GetSessionsUseCaseTest {
         ) {
             this.capturedPage = page;
             this.capturedSortAscending = sortAscending;
-            return new PageResponse<>(List.of(), page, size, 0);
+            return new PageResponse<>(responseContent, page, size, responseContent.size());
+        }
+    }
+
+    private static class StubActivityRepository implements ActivityRepository {
+
+        @Override
+        public Activity save(Activity activity) {
+            return activity;
+        }
+
+        @Override
+        public Activity findById(Long id) {
+            return null;
+        }
+
+        @Override
+        public Map<Long, Activity> findByIds(List<Long> ids) {
+            Activity activity = new Activity();
+            activity.setId(3L);
+            activity.setName("Yoga");
+            return Map.of(3L, activity);
+        }
+
+        @Override
+        public Activity update(Activity activity) {
+            return activity;
+        }
+
+        @Override
+        public void delete(Long id) {
+        }
+
+        @Override
+        public org.athlium.shared.domain.PageResponse<Activity> findPagedByHqId(
+                Long hqId,
+                Boolean isActive,
+                io.quarkus.panache.common.Page page
+        ) {
+            return null;
+        }
+
+        @Override
+        public List<Activity> findAllByHqId(Long hqId, Boolean isActive) {
+            return List.of();
+        }
+
+        @Override
+        public org.athlium.shared.domain.PageResponse<Activity> findByNameAndHqId(
+                String name,
+                Long hqId,
+                io.quarkus.panache.common.Page page
+        ) {
+            return null;
         }
     }
 }

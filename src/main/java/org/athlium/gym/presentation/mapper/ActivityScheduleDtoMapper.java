@@ -1,11 +1,13 @@
 package org.athlium.gym.presentation.mapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.model.ActivitySchedule;
 import org.athlium.gym.domain.model.SchedulerType;
 import org.athlium.gym.domain.model.SessionTemplateType;
 import org.athlium.gym.domain.model.WeekDay;
 import org.athlium.gym.presentation.dto.ActivityScheduleRequest;
+import org.athlium.gym.presentation.dto.ActivityResponse;
 import org.athlium.gym.presentation.dto.ActivityScheduleResponse;
 import org.athlium.shared.exception.BadRequestException;
 
@@ -46,7 +48,7 @@ public class ActivityScheduleDtoMapper {
         response.setId(schedule.getId());
         response.setOrganizationId(schedule.getOrganizationId());
         response.setHeadquartersId(schedule.getHeadquartersId());
-        response.setActivityId(schedule.getActivityId());
+        response.setActivity(toActivityResponse(schedule.getActivity()));
         response.setDayOfWeek(resolveLegacyDayOfWeek(schedule));
         response.setWeekDays(formatWeekDays(schedule.getWeekDays()));
         response.setStartTime(schedule.getStartTime() != null ? schedule.getStartTime().toString() : null);
@@ -57,6 +59,20 @@ public class ActivityScheduleDtoMapper {
         response.setActiveFrom(formatDate(schedule.getActiveFrom()));
         response.setActiveUntil(formatDate(schedule.getActiveUntil()));
         response.setScheduledDate(formatDate(schedule.getScheduledDate()));
+        return response;
+    }
+
+    private ActivityResponse toActivityResponse(Activity activity) {
+        if (activity == null) {
+            return null;
+        }
+
+        ActivityResponse response = new ActivityResponse();
+        response.setId(activity.getId());
+        response.setName(activity.getName());
+        response.setDescription(activity.getDescription());
+        response.setIsActive(activity.getIsActive());
+        response.setHqId(activity.getHqId());
         return response;
     }
 

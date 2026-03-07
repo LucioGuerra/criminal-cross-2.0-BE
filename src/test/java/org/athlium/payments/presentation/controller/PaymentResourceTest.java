@@ -2,6 +2,7 @@ package org.athlium.payments.presentation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.DefaultValue;
+import org.athlium.gym.domain.model.Activity;
 import org.athlium.payments.application.usecase.CreatePaymentUseCase;
 import org.athlium.payments.application.usecase.GetPaymentByIdUseCase;
 import org.athlium.payments.application.usecase.GetPaymentsUseCase;
@@ -34,6 +35,14 @@ class PaymentResourceTest {
 
     @Test
     void shouldReturnPaginatedPaymentsWithDynamicFilters() {
+        Activity activity = Activity.builder()
+                .id(9L)
+                .name("Yoga")
+                .description("Mind and body")
+                .isActive(true)
+                .hqId(3L)
+                .build();
+
         GetPaymentsUseCase getPaymentsUseCase = new GetPaymentsUseCase() {
             @Override
             public PageResponse<PaymentListItem> execute(String player, LocalDate paidAtFrom, LocalDate paidAtTo,
@@ -41,7 +50,7 @@ class PaymentResourceTest {
                     Long headquartersId, Long organizationId, int page, int size, String sort) {
                 return new PageResponse<>(
                         List.of(new PaymentListItem(7L, new BigDecimal("45.50"), PaymentMethod.CARD,
-                                LocalDate.of(2026, 1, 10), "Ana", "Lopez", 55L, 3L, 1L)),
+                                LocalDate.of(2026, 1, 10), "Ana", "Lopez", List.of(activity), 55L, 3L, 1L)),
                         0,
                         20,
                         1
@@ -71,6 +80,8 @@ class PaymentResourceTest {
         PageResponse<PaymentListItemResponse> data = (PageResponse<PaymentListItemResponse>) apiResponse.getData();
         assertEquals(1, data.getContent().size());
         assertEquals(55L, data.getContent().getFirst().getClientId());
+        assertEquals(1, data.getContent().getFirst().getActivities().size());
+        assertEquals("Yoga", data.getContent().getFirst().getActivities().getFirst().getName());
         assertEquals(3L, data.getContent().getFirst().getHeadquartersId());
         assertEquals(1L, data.getContent().getFirst().getOrganizationId());
     }

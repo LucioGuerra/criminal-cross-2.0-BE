@@ -1,9 +1,11 @@
 package org.athlium.payments.presentation.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import org.athlium.gym.presentation.dto.ActivityResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public class PaymentListItemResponse {
 
@@ -16,6 +18,7 @@ public class PaymentListItemResponse {
 
     private String userName;
     private String userLastName;
+    private List<ActivityResponse> activities;
     private Long clientId;
     private Long headquartersId;
     private Long organizationId;
@@ -66,6 +69,14 @@ public class PaymentListItemResponse {
 
     public void setUserLastName(String userLastName) {
         this.userLastName = userLastName;
+    }
+
+    public List<ActivityResponse> getActivities() {
+        return activities;
+    }
+
+    public void setActivities(List<ActivityResponse> activities) {
+        this.activities = activities;
     }
 
     public Long getClientId() {

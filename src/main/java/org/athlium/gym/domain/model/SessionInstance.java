@@ -8,6 +8,7 @@ public class SessionInstance {
     private Long organizationId;
     private Long headquartersId;
     private Long activityId;
+    private Activity activity;
     private Instant startsAt;
     private Instant endsAt;
     private SessionStatus status;
@@ -49,6 +50,14 @@ public class SessionInstance {
 
     public void setActivityId(Long activityId) {
         this.activityId = activityId;
+    }
+
+    public Activity getActivity() {
+        return activity;
+    }
+
+    public void setActivity(Activity activity) {
+        this.activity = activity;
     }
 
     public Instant getStartsAt() {

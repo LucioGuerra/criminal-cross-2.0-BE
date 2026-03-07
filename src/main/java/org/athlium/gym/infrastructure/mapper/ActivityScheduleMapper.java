@@ -10,6 +10,7 @@ public interface ActivityScheduleMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "templateType", ignore = true)
+    @Mapping(target = "activity", ignore = true)
     ActivitySchedule toDomain(ActivityScheduleDocument document);
 
     @Mapping(target = "id", ignore = true)

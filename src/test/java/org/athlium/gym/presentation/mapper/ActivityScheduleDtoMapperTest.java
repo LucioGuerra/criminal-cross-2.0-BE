@@ -1,6 +1,8 @@
 package org.athlium.gym.presentation.mapper;
 
 import org.athlium.gym.domain.model.SchedulerType;
+import org.athlium.gym.domain.model.Activity;
+import org.athlium.gym.domain.model.ActivitySchedule;
 import org.athlium.gym.domain.model.WeekDay;
 import org.athlium.gym.presentation.dto.ActivityScheduleRequest;
 import org.junit.jupiter.api.Test;
@@ -45,5 +47,21 @@ class ActivityScheduleDtoMapperTest {
 
         assertEquals(SchedulerType.WEEKLY_RANGE, schedule.getSchedulerType());
         assertEquals(List.of(WeekDay.FRIDAY), schedule.getWeekDays());
+    }
+
+    @Test
+    void shouldMapActivityToResponse() {
+        Activity activity = new Activity();
+        activity.setId(3L);
+        activity.setName("Yoga");
+
+        ActivitySchedule schedule = new ActivitySchedule();
+        schedule.setActivityId(3L);
+        schedule.setActivity(activity);
+
+        var response = mapper.toResponse(schedule);
+
+        assertEquals(3L, response.getActivity().getId());
+        assertEquals("Yoga", response.getActivity().getName());
     }
 }

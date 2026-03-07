@@ -12,7 +12,7 @@ public class SessionResponse {
     private Long id;
     private Long organizationId;
     private Long headquartersId;
-    private Long activityId;
+    private ActivityResponse activity;
     private Instant startsAt;
     private Instant endsAt;
     private SessionStatus status;
