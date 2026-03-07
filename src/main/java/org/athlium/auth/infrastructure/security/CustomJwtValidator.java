@@ -101,23 +101,39 @@ public class CustomJwtValidator {
      * Loads the public key from the configured location.
      */
     private PublicKey loadPublicKey() throws Exception {
-        // Remove leading slash if present for classpath resource
-        String resourcePath = publicKeyLocation.startsWith("/") ? publicKeyLocation.substring(1) : publicKeyLocation;
-        
+        String keyContent = readPublicKeyContent();
+        String sanitizedKey = keyContent
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replaceAll("\\s", "");
+
+        byte[] keyBytes = Base64.getDecoder().decode(sanitizedKey);
+        X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        return kf.generatePublic(spec);
+    }
+
+    private String readPublicKeyContent() throws Exception {
+        String location = publicKeyLocation;
+
+        if (location.startsWith("file:")) {
+            location = location.substring("file:".length());
+        }
+
+        java.nio.file.Path filePath = Paths.get(location);
+        if (Files.exists(filePath)) {
+            LOG.debugf("Loading JWT public key from filesystem path: %s", filePath);
+            return Files.readString(filePath);
+        }
+
+        String resourcePath = location.startsWith("/") ? location.substring(1) : location;
         try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath)) {
             if (is == null) {
-                throw new IllegalStateException("Public key not found at: " + resourcePath);
+                throw new IllegalStateException("Public key not found at configured location: " + publicKeyLocation);
             }
-            
-            String key = new String(is.readAllBytes())
-                    .replace("-----BEGIN PUBLIC KEY-----", "")
-                    .replace("-----END PUBLIC KEY-----", "")
-                    .replaceAll("\\s", "");
-            
-            byte[] keyBytes = Base64.getDecoder().decode(key);
-            X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
-            return kf.generatePublic(spec);
+
+            LOG.debugf("Loading JWT public key from classpath resource: %s", resourcePath);
+            return new String(is.readAllBytes());
         }
     }
 
