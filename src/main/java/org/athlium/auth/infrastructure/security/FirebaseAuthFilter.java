@@ -3,6 +3,7 @@ package org.athlium.auth.infrastructure.security;
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
+import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ResourceInfo;
@@ -63,6 +64,14 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
+        if (HttpMethod.OPTIONS.equalsIgnoreCase(requestContext.getMethod())) {
+            return;
+        }
+
+        if (resourceInfo == null || resourceInfo.getResourceMethod() == null) {
+            return;
+        }
+
         Method method = resourceInfo.getResourceMethod();
         Class<?> resourceClass = resourceInfo.getResourceClass();
 
