@@ -28,8 +28,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 
 /**
- * JAX-RS filter that intercepts requests and validates tokens.
- * Supports both custom JWT tokens (issued by backend) and Firebase tokens.
+ * JAX-RS filter that intercepts requests and validates Firebase ID tokens.
  * Populates the SecurityContext with the authenticated user.
  */
 @Provider
@@ -43,9 +42,6 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
 
     @Inject
     TokenValidator tokenValidator;
-
-    @Inject
-    CustomJwtValidator customJwtValidator;
 
     @Inject
     UserProvider userProvider;
@@ -158,41 +154,21 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
     }
 
     /**
-     * Validates token and builds authenticated user.
-     * Supports both custom JWT (backend-issued) and Firebase tokens.
+     * Validates Firebase token and builds authenticated user.
      */
     private AuthenticatedUser validateAndBuildUser(String authHeader) {
-        // Check if it's a custom JWT or Firebase token
-        if (customJwtValidator.isCustomJwt(authHeader)) {
-            // Validate custom JWT
-            CustomJwtValidator.JwtValidationResult jwtResult = customJwtValidator.validateCustomJwt(authHeader);
-            
-            // Build authenticated user from JWT claims
-            // For custom JWTs, we trust the embedded data (userId, roles)
-            AuthenticatedUser.AuthenticatedUserBuilder builder = AuthenticatedUser.builder()
-                    .firebaseUid(jwtResult.firebaseUid())
-                    .email(jwtResult.email())
-                    .emailVerified(true); // Custom JWTs are only issued after Firebase verification
-            
-            // Enrich with fresh user data from database
-            return userProvider
-                    .enrichWithUserData(jwtResult.firebaseUid(), builder)
-                    .build();
-        } else {
-            // Validate Firebase token (original flow)
-            DecodedToken decodedToken = tokenValidator.validateToken(authHeader);
-            
-            AuthenticatedUser.AuthenticatedUserBuilder builder = AuthenticatedUser.builder()
-                    .firebaseUid(decodedToken.getUid())
-                    .email(decodedToken.getEmail())
-                    .name(decodedToken.getName())
-                    .emailVerified(decodedToken.isEmailVerified())
-                    .provider(decodedToken.getProvider());
+        DecodedToken decodedToken = tokenValidator.validateToken(authHeader);
 
-            return userProvider
-                    .enrichWithUserData(decodedToken.getUid(), builder)
-                    .build();
-        }
+        AuthenticatedUser.AuthenticatedUserBuilder builder = AuthenticatedUser.builder()
+                .firebaseUid(decodedToken.getUid())
+                .email(decodedToken.getEmail())
+                .name(decodedToken.getName())
+                .emailVerified(decodedToken.isEmailVerified())
+                .provider(decodedToken.getProvider());
+
+        return userProvider
+                .enrichWithUserData(decodedToken.getUid(), builder)
+                .build();
     }
 
     private void tryOptionalAuthentication(ContainerRequestContext requestContext) {

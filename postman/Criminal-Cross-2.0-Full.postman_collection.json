@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Criminal-Cross-2.0 Full API",
-    "description": "Complete importable Postman collection for Criminal-Cross-2.0 backend modules.",
+    "description": "Complete importable Postman collection for Criminal-Cross-2.0 backend modules.\n\nAuth flow (Firebase BFF):\n1) Call POST /api/auth/register or POST /api/auth/login with email/password.\n2) Save data.tokens.accessToken as Bearer token (Firebase ID token).\n3) Use POST /api/auth/refresh with refresh token when access token expires.\n4) Use GET /api/auth/me to enrich identity with local userId/roles.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -18,7 +18,9 @@
     { "key": "base_url", "value": "http://localhost:8080" },
     { "key": "bearer_token", "value": "" },
     { "key": "refresh_token", "value": "" },
-    { "key": "id_token", "value": "" },
+    { "key": "auth_email", "value": "demo.user@example.com" },
+    { "key": "auth_password", "value": "ChangeMe123!" },
+    { "key": "id_token", "value": "", "description": "DEPRECATED: only for /api/auth/verify-token (410 Gone). Do not use in frontend flows." },
     { "key": "firebase_uid", "value": "demo-uid-001" },
     { "key": "user_id", "value": "1" },
     { "key": "organization_id", "value": "1" },
@@ -34,6 +36,7 @@
   "item": [
     {
       "name": "01 Auth",
+      "description": "Frontend auth contract (current):\\n- Register/Login with credentials payload (email/password).\\n- Use data.tokens.accessToken as Authorization Bearer token (Firebase ID token).\\n- Refresh with data.tokens.refreshToken via /api/auth/refresh.\\n- Call /api/auth/me after login/refresh to get local enrichment (userId, roles, active, registered).\\n\\nDeprecated:\\n- /api/auth/verify-token returns 410 and should not be used.",
       "item": [
         {
           "name": "Health",
@@ -44,7 +47,8 @@
           }
         },
         {
-          "name": "Verify Token",
+          "name": "Verify Token (DEPRECATED - 410)",
+          "description": "Deprecated endpoint. Kept only for backward compatibility checks. Expected status: 410 Gone.",
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
@@ -54,23 +58,20 @@
               "raw": "{\n  \"idToken\": \"{{id_token}}\"\n}"
             },
             "url": "{{base_url}}/api/auth/verify-token"
-          }
+          },
+          "response": [
+            {
+              "name": "Deprecated",
+              "status": "Gone",
+              "code": 410,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Endpoint deprecated. Use /api/auth/me with Authorization: Bearer <firebase-id-token>\"\n}"
+            }
+          ]
         },
         {
           "name": "Register",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idToken\": \"{{id_token}}\",\n  \"name\": \"Demo\",\n  \"lastName\": \"User\"\n}"
-            },
-            "url": "{{base_url}}/api/auth/register"
-          }
-        },
-        {
-          "name": "Login",
+          "description": "Registers a Firebase account through backend intermediary and creates local user profile. Returns Firebase token pair plus local user data.",
           "event": [
             {
               "listen": "test",
@@ -82,7 +83,7 @@
                   "const tokens = data.tokens || {};",
                   "if (tokens.accessToken) pm.collectionVariables.set('bearer_token', tokens.accessToken);",
                   "if (tokens.refreshToken) pm.collectionVariables.set('refresh_token', tokens.refreshToken);",
-                  "if (data.user && data.user.id) pm.collectionVariables.set('user_id', String(data.user.id));",
+                  "if (data.user && data.user.userId) pm.collectionVariables.set('user_id', String(data.user.userId));",
                   "if (data.user && data.user.firebaseUid) pm.collectionVariables.set('firebase_uid', String(data.user.firebaseUid));"
                 ]
               }
@@ -94,13 +95,63 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idToken\": \"{{id_token}}\"\n}"
+              "raw": "{\n  \"email\": \"{{auth_email}}\",\n  \"password\": \"{{auth_password}}\",\n  \"name\": \"Demo\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          },
+          "response": [
+            {
+              "name": "Created",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\",\n  \"data\": {\n    \"user\": {\n      \"firebaseUid\": \"firebase-uid-123\",\n      \"email\": \"demo.user@example.com\",\n      \"name\": \"Demo\",\n      \"roles\": [\"CLIENT\"],\n      \"registered\": true,\n      \"active\": true\n    },\n    \"tokens\": {\n      \"accessToken\": \"eyJhbGciOi...\",\n      \"refreshToken\": \"refresh-token-value\",\n      \"expiresIn\": 3600,\n      \"tokenType\": \"Bearer\"\n    },\n    \"message\": \"User registered successfully\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "description": "Authenticates with Firebase credentials through backend intermediary. Use data.tokens.accessToken as Authorization Bearer token.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : {};",
+                  "const tokens = data.tokens || {};",
+                  "if (tokens.accessToken) pm.collectionVariables.set('bearer_token', tokens.accessToken);",
+                  "if (tokens.refreshToken) pm.collectionVariables.set('refresh_token', tokens.refreshToken);",
+                  "if (data.user && data.user.userId) pm.collectionVariables.set('user_id', String(data.user.userId));",
+                  "if (data.user && data.user.firebaseUid) pm.collectionVariables.set('firebase_uid', String(data.user.firebaseUid));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{auth_email}}\",\n  \"password\": \"{{auth_password}}\"\n}"
             },
             "url": "{{base_url}}/api/auth/login"
-          }
+          },
+          "response": [
+            {
+              "name": "OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"firebaseUid\": \"firebase-uid-123\",\n      \"email\": \"demo.user@example.com\",\n      \"name\": \"Demo User\",\n      \"userId\": 42,\n      \"roles\": [\"CLIENT\"],\n      \"registered\": true,\n      \"active\": true\n    },\n    \"tokens\": {\n      \"accessToken\": \"eyJhbGciOi...\",\n      \"refreshToken\": \"refresh-token-value\",\n      \"expiresIn\": 3600,\n      \"tokenType\": \"Bearer\"\n    },\n    \"message\": \"Login successful\"\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Refresh",
+          "description": "Exchanges refresh token for a new Firebase token pair. Update both bearer_token and refresh_token from response.",
           "event": [
             {
               "listen": "test",
@@ -124,14 +175,43 @@
               "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
             },
             "url": "{{base_url}}/api/auth/refresh"
-          }
+          },
+          "response": [
+            {
+              "name": "OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"firebaseUid\": \"firebase-uid-123\",\n      \"email\": \"demo.user@example.com\",\n      \"userId\": 42,\n      \"roles\": [\"CLIENT\"],\n      \"registered\": true\n    },\n    \"tokens\": {\n      \"accessToken\": \"eyJhbGciOi...new\",\n      \"refreshToken\": \"refresh-token-value-new\",\n      \"expiresIn\": 3600,\n      \"tokenType\": \"Bearer\"\n    },\n    \"message\": \"Token refreshed successfully\"\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Me",
+          "description": "Returns authenticated Firebase identity enriched with local Athlium user fields (userId, roles, registered, active).",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearer_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "url": "{{base_url}}/api/auth/me"
-          }
+          },
+          "response": [
+            {
+              "name": "OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"firebaseUid\": \"firebase-uid-123\",\n      \"email\": \"demo.user@example.com\",\n      \"name\": \"Demo User\",\n      \"userId\": 42,\n      \"roles\": [\"CLIENT\", \"ORG_ADMIN\"],\n      \"registered\": true,\n      \"active\": true\n    },\n    \"needsRegistration\": false,\n    \"message\": \"Current user retrieved successfully\"\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Logout (Single Session)",
@@ -210,7 +290,8 @@
           }
         },
         {
-          "name": "Sync User With Firebase",
+          "name": "Sync User With Firebase (DEPRECATED)",
+          "description": "Deprecated for frontend auth flows. Use /api/auth/register and /api/auth/me instead of manually syncing users.",
           "event": [
             {
               "listen": "test",

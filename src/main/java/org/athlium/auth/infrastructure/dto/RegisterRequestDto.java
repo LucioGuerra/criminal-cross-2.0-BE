@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * Request DTO for user registration.
- * The frontend sends the Firebase ID token along with additional profile information.
+ * The frontend sends user profile plus credentials.
  */
 @Getter
 @Builder
@@ -15,10 +15,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegisterRequestDto {
 
-    /**
-     * The Firebase ID token obtained from client-side authentication.
-     */
-    private String idToken;
+    private String email;
+
+    private String password;
 
     /**
      * User's first name.

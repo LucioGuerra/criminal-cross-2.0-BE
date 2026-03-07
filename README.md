@@ -44,20 +44,12 @@ Each module follows clean architecture principles:
 
 ## 🔐 Authentication System
 
-The Auth module implements **Option B: Backend JWT Complete** architecture:
+The Auth module uses a **Firebase BFF flow**:
 
-- **Firebase** for initial user authentication (email/password, Google, Facebook)
-- **Backend-managed JWT** (RSA-256) for API access with 15-minute expiration
-- **Refresh tokens** in PostgreSQL with token rotation for secure sessions
-- **Instant logout** via token revocation
-- **Session tracking** with device info and IP address
-
-### Key Benefits
-- ✅ Full control over user sessions
-- ✅ Instant logout/revocation capability
-- ✅ No Firebase calls for API requests
-- ✅ Detailed audit trail
-- ✅ Custom claims in JWT (roles, userId, etc.)
+- **Backend intermediary** for `register` and `login` credential payloads (`email`, `password`)
+- **Firebase-issued tokens** returned by backend (`accessToken`/ID token + `refreshToken`)
+- **Authorization with Bearer ID token** (`Authorization: Bearer <idToken>`)
+- **Local user enrichment** via `GET /api/auth/me` (includes `userId`, `roles`, `registered`, `active`)
 
 See [Auth Module Documentation](src/main/java/org/athlium/auth/README.md) for details.
 
@@ -163,11 +155,12 @@ For more: [Quarkus Native Guide](https://quarkus.io/guides/maven-tooling)
 ## 📡 API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login (get JWT + refresh token)
-- `POST /api/auth/refresh` - Refresh tokens
+- `POST /api/auth/register` - Register with credentials, returns Firebase token pair + local user data
+- `POST /api/auth/login` - Login with credentials, returns Firebase token pair + local user data
+- `POST /api/auth/refresh` - Refresh Firebase token pair
 - `POST /api/auth/logout` - Logout (revoke tokens)
-- `GET /api/auth/me` - Get current user
+- `GET /api/auth/me` - Get current user (Firebase identity + local roles)
+- `POST /api/auth/verify-token` - Deprecated (`410 Gone`)
 
 ### Health & Monitoring
 - `GET /q/health` - Health check
@@ -195,10 +188,9 @@ For more: [Quarkus Native Guide](https://quarkus.io/guides/maven-tooling)
 - **MongoDB 5.0+** - Document database
 
 ### Security & Auth
-- **Firebase Admin SDK 9.2.0** - Initial authentication
-- **SmallRye JWT** - Custom JWT generation (RSA-256)
-- **JJWT 0.11.5** - JWT validation
-- **Custom refresh tokens** - Session management
+- **Firebase Admin SDK 9.2.0** - Firebase identity/token validation
+- **Firebase Identity Toolkit integration** - Register/login/refresh mediation
+- **Bearer Firebase ID tokens** - Protected API authorization
 
 ### Mapping & Serialization
 - **MapStruct 1.5.5** - DTO ↔ Entity mapping

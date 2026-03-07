@@ -2,12 +2,13 @@
   "info": {
     "name": "Athlium Backend - Manual E2E",
     "_postman_id": "f6f2dd52-1174-4f5d-a8a0-8f5f6f6df0f2",
-    "description": "Manual flow collection for auth (mock), gym config/scheduling, sessions, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend with mock auth: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.\n\nAuth note:\n- Run Login first. If response has data.needsRegistration=true, run Register and then Login again.\n- Login/Refresh scripts store accessToken and refreshToken automatically.",
+    "description": "Manual flow collection for auth, gym config/scheduling, sessions, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.\n\nAuth note (Firebase BFF):\n- Register/Login use email/password payloads.\n- Login/Register/Refresh scripts store accessToken and refreshToken automatically.\n- Use accessToken as Authorization Bearer token (Firebase ID token).\n- Call GET /api/auth/me to enrich identity with local userId/roles.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "mockIdToken", "value": "tester-001" },
+    { "key": "authEmail", "value": "tester-001@example.com" },
+    { "key": "authPassword", "value": "ChangeMe123!" },
     { "key": "accessToken", "value": "" },
     { "key": "refreshToken", "value": "" },
     { "key": "organizationId", "value": "1" },
@@ -24,7 +25,8 @@
   ],
   "item": [
     {
-      "name": "1. Auth (Mock)",
+      "name": "1. Auth",
+      "description": "Frontend auth flow:\\n1) Register or login with credentials (email/password).\\n2) Use returned accessToken as Bearer token.\\n3) Refresh with refreshToken when needed.\\n4) Fetch /api/auth/me to get local roles and userId.",
       "item": [
         {
           "name": "Auth Health",
@@ -34,7 +36,7 @@
           }
         },
         {
-          "name": "Login (Mock Token)",
+          "name": "Login (Credentials)",
           "event": [
             {
               "listen": "test",
@@ -61,13 +63,28 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idToken\": \"{{mockIdToken}}\"\n}"
+              "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/auth/login"
           }
         },
         {
-          "name": "Register (If Login Needs Registration)",
+          "name": "Register (Credentials)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r && r.data && r.data.tokens) {",
+                  "  pm.collectionVariables.set('accessToken', r.data.tokens.accessToken || '');",
+                  "  pm.collectionVariables.set('refreshToken', r.data.tokens.refreshToken || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -75,7 +92,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idToken\": \"{{mockIdToken}}\",\n  \"name\": \"Test\",\n  \"lastName\": \"User\"\n}"
+              "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\",\n  \"name\": \"Test\",\n  \"lastName\": \"User\"\n}"
             },
             "url": "{{baseUrl}}/api/auth/register"
           }
@@ -107,6 +124,23 @@
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": "{{baseUrl}}/api/auth/refresh"
+          }
+        },
+        {
+          "name": "Me (Identity + Local Roles)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me"
           }
         }
       ]

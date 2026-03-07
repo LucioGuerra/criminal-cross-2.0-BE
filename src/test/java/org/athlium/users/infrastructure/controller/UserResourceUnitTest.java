@@ -10,6 +10,7 @@ import org.athlium.users.application.usecase.UpdateUserRolesUseCase;
 import org.athlium.users.domain.model.Role;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.infrastructure.dto.UpdateRolesRequestDto;
+import org.athlium.users.infrastructure.dto.CreateUserRequestDto;
 import org.athlium.users.infrastructure.dto.UserResponseDto;
 import org.athlium.users.infrastructure.mapper.UserDtoMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +62,14 @@ class UserResourceUnitTest {
 
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
         assertTrue(body.isSuccess());
+    }
+
+    @Test
+    void shouldReturnGoneForDeprecatedSyncEndpoint() {
+        CreateUserRequestDto request = new CreateUserRequestDto();
+        Response response = resource.syncWithFirebase(request);
+
+        assertEquals(410, response.getStatus());
     }
 
     private static class StubGetUserByUidUseCase extends GetUserByUidUseCase {

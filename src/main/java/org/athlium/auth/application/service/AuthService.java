@@ -67,39 +67,37 @@ public class AuthService {
     }
 
     /**
-     * Registers a new user in the local database.
+     * Registers a new user through the API/Firebase BFF flow.
      *
-     * @param idToken  The Firebase ID token
+     * @param email    User email
+     * @param password User password
      * @param name     User's first name
      * @param lastName User's last name
-     * @return The authenticated user with registration complete
+     * @return Registration result with user and Firebase tokens
      */
-    public AuthenticatedUser registerUser(String idToken, String name, String lastName) {
-        return registerUserUseCase.execute(idToken, name, lastName);
+    public RegisterUserUseCase.RegisterResult registerUser(String email, String password, String name, String lastName) {
+        return registerUserUseCase.execute(email, password, name, lastName);
     }
 
     /**
-     * Performs login with a Firebase ID token.
+     * Performs login with Firebase credentials.
      *
-     * @param idToken    The Firebase ID token
-     * @param deviceInfo Optional device information
-     * @param ipAddress  Optional IP address
-     * @return Login result with user and refresh token
+     * @param email    User email
+     * @param password User password
+     * @return Login result with user and Firebase tokens
      */
-    public LoginUseCase.LoginResult login(String idToken, String deviceInfo, String ipAddress) {
-        return loginUseCase.execute(idToken, deviceInfo, ipAddress);
+    public LoginUseCase.LoginResult login(String email, String password) {
+        return loginUseCase.execute(email, password);
     }
 
     /**
      * Refreshes tokens using a valid refresh token.
      *
      * @param refreshToken The refresh token
-     * @param deviceInfo   Optional device information
-     * @param ipAddress    Optional IP address
-     * @return Refresh result with new tokens
+     * @return Refresh result with refreshed Firebase tokens
      */
-    public RefreshTokenUseCase.RefreshResult refreshToken(String refreshToken, String deviceInfo, String ipAddress) {
-        return refreshTokenUseCase.execute(refreshToken, deviceInfo, ipAddress);
+    public RefreshTokenUseCase.RefreshResult refreshToken(String refreshToken) {
+        return refreshTokenUseCase.execute(refreshToken);
     }
 
     /**

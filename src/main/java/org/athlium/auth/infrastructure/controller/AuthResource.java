@@ -1,14 +1,11 @@
 package org.athlium.auth.infrastructure.controller;
 
-import io.vertx.core.http.HttpServerRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.athlium.auth.application.service.AuthService;
 import org.athlium.auth.application.usecase.LoginUseCase;
-import org.athlium.auth.application.usecase.LogoutUseCase;
 import org.athlium.auth.application.usecase.RefreshTokenUseCase;
 import org.athlium.auth.domain.exception.AuthenticationException;
 import org.athlium.auth.domain.exception.InvalidRefreshTokenException;
@@ -54,38 +51,13 @@ public class AuthResource {
         return Response.ok(ApiResponse.success(health)).build();
     }
 
-    /**
-     * Verifies a Firebase ID token and returns the authenticated user info.
-     * This is the main endpoint for validating tokens from the frontend.
-     */
     @POST
     @Path("/verify-token")
     @PublicEndpoint
     public Response verifyToken(VerifyTokenRequestDto request) {
-        if (request == null || request.getIdToken() == null || request.getIdToken().isBlank()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ApiResponse.error("ID token is required"))
-                    .build();
-        }
-
-        try {
-            AuthenticatedUser user = authService.verifyToken(request.getIdToken());
-
-            AuthResponseDto response = AuthResponseDto.builder()
-                    .user(authMapper.toDto(user))
-                    .needsRegistration(!user.isRegistered())
-                    .message(user.isRegistered() 
-                            ? "Token verified successfully" 
-                            : "Token verified - user needs registration")
-                    .build();
-
-            return Response.ok(ApiResponse.success(response)).build();
-
-        } catch (AuthenticationException e) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ApiResponse.error(e.getMessage()))
-                    .build();
-        }
+        return Response.status(Response.Status.GONE)
+                .entity(ApiResponse.error("Endpoint deprecated. Use /api/auth/me with Authorization: Bearer <firebase-id-token>"))
+                .build();
     }
 
     /**
@@ -114,30 +86,31 @@ public class AuthResource {
         }
     }
 
-    /**
-     * Registers a new user in the local database.
-     * Requires a valid Firebase ID token.
-     */
     @POST
     @Path("/register")
     @PublicEndpoint
     public Response register(RegisterRequestDto request) {
-        if (request == null || request.getIdToken() == null || request.getIdToken().isBlank()) {
+        if (request == null || isBlank(request.getEmail()) || isBlank(request.getPassword())) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ApiResponse.error("ID token is required"))
+                    .entity(ApiResponse.error("Email and password are required"))
                     .build();
         }
 
         try {
-            AuthenticatedUser user = authService.registerUser(
-                    request.getIdToken(),
+            var result = authService.registerUser(
+                    request.getEmail(),
+                    request.getPassword(),
                     request.getName(),
                     request.getLastName()
             );
 
-            AuthResponseDto response = AuthResponseDto.builder()
-                    .user(authMapper.toDto(user))
-                    .needsRegistration(false)
+            LoginResponseDto response = LoginResponseDto.builder()
+                    .user(authMapper.toDto(result.user()))
+                    .tokens(TokenPairDto.builder()
+                            .accessToken(result.tokens().accessToken())
+                            .refreshToken(result.tokens().refreshToken())
+                            .expiresIn(result.tokens().expiresInSeconds())
+                            .build())
                     .message("User registered successfully")
                     .build();
 
@@ -156,46 +129,28 @@ public class AuthResource {
         }
     }
 
-    /**
-     * Login endpoint - validates Firebase token and returns refresh token.
-     * This is the main entry point for authenticated sessions.
-     */
     @POST
     @Path("/login")
     @PublicEndpoint
-    public Response login(VerifyTokenRequestDto request, @Context HttpServerRequest httpRequest) {
-        if (request == null || request.getIdToken() == null || request.getIdToken().isBlank()) {
+    public Response login(LoginRequestDto request) {
+        if (request == null || isBlank(request.getEmail()) || isBlank(request.getPassword())) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ApiResponse.error("ID token is required"))
+                    .entity(ApiResponse.error("Email and password are required"))
                     .build();
         }
 
         try {
-            String deviceInfo = httpRequest.getHeader("User-Agent");
-            String ipAddress = getClientIpAddress(httpRequest);
-
             LoginUseCase.LoginResult result = authService.login(
-                    request.getIdToken(),
-                    deviceInfo,
-                    ipAddress
+                    request.getEmail(),
+                    request.getPassword()
             );
-
-            if (result.needsRegistration()) {
-                AuthResponseDto response = AuthResponseDto.builder()
-                        .user(authMapper.toDto(result.user()))
-                        .needsRegistration(true)
-                        .message("User needs to complete registration")
-                        .build();
-
-                return Response.ok(ApiResponse.success(response)).build();
-            }
 
             LoginResponseDto response = LoginResponseDto.builder()
                     .user(authMapper.toDto(result.user()))
                     .tokens(TokenPairDto.builder()
-                            .accessToken(result.accessToken())
-                            .refreshToken(result.refreshToken().getToken())
-                            .expiresIn(900) // Custom JWT expires in 15 minutes (900 seconds)
+                            .accessToken(result.tokens().accessToken())
+                            .refreshToken(result.tokens().refreshToken())
+                            .expiresIn(result.tokens().expiresInSeconds())
                             .build())
                     .message("Login successful")
                     .build();
@@ -209,13 +164,10 @@ public class AuthResource {
         }
     }
 
-    /**
-     * Refresh token endpoint - exchanges a valid refresh token for new tokens.
-     */
     @POST
     @Path("/refresh")
     @PublicEndpoint
-    public Response refresh(RefreshTokenRequestDto request, @Context HttpServerRequest httpRequest) {
+    public Response refresh(RefreshTokenRequestDto request) {
         if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(ApiResponse.error("Refresh token is required"))
@@ -223,21 +175,16 @@ public class AuthResource {
         }
 
         try {
-            String deviceInfo = httpRequest.getHeader("User-Agent");
-            String ipAddress = getClientIpAddress(httpRequest);
-
             RefreshTokenUseCase.RefreshResult result = authService.refreshToken(
-                    request.getRefreshToken(),
-                    deviceInfo,
-                    ipAddress
+                    request.getRefreshToken()
             );
 
             LoginResponseDto response = LoginResponseDto.builder()
                     .user(authMapper.toDto(result.user()))
                     .tokens(TokenPairDto.builder()
-                            .accessToken(result.accessToken())
-                            .refreshToken(result.newRefreshToken().getToken())
-                            .expiresIn(900) // Custom JWT expires in 15 minutes
+                            .accessToken(result.tokens().accessToken())
+                            .refreshToken(result.tokens().refreshToken())
+                            .expiresIn(result.tokens().expiresInSeconds())
                             .build())
                     .message("Token refreshed successfully")
                     .build();
@@ -255,47 +202,7 @@ public class AuthResource {
         }
     }
 
-    /**
-     * Logout endpoint - revokes refresh tokens.
-     */
-    @POST
-    @Path("/logout")
-    @PublicEndpoint
-    public Response logout(LogoutRequestDto request) {
-        try {
-            LogoutUseCase.LogoutResult result;
-
-            if (request != null && request.isLogoutAll()) {
-                result = authService.logoutAll();
-            } else if (request != null && request.getRefreshToken() != null && !request.getRefreshToken().isBlank()) {
-                result = authService.logout(request.getRefreshToken());
-            } else {
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity(ApiResponse.error("Refresh token is required, or set logoutAll to true"))
-                        .build();
-            }
-
-            return Response.ok(ApiResponse.success(result.message(), result)).build();
-
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(ApiResponse.error("Logout failed: " + e.getMessage()))
-                    .build();
-        }
-    }
-
-    /**
-     * Extracts the client IP address from the request, handling proxies.
-     */
-    private String getClientIpAddress(HttpServerRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-        return request.remoteAddress() != null ? request.remoteAddress().host() : "unknown";
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

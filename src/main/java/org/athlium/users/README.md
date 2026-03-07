@@ -15,7 +15,7 @@ Módulo responsable de la gestión de usuarios globales y roles del sistema.
 - `POST /api/users`: requiere `SUPERADMIN` o `ORG_ADMIN`
 - `GET /api/users/firebase/{uid}`: requiere usuario autenticado
 - `PUT /api/users/firebase/{uid}/roles`: requiere `SUPERADMIN` o `ORG_ADMIN`
-- `POST /api/users/sync`: requiere usuario autenticado
+- `POST /api/users/sync`: **deprecated** para frontend (mantener solo por compatibilidad)
 
 ## Reglas de roles
 - Solo `SUPERADMIN` y `ORG_ADMIN` pueden actualizar roles.

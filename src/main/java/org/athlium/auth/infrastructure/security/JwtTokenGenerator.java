@@ -24,6 +24,9 @@ public class JwtTokenGenerator {
     @ConfigProperty(name = "mp.jwt.verify.issuer", defaultValue = "https://athlium.com")
     String issuer;
 
+    @ConfigProperty(name = "smallrye.jwt.sign.key.location", defaultValue = "(not-configured)")
+    String signingKeyLocation;
+
     /**
      * Generates a signed JWT for the authenticated user.
      *
@@ -37,16 +40,30 @@ public class JwtTokenGenerator {
         Instant now = Instant.now();
         Instant expiry = now.plus(accessTokenExpirationMinutes, ChronoUnit.MINUTES);
 
-        String token = Jwt.issuer(issuer)
-                .upn(email) // User Principal Name (standard claim)
-                .subject(firebaseUid) // Subject = Firebase UID
-                .claim("userId", userId)
-                .claim("email", email)
-                .claim("firebaseUid", firebaseUid)
-                .groups(roles) // Roles as groups (standard claim)
-                .issuedAt(now)
-                .expiresAt(expiry)
-                .sign();
+        String token;
+        try {
+            token = Jwt.issuer(issuer)
+                    .upn(email) // User Principal Name (standard claim)
+                    .subject(firebaseUid) // Subject = Firebase UID
+                    .claim("userId", userId)
+                    .claim("email", email)
+                    .claim("firebaseUid", firebaseUid)
+                    .groups(roles) // Roles as groups (standard claim)
+                    .issuedAt(now)
+                    .expiresAt(expiry)
+                    .sign();
+        } catch (RuntimeException e) {
+            String rootCauseMessage = rootCauseMessage(e);
+            LOG.errorf(e,
+                    "JWT signing failed. key.location=%s, rootCause=%s",
+                    signingKeyLocation,
+                    rootCauseMessage);
+            throw new IllegalStateException(
+                    "JWT signing failed: verify private key path, permissions, and PEM format. " +
+                            "Configured 'smallrye.jwt.sign.key.location'=" + signingKeyLocation +
+                            ", cause=" + rootCauseMessage,
+                    e);
+        }
 
         LOG.debugf("Generated JWT for user %s, expires at %s", email, expiry);
         return token;
@@ -59,5 +76,13 @@ public class JwtTokenGenerator {
      */
     public long getAccessTokenExpirationSeconds() {
         return accessTokenExpirationMinutes * 60L;
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null && current.getCause() != current) {
+            current = current.getCause();
+        }
+        return current.getMessage() != null ? current.getMessage() : current.getClass().getSimpleName();
     }
 }

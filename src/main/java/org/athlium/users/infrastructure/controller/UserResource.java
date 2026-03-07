@@ -36,9 +36,6 @@ public class UserResource {
     UpdateUserRolesUseCase updateUserRolesUseCase;
 
     @Inject
-    SyncUserWithFirebaseUseCase syncUserWithFirebaseUseCase;
-
-    @Inject
     UserDtoMapper userDtoMapper;
 
     @Inject
@@ -111,23 +108,10 @@ public class UserResource {
 
     @POST
     @Path("/sync")
-    @Transactional
-    @Authenticated
     public Response syncWithFirebase(@Valid CreateUserRequestDto request) {
-        try {
-            var user = syncUserWithFirebaseUseCase.execute(
-                    request.getFirebaseUid(),
-                    request.getEmail(),
-                    request.getName(),
-                    request.getLastName()
-            );
-            var response = userDtoMapper.toResponseDto(user);
-            return Response.ok(ApiResponse.success("User synchronized successfully", response)).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ApiResponse.error(e.getMessage()))
-                    .build();
-        }
+        return Response.status(Response.Status.GONE)
+                .entity(ApiResponse.error("Endpoint deprecated. Use /api/auth/register for user creation"))
+                .build();
     }
 
     private User getCurrentUserForRoleUpdate(AuthenticatedUser authUser) {

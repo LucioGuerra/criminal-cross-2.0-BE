@@ -1,22 +1,22 @@
 # Auth Module
 
-Module responsible for authentication and authorization using Firebase and custom JWT tokens.
+Module responsible for authentication and authorization using Firebase with backend orchestration.
 
 ## Overview
 
-The Auth module implements a **hybrid authentication system**:
-- **Firebase** for initial user authentication (email/password, Google, etc.)
-- **Backend-managed JWT** for API access with full session control
-- **Refresh tokens** stored in PostgreSQL for long-term sessions
+The Auth module implements a **Firebase BFF flow**:
+- **Backend as intermediary** for credential-based register/login requests
+- **Firebase as token issuer** for `accessToken` (ID token) and `refreshToken`
+- **Backend enrichment** through `/api/auth/me` to expose local Athlium data (`userId`, `roles`, `registered`, `active`)
 
-This architecture (Option B) provides complete control over sessions, instant logout, and detailed audit capabilities.
+> Note: some deeper sections in this README still describe the previous backend-JWT design and are pending full rewrite. Use the endpoint contract and examples in this top section as the source of truth for frontend integration.
 
 ## Responsibilities
 
-- Firebase ID token validation for initial authentication
-- Custom JWT generation and validation (RSA-256 signed)
-- Refresh token management with rotation
-- User session tracking and revocation
+- Credential-based register/login mediation against Firebase
+- Firebase ID token validation for protected backend endpoints
+- Refresh token exchange through Firebase
+- User session logout forwarding
 - Role-based access control
 - Integration with Users module for local user data
 
@@ -100,10 +100,10 @@ export FIREBASE_CREDENTIALS_PATH=/path/to/serviceAccountKey.json
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/auth/health` | Health check for auth module |
-| POST | `/api/auth/verify-token` | Verify a Firebase ID token |
-| POST | `/api/auth/register` | Register user in local database |
-| POST | `/api/auth/login` | Login and get JWT + refresh token |
-| POST | `/api/auth/refresh` | Exchange refresh token for new tokens |
+| POST | `/api/auth/verify-token` | **Deprecated** (returns `410 Gone`) |
+| POST | `/api/auth/register` | Register with credentials (`email`, `password`) and create local user |
+| POST | `/api/auth/login` | Login with credentials and get Firebase token pair |
+| POST | `/api/auth/refresh` | Exchange refresh token for a new Firebase token pair |
 | POST | `/api/auth/logout` | Revoke refresh token(s) |
 
 ### Protected Endpoints
@@ -114,69 +114,61 @@ export FIREBASE_CREDENTIALS_PATH=/path/to/serviceAccountKey.json
 
 ## Usage
 
-### Verifying a Token
+### Frontend Integration (Current Contract)
+
+1. Call `POST /api/auth/register` or `POST /api/auth/login` with credentials payload.
+2. Save `data.tokens.accessToken` and send it as `Authorization: Bearer <idToken>`.
+3. Save `data.tokens.refreshToken` and rotate with `POST /api/auth/refresh`.
+4. Call `GET /api/auth/me` to get local Athlium enrichment (`userId`, `roles`, `registered`, `active`).
+
+### Login with Credentials
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/verify-token \
+curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"idToken": "your-firebase-id-token"}'
+  -d '{
+    "email": "user@example.com",
+    "password": "YourPassword123!"
+  }'
 ```
 
-Response (user not registered locally):
+Response:
 ```json
 {
   "success": true,
-  "message": "Success",
-  "data": {
-    "user": {
-      "firebaseUid": "abc123",
-      "email": "user@example.com",
-      "name": null,
-      "emailVerified": false,
-      "provider": "EMAIL",
-      "userId": null,
-      "roles": [],
-      "registered": false,
-      "active": false
-    },
-    "needsRegistration": true,
-    "message": "Token verified - user needs registration"
-  }
-}
-```
-
-Response (user registered):
-```json
-{
-  "success": true,
-  "message": "Success",
   "data": {
     "user": {
       "firebaseUid": "abc123",
       "email": "user@example.com",
       "name": "John Doe",
       "emailVerified": true,
-      "provider": "GOOGLE",
+      "provider": "EMAIL",
       "userId": 1,
       "roles": ["CLIENT"],
       "registered": true,
       "active": true
     },
-    "needsRegistration": false,
-    "message": "Token verified successfully"
+    "tokens": {
+      "accessToken": "eyJhbGciOi...",
+      "refreshToken": "refresh-token-value",
+      "expiresIn": 3600,
+      "tokenType": "Bearer"
+    },
+    "message": "Login successful"
   }
 }
 ```
 
 ### Registering a User
 
-After verifying a token returns `needsRegistration: true`, complete the profile:
+Use credentials payload and profile fields:
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "idToken": "your-firebase-id-token",
+    "email": "user@example.com",
+    "password": "YourPassword123!",
     "name": "John",
     "lastName": "Doe"
   }'
@@ -199,11 +191,21 @@ Response:
       "registered": true,
       "active": true
     },
-    "needsRegistration": false,
+    "tokens": {
+      "accessToken": "eyJhbGciOi...",
+      "refreshToken": "refresh-token-value",
+      "expiresIn": 3600,
+      "tokenType": "Bearer"
+    },
     "message": "User registered successfully"
   }
 }
 ```
+
+### Deprecated Endpoint
+
+- `POST /api/auth/verify-token` returns `410 Gone`.
+- Frontend should use `GET /api/auth/me` with `Authorization: Bearer <idToken>`.
 
 ### Protecting Endpoints
 
