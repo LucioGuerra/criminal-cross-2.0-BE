@@ -28,14 +28,4 @@ public class GetCurrentUserUseCase {
         return securityContext.getCurrentUser();
     }
 
-    /**
-     * Gets the current user if authenticated, or null otherwise.
-     *
-     * @return The authenticated user or null
-     */
-    public AuthenticatedUser executeOptional() {
-        return securityContext.isAuthenticated() 
-                ? securityContext.getCurrentUser() 
-                : null;
-    }
 }

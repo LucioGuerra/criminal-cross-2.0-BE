@@ -16,7 +16,6 @@ The Auth module implements a **Firebase BFF flow**:
 - Credential-based register/login mediation against Firebase
 - Firebase ID token validation for protected backend endpoints
 - Refresh token exchange through Firebase
-- User session logout forwarding
 - Role-based access control
 - Integration with Users module for local user data
 
@@ -25,21 +24,19 @@ The Auth module implements a **Firebase BFF flow**:
 ```
 auth/
 ├── application/
-│   ├── ports/               # Interfaces (TokenValidator, UserProvider, RefreshTokenStore)
+│   ├── ports/               # Interfaces (TokenValidator, UserProvider, FirebaseIdentityProvider)
 │   ├── service/             # AuthService (orchestration)
-│   └── usecase/             # Use cases (Login, Refresh, Logout, etc.)
+│   └── usecase/             # Use cases (Register, Login, Refresh, CurrentUser)
 ├── domain/
-│   ├── model/               # AuthenticatedUser, AuthProvider, DecodedToken, RefreshToken
+│   ├── model/               # AuthenticatedUser, AuthProvider, DecodedToken, FirebaseSessionTokens
 │   └── exception/           # Auth-specific exceptions
 └── infrastructure/
-    ├── adapter/             # Adapters (UserModuleAdapter, RefreshTokenStoreAdapter)
+    ├── adapter/             # Adapters (UserModuleAdapter, FirebaseIdentityToolkitAdapter)
     ├── config/              # FirebaseConfig
     ├── controller/          # AuthResource (REST endpoints)
     ├── dto/                 # Request/Response DTOs
-    ├── entity/              # JPA entities (RefreshTokenEntity)
     ├── mapper/              # MapStruct mappers
-    ├── repository/          # Panache repositories
-    └── security/            # Filters, validators, token generators, annotations
+    └── security/            # Filters, validators, annotations
 ```
 
 ## Configuration
@@ -60,23 +57,11 @@ firebase.credentials.path=${FIREBASE_CREDENTIALS_PATH:src/main/resources/athlium
 firebase.project-id=${FIREBASE_PROJECT_ID:}
 firebase.mock.enabled=${FIREBASE_MOCK_ENABLED:false}
 
-# Token Configuration
-auth.access-token.expiration-minutes=15
-auth.refresh-token.expiration-days=30
-
-# SmallRye JWT Configuration (for custom JWT generation)
-mp.jwt.verify.issuer=https://athlium.com
-smallrye.jwt.sign.key.location=/privateKey.pem
-mp.jwt.verify.publickey.location=/publicKey.pem
+# Dev bypass for local integration
+auth.dev-bypass.enabled=false
+auth.dev-bypass.firebase-uid=dev-bypass-user
+auth.dev-bypass.email=dev-bypass@local
 ```
-
-## Security Keys
-
-The module uses RSA keypair for JWT signing:
-- `privateKey.pem` - Private key for signing JWTs (2048-bit RSA)
-- `publicKey.pem` - Public key for validating JWTs
-
-⚠️ **Production**: Generate new keys and store them securely. Never commit private keys to version control.
 
 ## Firebase Setup
 
@@ -104,7 +89,6 @@ export FIREBASE_CREDENTIALS_PATH=/path/to/serviceAccountKey.json
 | POST | `/api/auth/register` | Register with credentials (`email`, `password`) and create local user |
 | POST | `/api/auth/login` | Login with credentials and get Firebase token pair |
 | POST | `/api/auth/refresh` | Exchange refresh token for a new Firebase token pair |
-| POST | `/api/auth/logout` | Revoke refresh token(s) |
 
 ### Protected Endpoints
 
@@ -887,15 +871,15 @@ curl -X POST http://localhost:8080/api/auth/logout \
 
 ### Common Issues
 
-**JWT validation fails:**
-- Verify RSA keys exist: `privateKey.pem` and `publicKey.pem`
-- Check issuer matches: `mp.jwt.verify.issuer` in properties
-- Ensure keys are in `src/main/resources/`
+**Token validation fails:**
+- Verify Firebase credentials path and file permissions
+- Ensure the Firebase project in credentials matches the client app
+- Confirm incoming `Authorization` header carries a valid Firebase ID token
 
 **Refresh token not working:**
-- Check PostgreSQL connection
-- Verify `refresh_tokens` table exists
-- Check token expiration date
+- Verify `firebase.web-api-key` is configured
+- Ensure the client sends the latest refresh token returned by `/api/auth/refresh`
+- Check Firebase Identity Toolkit error message in backend logs
 
 **Firebase authentication fails:**
 - Verify `athlium-credentials.json` path is correct
