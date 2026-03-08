@@ -24,6 +24,7 @@ import org.athlium.shared.exception.EntityNotFoundException;
 @Path("/api/clients")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR", "CLIENT"})
 public class ClientPackageResource {
 
     @Inject
@@ -43,6 +44,7 @@ public class ClientPackageResource {
 
     @POST
     @Path("/{userId}/packages")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
     public Response createPackage(@PathParam("userId") Long userId, ClientPackageUpsertRequest request) {
         try {
             var created = createClientPackageUseCase.execute(
@@ -62,6 +64,7 @@ public class ClientPackageResource {
 
     @PATCH
     @Path("/{userId}/packages/{packageId}")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
     public Response updateActivePackage(
             @PathParam("userId") Long userId,
             @PathParam("packageId") Long packageId,

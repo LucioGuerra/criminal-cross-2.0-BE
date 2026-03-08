@@ -12,6 +12,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.athlium.auth.infrastructure.security.Authenticated;
 import org.athlium.gym.application.usecase.CreateActivityUseCase;
 import org.athlium.gym.application.usecase.DeleteActivityUseCase;
 import org.athlium.gym.application.usecase.GetActivitiesUseCase;
@@ -27,6 +28,7 @@ import org.athlium.shared.exception.EntityNotFoundException;
 @Path("/api/activities")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR", "CLIENT"})
 public class ActivityResource {
 
     @Inject
@@ -91,6 +93,7 @@ public class ActivityResource {
     }
 
     @POST
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
     public Response createActivity(ActivityInput input) {
         try {
             var created = createActivityUseCase.execute(input.getName(), input.getDescription(), input.getHqId());
@@ -104,6 +107,7 @@ public class ActivityResource {
 
     @PUT
     @Path("/{id}")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
     public Response updateActivity(@PathParam("id") Long id, ActivityUpdateInput input) {
         try {
             ActivityUpdateInput normalized = input == null ? new ActivityUpdateInput() : input;
@@ -119,6 +123,7 @@ public class ActivityResource {
 
     @DELETE
     @Path("/{id}")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN"})
     public Response deleteActivity(@PathParam("id") Long id) {
         try {
             deleteActivityUseCase.execute(id);

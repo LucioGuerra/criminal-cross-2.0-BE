@@ -26,6 +26,9 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * JAX-RS filter that intercepts requests and validates Firebase ID tokens.
@@ -193,15 +196,46 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
             return false;
         }
 
+        List<Role> parsedRoles = Arrays.stream(requiredRoles)
+                .map(this::parseRole)
+                .toList();
+
+        if (parsedRoles.stream().anyMatch(Objects::isNull)) {
+            return false;
+        }
+
         if (requireAll) {
-            return Arrays.stream(requiredRoles)
-                    .map(Role::valueOf)
+            return parsedRoles.stream()
                     .allMatch(user::hasRole);
         } else {
-            return Arrays.stream(requiredRoles)
-                    .map(Role::valueOf)
+            return parsedRoles.stream()
                     .anyMatch(user::hasRole);
         }
+    }
+
+    private Role parseRole(String roleName) {
+        if (roleName == null || roleName.isBlank()) {
+            logInvalidRole(roleName);
+            return null;
+        }
+
+        try {
+            return Role.valueOf(roleName.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            logInvalidRole(roleName);
+            return null;
+        }
+    }
+
+    private void logInvalidRole(String roleName) {
+        String resource = resourceInfo != null && resourceInfo.getResourceClass() != null
+                ? resourceInfo.getResourceClass().getSimpleName()
+                : "UnknownResource";
+        String method = resourceInfo != null && resourceInfo.getResourceMethod() != null
+                ? resourceInfo.getResourceMethod().getName()
+                : "unknownMethod";
+
+        LOG.errorf("Invalid @Authenticated role configuration '%s' at %s#%s. Access denied.", roleName, resource, method);
     }
 
     private void abortUnauthorized(ContainerRequestContext requestContext, String message) {

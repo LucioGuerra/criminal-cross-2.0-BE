@@ -28,7 +28,7 @@ import org.athlium.shared.exception.EntityNotFoundException;
 @Path("/api/activity-schedules")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@Authenticated
+@Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
 public class ActivityScheduleResource {
 
     @Inject

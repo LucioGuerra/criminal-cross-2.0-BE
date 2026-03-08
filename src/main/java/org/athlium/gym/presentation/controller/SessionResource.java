@@ -9,6 +9,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.athlium.auth.infrastructure.security.Authenticated;
 import org.athlium.gym.application.usecase.GetSessionByIdUseCase;
 import org.athlium.gym.application.usecase.GetSessionsUseCase;
 import org.athlium.gym.domain.model.SessionStatus;
@@ -23,6 +24,7 @@ import java.time.format.DateTimeParseException;
 
 @Path("/api/sessions")
 @Produces(MediaType.APPLICATION_JSON)
+@Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR", "CLIENT"})
 public class SessionResource {
 
     @Inject

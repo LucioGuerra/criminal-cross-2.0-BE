@@ -14,6 +14,7 @@ import org.athlium.auth.infrastructure.config.FirebaseConfig;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
+import java.util.Locale;
 
 /**
  * Firebase implementation of TokenValidator.
@@ -33,10 +34,7 @@ public class FirebaseTokenValidator implements TokenValidator {
             throw InvalidTokenException.missingToken();
         }
 
-        // Remove "Bearer " prefix if present
-        String token = idToken.startsWith("Bearer ") 
-                ? idToken.substring(7) 
-                : idToken;
+        String token = normalizeToken(idToken);
 
         if (firebaseConfig.isMockEnabled()) {
             return createMockToken(token);
@@ -110,6 +108,25 @@ public class FirebaseTokenValidator implements TokenValidator {
             default:
                 throw new InvalidTokenException("Token validation failed: " + errorCode, e);
         }
+    }
+
+    private String normalizeToken(String tokenValue) {
+        String normalized = tokenValue == null ? "" : tokenValue.trim();
+
+        if (normalized.isEmpty()) {
+            throw InvalidTokenException.missingToken();
+        }
+
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("bearer")) {
+            String withoutPrefix = normalized.substring(6).trim();
+            if (withoutPrefix.isEmpty()) {
+                throw InvalidTokenException.missingToken();
+            }
+            return withoutPrefix;
+        }
+
+        return normalized;
     }
 
     /**

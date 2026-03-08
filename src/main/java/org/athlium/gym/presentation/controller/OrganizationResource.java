@@ -11,6 +11,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.athlium.auth.infrastructure.security.Authenticated;
 import org.athlium.gym.application.usecase.CreateOrganizationUseCase;
 import org.athlium.gym.application.usecase.DeleteOrganizationUseCase;
 import org.athlium.gym.application.usecase.GetOrganizationUseCase;
@@ -24,6 +25,7 @@ import org.athlium.shared.exception.EntityNotFoundException;
 @Path("/api/organizations")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
 public class OrganizationResource {
 
     @Inject
@@ -62,6 +64,7 @@ public class OrganizationResource {
     }
 
     @POST
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN"})
     public Response createOrganization(OrganizationInput input) {
         var created = createOrganizationUseCase.execute(mapper.toDomain(input));
         return Response.status(Response.Status.CREATED)
@@ -71,6 +74,7 @@ public class OrganizationResource {
 
     @PUT
     @Path("/{id}")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN"})
     public Response updateOrganization(@PathParam("id") Long id, OrganizationInput input) {
         try {
             var updated = updateOrganizationUseCase.execute(id, mapper.toDomain(input));
@@ -82,6 +86,7 @@ public class OrganizationResource {
 
     @DELETE
     @Path("/{id}")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN"})
     public Response deleteOrganization(@PathParam("id") Long id) {
         try {
             deleteOrganizationUseCase.execute(id);

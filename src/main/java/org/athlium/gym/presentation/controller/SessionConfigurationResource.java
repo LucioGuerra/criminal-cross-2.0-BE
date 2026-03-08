@@ -10,6 +10,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.athlium.auth.infrastructure.security.Authenticated;
 import org.athlium.gym.application.usecase.ResolveSessionConfigurationUseCase;
 import org.athlium.gym.application.usecase.UpsertActivityConfigUseCase;
 import org.athlium.gym.application.usecase.UpsertHeadquartersConfigUseCase;
@@ -23,6 +24,7 @@ import org.athlium.shared.exception.BadRequestException;
 @Path("/api/gym/config")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN"})
 public class SessionConfigurationResource {
 
     @Inject
@@ -101,6 +103,7 @@ public class SessionConfigurationResource {
 
     @GET
     @Path("/effective")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
     public Response getEffectiveConfig(
             @QueryParam("organizationId") Long organizationId,
             @QueryParam("headquartersId") Long headquartersId,

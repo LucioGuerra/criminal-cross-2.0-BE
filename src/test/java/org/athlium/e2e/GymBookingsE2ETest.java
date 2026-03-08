@@ -35,6 +35,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @QuarkusTest
 class GymBookingsE2ETest {
 
+    private static final String ADMIN_TOKEN = "admin-e2e";
+    private static final String CLIENT_101_TOKEN = "client-101";
+    private static final String CLIENT_102_TOKEN = "client-102";
+    private static final String CLIENT_103_TOKEN = "client-103";
+    private static final String CLIENT_999_TOKEN = "client-999";
+
     @Inject
     BookingPanacheRepository bookingRepository;
 
@@ -76,6 +82,11 @@ class GymBookingsE2ETest {
 
     @Test
     void shouldRunGymToBookingsFlowWithWaitlistPromotionAndIdempotency() {
+        ensureUserWithRoles(1L, ADMIN_TOKEN, "ORG_ADMIN");
+        ensureUserWithRoles(101L, CLIENT_101_TOKEN, "CLIENT");
+        ensureUserWithRoles(102L, CLIENT_102_TOKEN, "CLIENT");
+        ensureUserWithRoles(103L, CLIENT_103_TOKEN, "CLIENT");
+
         Long organizationId = createOrganization("Gym E2E");
         Long headquartersId = createHeadquarters(organizationId, "HQ E2E");
         Long activityId = createActivity(headquartersId, "Cross E2E", "Clase e2e");
@@ -86,6 +97,7 @@ class GymBookingsE2ETest {
         activityId = gymIds.activityId();
 
         given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body(Map.of(
                         "maxParticipants", 2,
@@ -102,6 +114,7 @@ class GymBookingsE2ETest {
                 .body("success", equalTo(true));
 
         given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body(Map.of(
                         "organizationId", organizationId,
@@ -119,6 +132,7 @@ class GymBookingsE2ETest {
                 .body("success", equalTo(true));
 
         given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body("{}")
                 .when()
@@ -129,6 +143,7 @@ class GymBookingsE2ETest {
                 .log().all();
 
         JsonPath sessionList = given()
+                .header("Authorization", bearer(CLIENT_101_TOKEN))
                 .queryParam("organizationId", organizationId)
                 .queryParam("headquartersId", headquartersId)
                 .queryParam("activityId", activityId)
@@ -150,11 +165,12 @@ class GymBookingsE2ETest {
         grantCredits(102L, activityId, 10);
         grantCredits(103L, activityId, 10);
 
-        Long booking1 = createBooking(sessionId, 101L, "e2e-bk-1");
-        Long booking2 = createBooking(sessionId, 102L, "e2e-bk-2");
-        Long booking3 = createBooking(sessionId, 103L, "e2e-bk-3");
+        Long booking1 = createBooking(sessionId, 101L, "e2e-bk-1", CLIENT_101_TOKEN);
+        Long booking2 = createBooking(sessionId, 102L, "e2e-bk-2", CLIENT_102_TOKEN);
+        Long booking3 = createBooking(sessionId, 103L, "e2e-bk-3", CLIENT_103_TOKEN);
 
         JsonPath listBeforeCancel = given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .queryParam("sessionId", sessionId)
                 .queryParam("sort", "createdAt:asc")
                 .when()
@@ -170,6 +186,7 @@ class GymBookingsE2ETest {
         assertEquals("WAITLISTED", listBeforeCancel.getString("data.items[2].status"));
 
         JsonPath cancelResult = given()
+                .header("Authorization", bearer(CLIENT_101_TOKEN))
                 .contentType("application/json")
                 .header("Idempotency-Key", "e2e-cancel-1")
                 .body("{}")
@@ -187,6 +204,7 @@ class GymBookingsE2ETest {
         assertEquals(booking3, promotedId);
 
         given()
+                .header("Authorization", bearer(CLIENT_101_TOKEN))
                 .contentType("application/json")
                 .header("Idempotency-Key", "e2e-cancel-1")
                 .body("{}")
@@ -199,6 +217,7 @@ class GymBookingsE2ETest {
                 .body("data.promotedBooking.id", equalTo(promotedId.intValue()));
 
         JsonPath listAfterCancel = given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .queryParam("sessionId", sessionId)
                 .queryParam("sort", "createdAt:asc")
                 .when()
@@ -219,11 +238,15 @@ class GymBookingsE2ETest {
 
     @Test
     void shouldAllowOnlyOneActiveBookingPerUserUnderConcurrentRequests() throws Exception {
+        ensureUserWithRoles(1L, ADMIN_TOKEN, "ORG_ADMIN");
+        ensureUserWithRoles(999L, CLIENT_999_TOKEN, "CLIENT");
+
         Long organizationId = createOrganization("Gym Concurrency");
         Long headquartersId = createHeadquarters(organizationId, "HQ Concurrency");
         Long activityId = createActivity(headquartersId, "Cross Concurrent", "Clase concurrency");
 
         given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body(Map.of(
                         "maxParticipants", 2,
@@ -240,6 +263,7 @@ class GymBookingsE2ETest {
                 .body("success", equalTo(true));
 
         given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body(Map.of(
                         "organizationId", organizationId,
@@ -259,6 +283,7 @@ class GymBookingsE2ETest {
                 .body("success", equalTo(true));
 
         given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body("{}")
                 .when()
@@ -269,6 +294,7 @@ class GymBookingsE2ETest {
                 .log().all();
 
         Long sessionId = given()
+                .header("Authorization", bearer(CLIENT_999_TOKEN))
                 .queryParam("organizationId", organizationId)
                 .queryParam("headquartersId", headquartersId)
                 .queryParam("activityId", activityId)
@@ -288,6 +314,7 @@ class GymBookingsE2ETest {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             Callable<Integer> firstCreate = () -> given()
+                    .header("Authorization", bearer(CLIENT_999_TOKEN))
                     .contentType("application/json")
                     .header("Idempotency-Key", "concurrent-a")
                     .body(Map.of("userId", 999L))
@@ -298,6 +325,7 @@ class GymBookingsE2ETest {
                     .statusCode();
 
             Callable<Integer> secondCreate = () -> given()
+                    .header("Authorization", bearer(CLIENT_999_TOKEN))
                     .contentType("application/json")
                     .header("Idempotency-Key", "concurrent-b")
                     .body(Map.of("userId", 999L))
@@ -322,8 +350,9 @@ class GymBookingsE2ETest {
         }
     }
 
-    private Long createBooking(Long sessionId, Long userId, String idempotencyKey) {
+    private Long createBooking(Long sessionId, Long userId, String idempotencyKey, String token) {
         JsonPath response = given()
+                .header("Authorization", bearer(token))
                 .contentType("application/json")
                 .header("Idempotency-Key", idempotencyKey)
                 .body(Map.of("userId", userId))
@@ -340,21 +369,28 @@ class GymBookingsE2ETest {
     }
 
     @Transactional
-    void insertUserIfAbsent(Long userId) {
+    void ensureUserWithRoles(Long userId, String token, String... roles) {
         try {
             entityManager.createNativeQuery("INSERT INTO payments (id, amount, method, paid_at) VALUES (1, 100, 'CASH', CURRENT_DATE) ON CONFLICT DO NOTHING").executeUpdate();
             entityManager.createNativeQuery("INSERT INTO users (id, active, email, firebase_uid, last_name, name) VALUES (?, true, ?, ?, 'Last', 'Name') ON CONFLICT DO NOTHING")
                     .setParameter(1, userId)
                     .setParameter(2, "user" + userId + "@test.com")
-                    .setParameter(3, "mock-user-" + userId)
+                    .setParameter(3, mockUid(token))
                     .executeUpdate();
+            for (String role : roles) {
+                entityManager.createNativeQuery("INSERT INTO user_roles (user_id, role) VALUES (?, ?) ON CONFLICT DO NOTHING")
+                        .setParameter(1, userId)
+                        .setParameter(2, role)
+                        .executeUpdate();
+            }
         } catch (Exception e) {}
     }
 
     private void grantCredits(Long userId, Long activityId, int tokens) {
-        insertUserIfAbsent(userId);
+        ensureUserWithRoles(1L, ADMIN_TOKEN, "ORG_ADMIN");
 
         given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body(Map.of(
                         "paymentId", 1,
@@ -378,6 +414,7 @@ class GymBookingsE2ETest {
 
     private Long createOrganization(String name) {
         JsonPath response = given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body(Map.of("name", name))
                 .when()
@@ -394,6 +431,7 @@ class GymBookingsE2ETest {
 
     private Long createHeadquarters(Long organizationId, String name) {
         JsonPath response = given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body(Map.of(
                         "organizationId", organizationId,
@@ -413,6 +451,7 @@ class GymBookingsE2ETest {
 
     private Long createActivity(Long headquartersId, String name, String description) {
         JsonPath response = given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
                 .body(Map.of(
                         "name", name,
@@ -440,5 +479,14 @@ class GymBookingsE2ETest {
     }
 
     private record GymIds(Long organizationId, Long headquartersId, Long activityId) {
+    }
+
+    private String bearer(String token) {
+        return "Bearer " + token;
+    }
+
+    private String mockUid(String token) {
+        String normalizedToken = token.length() > 20 ? token.substring(0, 20) : token;
+        return "mock-" + normalizedToken;
     }
 }

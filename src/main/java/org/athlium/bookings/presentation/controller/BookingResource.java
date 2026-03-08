@@ -12,6 +12,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.athlium.auth.infrastructure.security.Authenticated;
 import org.athlium.bookings.application.usecase.CancelBookingUseCase;
 import org.athlium.bookings.application.usecase.GetBookingsUseCase;
 import org.athlium.bookings.domain.model.BookingStatus;
@@ -40,6 +41,7 @@ public class BookingResource {
 
     @POST
     @Path("/bookings/{bookingId}/cancel")
+    @Authenticated(roles = {"CLIENT", "PROFESSOR", "ORG_ADMIN", "ORG_OWNER", "SUPERADMIN"})
     public Response cancelBooking(
             @PathParam("bookingId") Long bookingId,
             @HeaderParam("Idempotency-Key") String idempotencyKey
@@ -56,6 +58,7 @@ public class BookingResource {
 
     @GET
     @Path("/bookings")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
     public Response getBookings(
             @QueryParam("sessionId") Long sessionId,
             @QueryParam("userId") Long userId,

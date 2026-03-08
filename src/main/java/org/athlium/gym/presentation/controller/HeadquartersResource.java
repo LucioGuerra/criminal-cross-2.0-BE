@@ -12,6 +12,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.athlium.auth.infrastructure.security.Authenticated;
 import org.athlium.gym.application.usecase.CreateHeadquartersUseCase;
 import org.athlium.gym.application.usecase.DeleteHeadquartersUseCase;
 import org.athlium.gym.application.usecase.GetAllHeadquartersUseCase;
@@ -26,6 +27,7 @@ import org.athlium.shared.exception.EntityNotFoundException;
 @Path("/api/headquarters")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
 public class HeadquartersResource {
 
     @Inject
@@ -70,6 +72,7 @@ public class HeadquartersResource {
     }
 
     @POST
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN"})
     public Response createHeadquarters(HeadquartersInput input) {
         var created = createHeadquartersUseCase.execute(mapper.toDomain(input));
         return Response.status(Response.Status.CREATED)
@@ -79,6 +82,7 @@ public class HeadquartersResource {
 
     @PUT
     @Path("/{id}")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN"})
     public Response updateHeadquarters(@PathParam("id") Long id, HeadquartersInput input) {
         try {
             var updated = updateHeadquartersUseCase.execute(id, mapper.toDomain(input));
@@ -90,6 +94,7 @@ public class HeadquartersResource {
 
     @DELETE
     @Path("/{id}")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN"})
     public Response deleteHeadquarters(@PathParam("id") Long id) {
         try {
             deleteHeadquartersUseCase.execute(id);

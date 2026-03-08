@@ -9,6 +9,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.athlium.auth.infrastructure.security.Authenticated;
 import org.athlium.bookings.application.usecase.CreateBookingUseCase;
 import org.athlium.bookings.presentation.dto.CreateBookingRequest;
 import org.athlium.bookings.presentation.mapper.BookingDtoMapper;
@@ -19,6 +20,7 @@ import org.athlium.shared.exception.EntityNotFoundException;
 @Path("/api/sessions")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated(roles = {"CLIENT", "PROFESSOR", "ORG_ADMIN", "ORG_OWNER", "SUPERADMIN"})
 public class SessionBookingResource {
 
     @Inject
