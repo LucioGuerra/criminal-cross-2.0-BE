@@ -7,26 +7,16 @@ import org.athlium.users.domain.model.Role;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.domain.repository.UserRepository;
 
-import java.util.Set;
+import java.util.HashSet;
 
 @ApplicationScoped
-public class UpdateUserRolesUseCase {
+public class RemoveUserFromHeadquartersUseCase {
 
     @Inject
     UserRepository userRepository;
 
-    public User execute(String firebaseUid, Set<Role> newRoles, User currentUser) {
-        if (!currentUser.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.ORG_ADMIN)) {
-            throw new DomainException("Only ADMIN or SUPERADMIN can update user roles");
-        }
-
-        if (newRoles == null || newRoles.isEmpty()) {
-            throw new DomainException("At least one role is required");
-        }
-
-        if (newRoles.contains(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
-            throw new DomainException("Only SUPERADMIN can assign SUPERADMIN role");
-        }
+    public User execute(String firebaseUid, Long headquartersId, User currentUser) {
+        validateAdminPrivileges(currentUser);
 
         var user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new DomainException("User not found"));
@@ -35,17 +25,32 @@ public class UpdateUserRolesUseCase {
             throw new DomainException("Only SUPERADMIN can update a SUPERADMIN user");
         }
 
+        var headquartersIds = new HashSet<Long>();
+        if (user.getHeadquartersIds() != null) {
+            headquartersIds.addAll(user.getHeadquartersIds());
+        }
+
+        if (!headquartersIds.remove(headquartersId)) {
+            throw new DomainException("User is not assigned to headquarters");
+        }
+
         var updatedUser = User.builder()
                 .id(user.getId())
                 .firebaseUid(user.getFirebaseUid())
                 .email(user.getEmail())
                 .name(user.getName())
                 .lastName(user.getLastName())
-                .roles(newRoles)
-                .headquartersIds(user.getHeadquartersIds())
+                .roles(user.getRoles())
+                .headquartersIds(headquartersIds)
                 .active(user.getActive())
                 .build();
 
         return userRepository.save(updatedUser);
+    }
+
+    private void validateAdminPrivileges(User currentUser) {
+        if (!currentUser.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.ORG_ADMIN)) {
+            throw new DomainException("Only ADMIN or SUPERADMIN can update users");
+        }
     }
 }

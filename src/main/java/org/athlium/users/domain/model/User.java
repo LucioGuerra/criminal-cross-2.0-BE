@@ -18,6 +18,7 @@ public class User {
     private String email;
     private String firebaseUid;
     private Set<Role> roles;
+    private Set<Long> headquartersIds;
     private Boolean active;
 
     public boolean hasRole(Role role) {

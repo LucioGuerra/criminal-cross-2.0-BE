@@ -44,22 +44,24 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
                     SELECT DISTINCT u.id AS user_id, u.name, u.last_name, u.email, u.active,
                            cp.period_end,
                            CASE
+                               WHEN cp.id IS NULL THEN 4
                                WHEN cp.active = false THEN 3
                                WHEN cp.period_end < CURRENT_DATE THEN 3
                                WHEN cp.period_end <= CURRENT_DATE + 3 THEN 2
                                ELSE 1
                            END AS status_rank,
                            CASE
+                               WHEN cp.id IS NULL THEN 'NO_PACKAGE'
                                WHEN cp.active = false THEN 'INACTIVE'
                                WHEN cp.period_end < CURRENT_DATE THEN 'INACTIVE'
                                WHEN cp.period_end <= CURRENT_DATE + 3 THEN 'EXPIRING'
                                ELSE 'ACTIVE'
                            END AS package_status
                     FROM users u
-                    JOIN client_packages cp ON cp.user_id = u.id
-                    JOIN client_package_credits cpc ON cpc.package_id = cp.id
-                    JOIN activity a ON a.id = cpc.activity_id
-                    WHERE a.hq_id = :hqId
+                    JOIN user_headquarters uh ON uh.user_id = u.id AND uh.headquarters_id = :hqId
+                    LEFT JOIN client_packages cp ON cp.user_id = u.id
+                    LEFT JOIN client_package_credits cpc ON cpc.package_id = cp.id
+                    LEFT JOIN activity a ON a.id = cpc.activity_id
                 ),
                 best_status AS (
                     SELECT user_id, name, last_name, email, active,
@@ -94,22 +96,24 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
                     SELECT DISTINCT u.id AS user_id, u.name, u.last_name, u.email, u.active,
                            cp.period_end,
                            CASE
+                               WHEN cp.id IS NULL THEN 4
                                WHEN cp.active = false THEN 3
                                WHEN cp.period_end < CURRENT_DATE THEN 3
                                WHEN cp.period_end <= CURRENT_DATE + 3 THEN 2
                                ELSE 1
                            END AS status_rank,
                            CASE
+                               WHEN cp.id IS NULL THEN 'NO_PACKAGE'
                                WHEN cp.active = false THEN 'INACTIVE'
                                WHEN cp.period_end < CURRENT_DATE THEN 'INACTIVE'
                                WHEN cp.period_end <= CURRENT_DATE + 3 THEN 'EXPIRING'
                                ELSE 'ACTIVE'
                            END AS package_status
                     FROM users u
-                    JOIN client_packages cp ON cp.user_id = u.id
-                    JOIN client_package_credits cpc ON cpc.package_id = cp.id
-                    JOIN activity a ON a.id = cpc.activity_id
-                    WHERE a.hq_id = :hqId
+                    JOIN user_headquarters uh ON uh.user_id = u.id AND uh.headquarters_id = :hqId
+                    LEFT JOIN client_packages cp ON cp.user_id = u.id
+                    LEFT JOIN client_package_credits cpc ON cpc.package_id = cp.id
+                    LEFT JOIN activity a ON a.id = cpc.activity_id
                 ),
                 best_status AS (
                     SELECT user_id, name, last_name, email, active,

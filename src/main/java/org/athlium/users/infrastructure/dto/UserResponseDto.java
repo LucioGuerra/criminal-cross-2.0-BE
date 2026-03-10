@@ -17,5 +17,6 @@ public class UserResponseDto {
     private String email;
     private String firebaseUid;
     private Set<Role> roles;
+    private Set<Long> headquartersIds;
     private Boolean active;
 }

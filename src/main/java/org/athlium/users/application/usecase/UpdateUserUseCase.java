@@ -7,26 +7,14 @@ import org.athlium.users.domain.model.Role;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.domain.repository.UserRepository;
 
-import java.util.Set;
-
 @ApplicationScoped
-public class UpdateUserRolesUseCase {
+public class UpdateUserUseCase {
 
     @Inject
     UserRepository userRepository;
 
-    public User execute(String firebaseUid, Set<Role> newRoles, User currentUser) {
-        if (!currentUser.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.ORG_ADMIN)) {
-            throw new DomainException("Only ADMIN or SUPERADMIN can update user roles");
-        }
-
-        if (newRoles == null || newRoles.isEmpty()) {
-            throw new DomainException("At least one role is required");
-        }
-
-        if (newRoles.contains(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
-            throw new DomainException("Only SUPERADMIN can assign SUPERADMIN role");
-        }
+    public User execute(String firebaseUid, String email, String name, String lastName, Boolean active, User currentUser) {
+        validateAdminPrivileges(currentUser);
 
         var user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new DomainException("User not found"));
@@ -35,17 +23,33 @@ public class UpdateUserRolesUseCase {
             throw new DomainException("Only SUPERADMIN can update a SUPERADMIN user");
         }
 
+        validateUniqueEmail(email, user);
+
         var updatedUser = User.builder()
                 .id(user.getId())
                 .firebaseUid(user.getFirebaseUid())
-                .email(user.getEmail())
-                .name(user.getName())
-                .lastName(user.getLastName())
-                .roles(newRoles)
+                .email(email)
+                .name(name)
+                .lastName(lastName)
+                .roles(user.getRoles())
                 .headquartersIds(user.getHeadquartersIds())
-                .active(user.getActive())
+                .active(active)
                 .build();
 
         return userRepository.save(updatedUser);
+    }
+
+    private void validateAdminPrivileges(User currentUser) {
+        if (!currentUser.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.ORG_ADMIN)) {
+            throw new DomainException("Only ADMIN or SUPERADMIN can update users");
+        }
+    }
+
+    private void validateUniqueEmail(String email, User current) {
+        userRepository.findByEmail(email)
+                .filter(existing -> !existing.getId().equals(current.getId()))
+                .ifPresent(existing -> {
+                    throw new DomainException("Email is already in use");
+                });
     }
 }

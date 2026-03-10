@@ -15,11 +15,13 @@ import org.athlium.users.application.usecase.*;
 import org.athlium.users.domain.model.Role;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.infrastructure.dto.CreateUserRequestDto;
+import org.athlium.users.infrastructure.dto.UpdateUserRequestDto;
 import org.athlium.users.infrastructure.dto.UpdateRolesRequestDto;
 import org.athlium.users.infrastructure.mapper.UserDtoMapper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.EnumSet;
+import java.util.Set;
 
 @Path("/api/users")
 @Produces(MediaType.APPLICATION_JSON)
@@ -34,6 +36,15 @@ public class UserResource {
 
     @Inject
     UpdateUserRolesUseCase updateUserRolesUseCase;
+
+    @Inject
+    UpdateUserUseCase updateUserUseCase;
+
+    @Inject
+    AssignUserToHeadquartersUseCase assignUserToHeadquartersUseCase;
+
+    @Inject
+    RemoveUserFromHeadquartersUseCase removeUserFromHeadquartersUseCase;
 
     @Inject
     UserDtoMapper userDtoMapper;
@@ -79,6 +90,40 @@ public class UserResource {
     }
 
     @PUT
+    @Path("/firebase/{uid}")
+    @Transactional
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    public Response updateUser(@PathParam("uid") String firebaseUid, @Valid UpdateUserRequestDto request) {
+        try {
+            AuthenticatedUser authUser = securityContext.requireCurrentUser();
+
+            User currentUser = getCurrentUserForAdministrativeActions(authUser);
+
+            var user = updateUserUseCase.execute(
+                    firebaseUid,
+                    request.getEmail(),
+                    request.getName(),
+                    request.getLastName(),
+                    request.getActive(),
+                    currentUser);
+            var response = userDtoMapper.toResponseDto(user);
+            return Response.ok(ApiResponse.success("User updated successfully", response)).build();
+        } catch (DomainException e) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Authentication is required"))
+                    .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        }
+    }
+
+    @PUT
     @Path("/firebase/{uid}/roles")
     @Transactional
     @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
@@ -86,11 +131,67 @@ public class UserResource {
         try {
             AuthenticatedUser authUser = securityContext.requireCurrentUser();
 
-            User currentUser = getCurrentUserForRoleUpdate(authUser);
+            User currentUser = getCurrentUserForAdministrativeActions(authUser);
 
             var user = updateUserRolesUseCase.execute(firebaseUid, request.getRoles(), currentUser);
             var response = userDtoMapper.toResponseDto(user);
             return Response.ok(ApiResponse.success("User roles updated successfully", response)).build();
+        } catch (DomainException e) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Authentication is required"))
+                    .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        }
+    }
+
+    @POST
+    @Path("/firebase/{uid}/headquarters/{headquartersId}")
+    @Transactional
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    public Response assignUserToHeadquarters(@PathParam("uid") String firebaseUid,
+            @PathParam("headquartersId") Long headquartersId) {
+        try {
+            AuthenticatedUser authUser = securityContext.requireCurrentUser();
+            User currentUser = getCurrentUserForAdministrativeActions(authUser);
+
+            var user = assignUserToHeadquartersUseCase.execute(firebaseUid, headquartersId, currentUser);
+            var response = userDtoMapper.toResponseDto(user);
+            return Response.ok(ApiResponse.success("User assigned to headquarters successfully", response)).build();
+        } catch (DomainException e) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Authentication is required"))
+                    .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        }
+    }
+
+    @DELETE
+    @Path("/firebase/{uid}/headquarters/{headquartersId}")
+    @Transactional
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    public Response removeUserFromHeadquarters(@PathParam("uid") String firebaseUid,
+            @PathParam("headquartersId") Long headquartersId) {
+        try {
+            AuthenticatedUser authUser = securityContext.requireCurrentUser();
+            User currentUser = getCurrentUserForAdministrativeActions(authUser);
+
+            var user = removeUserFromHeadquartersUseCase.execute(firebaseUid, headquartersId, currentUser);
+            var response = userDtoMapper.toResponseDto(user);
+            return Response.ok(ApiResponse.success("User removed from headquarters successfully", response)).build();
         } catch (DomainException e) {
             return Response.status(Response.Status.FORBIDDEN)
                     .entity(ApiResponse.error(e.getMessage()))
@@ -114,13 +215,14 @@ public class UserResource {
                 .build();
     }
 
-    private User getCurrentUserForRoleUpdate(AuthenticatedUser authUser) {
+    private User getCurrentUserForAdministrativeActions(AuthenticatedUser authUser) {
         if (authBypassEnabled) {
             return User.builder()
                     .firebaseUid(authUser.getFirebaseUid())
                     .email(authUser.getEmail())
                     .name(authUser.getName())
                     .roles(EnumSet.of(Role.SUPERADMIN))
+                    .headquartersIds(Set.of())
                     .active(true)
                     .build();
         }

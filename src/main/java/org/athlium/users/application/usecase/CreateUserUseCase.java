@@ -33,6 +33,7 @@ public class CreateUserUseCase {
                 .name(name)
                 .lastName(lastName)
                 .roles(Set.of(Role.CLIENT))
+                .headquartersIds(Set.of())
                 .active(true)
                 .build();
 

@@ -55,14 +55,35 @@ class UserRequestValidationTest {
         setField(createRequest, "name", "John");
         setField(createRequest, "lastName", "Doe");
 
+        UpdateUserRequestDto updateRequest = new UpdateUserRequestDto();
+        setField(updateRequest, "email", "john@doe.com");
+        setField(updateRequest, "name", "John");
+        setField(updateRequest, "lastName", "Doe");
+        setField(updateRequest, "active", true);
+
         UpdateRolesRequestDto rolesRequest = new UpdateRolesRequestDto();
         setField(rolesRequest, "roles", Set.of(Role.CLIENT));
 
         var createViolations = validator.validate(createRequest);
+        var updateViolations = validator.validate(updateRequest);
         var roleViolations = validator.validate(rolesRequest);
 
         assertTrue(createViolations.isEmpty());
+        assertTrue(updateViolations.isEmpty());
         assertTrue(roleViolations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenUpdateUserRequestIsInvalid() {
+        UpdateUserRequestDto request = new UpdateUserRequestDto();
+        setField(request, "email", "bad-email");
+        setField(request, "name", "");
+        setField(request, "lastName", "");
+        setField(request, "active", null);
+
+        var violations = validator.validate(request);
+
+        assertFalse(violations.isEmpty());
     }
 
     private static void setField(Object target, String fieldName, Object value) {

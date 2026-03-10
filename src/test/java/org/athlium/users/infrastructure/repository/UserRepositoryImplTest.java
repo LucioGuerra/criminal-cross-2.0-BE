@@ -27,6 +27,7 @@ class UserRepositoryImplTest {
         managed.setEmail("old@example.com");
         managed.setFirebaseUid("uid-old");
         managed.setRoles(Set.of(Role.CLIENT));
+        managed.setHeadquartersIds(Set.of(3L));
         managed.setActive(true);
         panache.stored = managed;
 
@@ -37,6 +38,7 @@ class UserRepositoryImplTest {
                 .email("new@example.com")
                 .firebaseUid("uid-new")
                 .roles(Set.of(Role.ORG_OWNER))
+                .headquartersIds(Set.of(4L))
                 .active(false)
                 .build();
 
@@ -48,6 +50,7 @@ class UserRepositoryImplTest {
         assertEquals("new@example.com", managed.getEmail());
         assertEquals("uid-new", managed.getFirebaseUid());
         assertEquals(Set.of(Role.ORG_OWNER), managed.getRoles());
+        assertEquals(Set.of(4L), managed.getHeadquartersIds());
         assertEquals(false, managed.getActive());
     }
 
@@ -78,6 +81,7 @@ class UserRepositoryImplTest {
                     .email(entity.getEmail())
                     .firebaseUid(entity.getFirebaseUid())
                     .roles(entity.getRoles())
+                    .headquartersIds(entity.getHeadquartersIds())
                     .active(entity.getActive())
                     .build();
         }
@@ -91,6 +95,7 @@ class UserRepositoryImplTest {
             entity.setEmail(user.getEmail());
             entity.setFirebaseUid(user.getFirebaseUid());
             entity.setRoles(user.getRoles());
+            entity.setHeadquartersIds(user.getHeadquartersIds());
             entity.setActive(user.getActive());
             return entity;
         }
@@ -102,6 +107,7 @@ class UserRepositoryImplTest {
             entity.setEmail(user.getEmail());
             entity.setFirebaseUid(user.getFirebaseUid());
             entity.setRoles(user.getRoles());
+            entity.setHeadquartersIds(user.getHeadquartersIds());
             entity.setActive(user.getActive());
         }
     }

@@ -36,6 +36,12 @@ public class UserEntity extends PanacheEntity {
     @Column(name = "role")
     private Set<Role> roles;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_headquarters", joinColumns = @JoinColumn(name = "user_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "headquarters_id"}))
+    @Column(name = "headquarters_id")
+    private Set<Long> headquartersIds;
+
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 }
