@@ -109,6 +109,21 @@ class OrganizationResourceE2ETest {
                 .body("data.size()", greaterThanOrEqualTo(1));
     }
 
+    @Test
+    void shouldAllowClientRoleToGetOrganizationById() {
+        Long organizationId = createOrganization("Org Detail For Client");
+
+        given()
+                .header("Authorization", bearer(CLIENT_TOKEN))
+                .when()
+                .get("/api/organizations/{id}", organizationId)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.id", equalTo(organizationId.intValue()))
+                .body("data.name", equalTo("Org Detail For Client"));
+    }
+
     @Transactional
     void cleanOrganizations() {
         bookingRepository.deleteAll();

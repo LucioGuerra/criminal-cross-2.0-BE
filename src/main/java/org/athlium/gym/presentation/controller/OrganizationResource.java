@@ -55,6 +55,7 @@ public class OrganizationResource {
 
     @GET
     @Path("/{id}")
+    @Authenticated
     public Response getOrganization(@PathParam("id") Long id) {
         try {
             var organization = getOrganizationUseCase.execute(id);

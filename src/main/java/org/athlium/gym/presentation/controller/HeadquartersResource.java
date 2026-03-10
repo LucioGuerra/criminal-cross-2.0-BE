@@ -52,6 +52,7 @@ public class HeadquartersResource {
     HeadquartersDtoMapper mapper;
 
     @GET
+    @Authenticated
     public Response getHeadquarters(@QueryParam("organizationId") Long organizationId) {
         var result = organizationId == null
                 ? getAllHeadquartersUseCase.execute()
@@ -62,6 +63,7 @@ public class HeadquartersResource {
 
     @GET
     @Path("/{id}")
+    @Authenticated
     public Response getHeadquarter(@PathParam("id") Long id) {
         try {
             var headquarters = getHeadquartersUseCase.execute(id);
