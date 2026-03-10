@@ -10,6 +10,7 @@ import org.athlium.auth.application.ports.UserProvider;
 import org.athlium.auth.domain.exception.InvalidTokenException;
 import org.athlium.auth.domain.model.AuthenticatedUser;
 import org.athlium.auth.domain.model.DecodedToken;
+import org.athlium.auth.domain.model.AuthProvider;
 import org.athlium.shared.dto.ApiResponse;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +45,44 @@ class FirebaseAuthFilterUnitTest {
         assertEquals(false, body.isSuccess());
     }
 
+    @Test
+    void shouldTreatInheritedAuthenticatedMethodAsProtected() throws IOException, NoSuchMethodException {
+        FirebaseAuthFilter filter = new FirebaseAuthFilter();
+        filter.resourceInfo = inheritedSecuredResourceInfo();
+        filter.tokenValidator = new AlwaysValidTokenValidator();
+        filter.userProvider = new PassthroughUserProvider();
+        filter.securityContext = new SecurityContext();
+        filter.authBypassEnabled = false;
+
+        ResponseHolder responseHolder = new ResponseHolder();
+        ContainerRequestContext requestContext = requestContext(HttpMethod.GET, null, responseHolder);
+
+        filter.filter(requestContext);
+
+        assertNotNull(responseHolder.response);
+        assertEquals(401, responseHolder.response.getStatus());
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenInheritedAuthenticatedMethodHasInvalidToken() throws IOException, NoSuchMethodException {
+        FirebaseAuthFilter filter = new FirebaseAuthFilter();
+        filter.resourceInfo = inheritedSecuredResourceInfo();
+        filter.tokenValidator = new InvalidTokenValidator();
+        filter.userProvider = new PassthroughUserProvider();
+        filter.securityContext = new SecurityContext();
+        filter.authBypassEnabled = false;
+
+        ResponseHolder responseHolder = new ResponseHolder();
+        ContainerRequestContext requestContext = requestContext(HttpMethod.GET, "Bearer invalid-token", responseHolder);
+
+        filter.filter(requestContext);
+
+        assertNotNull(responseHolder.response);
+        assertEquals(401, responseHolder.response.getStatus());
+        ApiResponse<?> body = (ApiResponse<?>) responseHolder.response.getEntity();
+        assertEquals("Invalid token", body.getMessage());
+    }
+
     private ResourceInfo securedResourceInfo() throws NoSuchMethodException {
         Method method = SecuredEndpoint.class.getMethod("me");
         return (ResourceInfo) Proxy.newProxyInstance(
@@ -55,6 +94,23 @@ class FirebaseAuthFilterUnitTest {
                     }
                     if ("getResourceClass".equals(invokedMethod.getName())) {
                         return SecuredEndpoint.class;
+                    }
+                    return null;
+                }
+        );
+    }
+
+    private ResourceInfo inheritedSecuredResourceInfo() throws NoSuchMethodException {
+        Method method = SecuredEndpointProxy.class.getMethod("me");
+        return (ResourceInfo) Proxy.newProxyInstance(
+                ResourceInfo.class.getClassLoader(),
+                new Class[]{ResourceInfo.class},
+                (proxy, invokedMethod, args) -> {
+                    if ("getResourceMethod".equals(invokedMethod.getName())) {
+                        return method;
+                    }
+                    if ("getResourceClass".equals(invokedMethod.getName())) {
+                        return SecuredEndpointProxy.class;
                     }
                     return null;
                 }
@@ -102,6 +158,36 @@ class FirebaseAuthFilterUnitTest {
         }
     }
 
+    private static class InvalidTokenValidator implements TokenValidator {
+        @Override
+        public DecodedToken validateToken(String idToken) {
+            throw new InvalidTokenException("Invalid token");
+        }
+
+        @Override
+        public boolean isReady() {
+            return true;
+        }
+    }
+
+    private static class AlwaysValidTokenValidator implements TokenValidator {
+        @Override
+        public DecodedToken validateToken(String idToken) {
+            return DecodedToken.builder()
+                    .uid("uid-100")
+                    .email("valid@test.com")
+                    .name("Valid User")
+                    .provider(AuthProvider.EMAIL)
+                    .emailVerified(true)
+                    .build();
+        }
+
+        @Override
+        public boolean isReady() {
+            return true;
+        }
+    }
+
     private static class PassthroughUserProvider implements UserProvider {
         @Override
         public Optional<org.athlium.users.domain.model.User> findByFirebaseUid(String firebaseUid) {
@@ -132,6 +218,13 @@ class FirebaseAuthFilterUnitTest {
     private static class SecuredEndpoint {
         @Authenticated
         public void me() {
+        }
+    }
+
+    private static class SecuredEndpointProxy extends SecuredEndpoint {
+        @Override
+        public void me() {
+            super.me();
         }
     }
 }

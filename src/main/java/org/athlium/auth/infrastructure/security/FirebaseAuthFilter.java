@@ -75,14 +75,14 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
         Class<?> resourceClass = resourceInfo.getResourceClass();
 
         // Check if endpoint is public
-        if (isPublicEndpoint(method)) {
+        if (isPublicEndpoint(method, resourceClass)) {
             tryOptionalAuthentication(requestContext);
             return;
         }
 
         // Get authentication requirements
-        Authenticated methodAuth = method.getAnnotation(Authenticated.class);
-        Authenticated classAuth = resourceClass.getAnnotation(Authenticated.class);
+        Authenticated methodAuth = resolveMethodAnnotation(method, resourceClass, Authenticated.class);
+        Authenticated classAuth = resolveClassAnnotation(resourceClass, Authenticated.class);
         Authenticated auth = methodAuth != null ? methodAuth : classAuth;
 
         // If no @Authenticated annotation, allow access (public by default)
@@ -158,8 +158,62 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
         securityContext.setAuthenticated(true);
     }
 
-    private boolean isPublicEndpoint(Method method) {
-        return method.isAnnotationPresent(PublicEndpoint.class);
+    private boolean isPublicEndpoint(Method method, Class<?> resourceClass) {
+        return resolveMethodAnnotation(method, resourceClass, PublicEndpoint.class) != null;
+    }
+
+    private <A extends java.lang.annotation.Annotation> A resolveMethodAnnotation(Method method,
+                                                                                  Class<?> resourceClass,
+                                                                                  Class<A> annotationClass) {
+        if (method == null || annotationClass == null) {
+            return null;
+        }
+
+        A directAnnotation = method.getAnnotation(annotationClass);
+        if (directAnnotation != null) {
+            return directAnnotation;
+        }
+
+        Class<?> type = resourceClass;
+        while (type != null && type != Object.class) {
+            try {
+                Method candidate = type.getDeclaredMethod(method.getName(), method.getParameterTypes());
+                A candidateAnnotation = candidate.getAnnotation(annotationClass);
+                if (candidateAnnotation != null) {
+                    return candidateAnnotation;
+                }
+            } catch (NoSuchMethodException ignored) {
+                // Keep traversing hierarchy.
+            }
+            type = type.getSuperclass();
+        }
+
+        return null;
+    }
+
+    private <A extends java.lang.annotation.Annotation> A resolveClassAnnotation(Class<?> resourceClass,
+                                                                                 Class<A> annotationClass) {
+        if (resourceClass == null || annotationClass == null) {
+            return null;
+        }
+
+        Class<?> type = resourceClass;
+        while (type != null && type != Object.class) {
+            A annotation = type.getAnnotation(annotationClass);
+            if (annotation != null) {
+                return annotation;
+            }
+            type = type.getSuperclass();
+        }
+
+        for (Class<?> iface : resourceClass.getInterfaces()) {
+            A annotation = iface.getAnnotation(annotationClass);
+            if (annotation != null) {
+                return annotation;
+            }
+        }
+
+        return null;
     }
 
     /**
