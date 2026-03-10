@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 public interface SessionInstanceMapper {
 
     @Mapping(target = "activity", ignore = true)
+    @Mapping(target = "participants", ignore = true)
     SessionInstance toDomain(SessionInstanceEntity entity);
 
     @Mapping(target = "createdAt", ignore = true)

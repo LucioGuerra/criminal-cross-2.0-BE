@@ -155,6 +155,7 @@ class GymBookingsE2ETest {
                 .statusCode(200)
                 .body("success", equalTo(true))
                 .body("data.items[0].id", notNullValue())
+                .body("data.items[0].participants", notNullValue())
                 .extract()
                 .jsonPath();
 
@@ -168,6 +169,24 @@ class GymBookingsE2ETest {
         Long booking1 = createBooking(sessionId, 101L, "e2e-bk-1", CLIENT_101_TOKEN);
         Long booking2 = createBooking(sessionId, 102L, "e2e-bk-2", CLIENT_102_TOKEN);
         Long booking3 = createBooking(sessionId, 103L, "e2e-bk-3", CLIENT_103_TOKEN);
+
+        JsonPath sessionWithParticipants = given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
+                .when()
+                .get("/api/sessions/{id}", sessionId)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.participants", notNullValue())
+                .extract()
+                .jsonPath();
+
+        List<Integer> participantIds = sessionWithParticipants.getList("data.participants.id");
+        assertEquals(3, participantIds.size());
+        assertEquals(101, participantIds.get(0));
+        assertEquals("Name", sessionWithParticipants.getString("data.participants[0].name"));
+        assertEquals("Last", sessionWithParticipants.getString("data.participants[0].lastName"));
+        assertEquals("user101@test.com", sessionWithParticipants.getString("data.participants[0].email"));
 
         JsonPath listBeforeCancel = given()
                 .header("Authorization", bearer(ADMIN_TOKEN))
@@ -234,6 +253,21 @@ class GymBookingsE2ETest {
 
         assertEquals(booking2.intValue(), listAfterCancel.getInt("data.items[1].id"));
         assertEquals(booking3.intValue(), listAfterCancel.getInt("data.items[2].id"));
+
+        JsonPath sessionAfterCancel = given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
+                .when()
+                .get("/api/sessions/{id}", sessionId)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .extract()
+                .jsonPath();
+
+        List<Integer> participantIdsAfterCancel = sessionAfterCancel.getList("data.participants.id");
+        assertEquals(2, participantIdsAfterCancel.size());
+        assertEquals(102, participantIdsAfterCancel.get(0));
+        assertEquals(103, participantIdsAfterCancel.get(1));
     }
 
     @Test

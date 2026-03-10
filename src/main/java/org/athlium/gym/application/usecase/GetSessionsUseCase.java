@@ -4,9 +4,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.model.SessionInstance;
+import org.athlium.gym.domain.model.SessionParticipant;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.ActivityRepository;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
+import org.athlium.gym.domain.repository.SessionParticipantRepository;
 import org.athlium.shared.domain.PageResponse;
 import org.athlium.shared.exception.BadRequestException;
 
@@ -22,6 +24,9 @@ public class GetSessionsUseCase {
 
     @Inject
     ActivityRepository activityRepository;
+
+    @Inject
+    SessionParticipantRepository sessionParticipantRepository;
 
     public PageResponse<SessionInstance> execute(
             Long organizationId,
@@ -59,6 +64,7 @@ public class GetSessionsUseCase {
         );
 
         enrichActivities(sessionsPage.getContent());
+        enrichParticipants(sessionsPage.getContent());
         return sessionsPage;
     }
 
@@ -75,6 +81,23 @@ public class GetSessionsUseCase {
 
         Map<Long, Activity> activitiesById = activityRepository.findByIds(activityIds);
         sessions.forEach(session -> session.setActivity(activitiesById.get(session.getActivityId())));
+    }
+
+    private void enrichParticipants(List<SessionInstance> sessions) {
+        if (sessions == null || sessions.isEmpty()) {
+            return;
+        }
+
+        List<Long> sessionIds = sessions.stream()
+                .map(SessionInstance::getId)
+                .filter(id -> id != null && id > 0)
+                .toList();
+
+        Map<Long, List<SessionParticipant>> participantsBySession = sessionParticipantRepository.findBySessionIds(sessionIds);
+
+        sessions.forEach(session -> session.setParticipants(
+                participantsBySession.getOrDefault(session.getId(), List.of())
+        ));
     }
 
     private boolean parseSort(String sort) {

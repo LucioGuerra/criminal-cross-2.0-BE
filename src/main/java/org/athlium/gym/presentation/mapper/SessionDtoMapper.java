@@ -2,7 +2,9 @@ package org.athlium.gym.presentation.mapper;
 
 import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.model.SessionInstance;
+import org.athlium.gym.domain.model.SessionParticipant;
 import org.athlium.gym.presentation.dto.ActivityResponse;
+import org.athlium.gym.presentation.dto.SessionParticipantResponse;
 import org.athlium.gym.presentation.dto.SessionResponse;
 import org.mapstruct.Mapper;
 
@@ -25,6 +27,25 @@ public interface SessionDtoMapper {
         response.setDescription(activity.getDescription());
         response.setIsActive(activity.getIsActive());
         response.setHqId(activity.getHqId());
+        return response;
+    }
+
+    default List<SessionParticipantResponse> toParticipantResponseList(List<SessionParticipant> participants) {
+        if (participants == null || participants.isEmpty()) {
+            return List.of();
+        }
+
+        return participants.stream()
+                .map(this::toParticipantResponse)
+                .toList();
+    }
+
+    default SessionParticipantResponse toParticipantResponse(SessionParticipant participant) {
+        SessionParticipantResponse response = new SessionParticipantResponse();
+        response.setId(participant.getId());
+        response.setName(participant.getName());
+        response.setLastName(participant.getLastName());
+        response.setEmail(participant.getEmail());
         return response;
     }
 }

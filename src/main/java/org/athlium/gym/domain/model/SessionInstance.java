@@ -1,6 +1,7 @@
 package org.athlium.gym.domain.model;
 
 import java.time.Instant;
+import java.util.List;
 
 public class SessionInstance {
 
@@ -9,6 +10,7 @@ public class SessionInstance {
     private Long headquartersId;
     private Long activityId;
     private Activity activity;
+    private List<SessionParticipant> participants;
     private Instant startsAt;
     private Instant endsAt;
     private SessionStatus status;
@@ -58,6 +60,14 @@ public class SessionInstance {
 
     public void setActivity(Activity activity) {
         this.activity = activity;
+    }
+
+    public List<SessionParticipant> getParticipants() {
+        return participants;
+    }
+
+    public void setParticipants(List<SessionParticipant> participants) {
+        this.participants = participants;
     }
 
     public Instant getStartsAt() {

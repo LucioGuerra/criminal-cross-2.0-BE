@@ -4,8 +4,11 @@ import jakarta.ws.rs.core.Response;
 import org.athlium.gym.application.usecase.GetSessionByIdUseCase;
 import org.athlium.gym.application.usecase.GetSessionsUseCase;
 import org.athlium.gym.domain.model.SessionInstance;
+import org.athlium.gym.domain.model.SessionParticipant;
 import org.athlium.gym.domain.model.SessionSource;
 import org.athlium.gym.domain.model.SessionStatus;
+import org.athlium.gym.presentation.dto.SessionPageResponse;
+import org.athlium.gym.presentation.dto.SessionParticipantResponse;
 import org.athlium.gym.presentation.dto.SessionResponse;
 import org.athlium.gym.presentation.mapper.SessionDtoMapper;
 import org.athlium.shared.domain.PageResponse;
@@ -20,6 +23,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SessionResourceUnitTest {
@@ -51,6 +55,12 @@ class SessionResourceUnitTest {
         session.setEndsAt(Instant.parse("2026-02-10T11:00:00Z"));
         session.setStatus(SessionStatus.OPEN);
         session.setSource(SessionSource.MANUAL);
+        SessionParticipant participant = new SessionParticipant();
+        participant.setId(88L);
+        participant.setName("Jane");
+        participant.setLastName("Doe");
+        participant.setEmail("jane@test.com");
+        session.setParticipants(List.of(participant));
 
         getSessionsUseCase.response = new PageResponse<>(List.of(session), 0, 20, 1);
 
@@ -60,6 +70,9 @@ class SessionResourceUnitTest {
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
         assertTrue(body.isSuccess());
         assertEquals("Sessions retrieved successfully", body.getMessage());
+        SessionPageResponse responseData = (SessionPageResponse) body.getData();
+        assertNotNull(responseData.getItems().getFirst().getParticipants());
+        assertEquals("Jane", responseData.getItems().getFirst().getParticipants().getFirst().getName());
     }
 
     @Test
@@ -94,6 +107,12 @@ class SessionResourceUnitTest {
         session.setEndsAt(Instant.parse("2026-02-10T11:00:00Z"));
         session.setStatus(SessionStatus.OPEN);
         session.setSource(SessionSource.MANUAL);
+        SessionParticipant participant = new SessionParticipant();
+        participant.setId(88L);
+        participant.setName("Jane");
+        participant.setLastName("Doe");
+        participant.setEmail("jane@test.com");
+        session.setParticipants(List.of(participant));
         getSessionByIdUseCase.response = session;
 
         Response response = resource.getSessionById(5L);
@@ -102,6 +121,8 @@ class SessionResourceUnitTest {
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
         assertTrue(body.isSuccess());
         assertEquals("Session found", body.getMessage());
+        SessionResponse responseData = (SessionResponse) body.getData();
+        assertEquals("jane@test.com", responseData.getParticipants().getFirst().getEmail());
     }
 
     private static class StubGetSessionsUseCase extends GetSessionsUseCase {
@@ -146,7 +167,20 @@ class SessionResourceUnitTest {
 
         @Override
         public SessionResponse toResponse(SessionInstance session) {
-            return new SessionResponse();
+            SessionResponse response = new SessionResponse();
+            response.setId(session.getId());
+            List<SessionParticipantResponse> participants = session.getParticipants() == null
+                    ? List.of()
+                    : session.getParticipants().stream().map(participant -> {
+                SessionParticipantResponse participantResponse = new SessionParticipantResponse();
+                participantResponse.setId(participant.getId());
+                participantResponse.setName(participant.getName());
+                participantResponse.setLastName(participant.getLastName());
+                participantResponse.setEmail(participant.getEmail());
+                return participantResponse;
+            }).toList();
+            response.setParticipants(participants);
+            return response;
         }
 
         @Override

@@ -6,6 +6,7 @@ import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.model.WaitlistStrategy;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 public class SessionResponse {
@@ -23,4 +24,5 @@ public class SessionResponse {
     private WaitlistStrategy waitlistStrategy;
     private Integer cancellationMinHoursBeforeStart;
     private Boolean cancellationAllowLateCancel;
+    private List<SessionParticipantResponse> participants;
 }

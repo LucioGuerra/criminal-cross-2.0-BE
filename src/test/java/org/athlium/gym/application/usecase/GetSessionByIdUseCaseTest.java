@@ -2,9 +2,11 @@ package org.athlium.gym.application.usecase;
 
 import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.model.SessionInstance;
+import org.athlium.gym.domain.model.SessionParticipant;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.ActivityRepository;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
+import org.athlium.gym.domain.repository.SessionParticipantRepository;
 import org.athlium.shared.domain.PageResponse;
 import org.athlium.shared.exception.BadRequestException;
 import org.athlium.shared.exception.EntityNotFoundException;
@@ -29,6 +31,7 @@ class GetSessionByIdUseCaseTest {
         useCase = new GetSessionByIdUseCase();
         useCase.sessionInstanceRepository = new InMemorySessionRepository();
         useCase.activityRepository = new StubActivityRepository();
+        useCase.sessionParticipantRepository = new StubSessionParticipantRepository();
     }
 
     @Test
@@ -48,6 +51,8 @@ class GetSessionByIdUseCaseTest {
         assertNotNull(session);
         assertEquals(SessionStatus.OPEN, session.getStatus());
         assertEquals("Yoga", session.getActivity().getName());
+        assertEquals("John", session.getParticipants().getFirst().getName());
+        assertEquals("john@test.com", session.getParticipants().getFirst().getEmail());
     }
 
     private static class InMemorySessionRepository implements SessionInstanceRepository {
@@ -154,6 +159,19 @@ class GetSessionByIdUseCaseTest {
                 io.quarkus.panache.common.Page page
         ) {
             return null;
+        }
+    }
+
+    private static class StubSessionParticipantRepository implements SessionParticipantRepository {
+
+        @Override
+        public Map<Long, List<SessionParticipant>> findBySessionIds(List<Long> sessionIds) {
+            SessionParticipant participant = new SessionParticipant();
+            participant.setId(11L);
+            participant.setName("John");
+            participant.setLastName("Doe");
+            participant.setEmail("john@test.com");
+            return Map.of(1L, List.of(participant));
         }
     }
 }

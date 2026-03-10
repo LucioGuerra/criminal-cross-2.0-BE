@@ -2,9 +2,11 @@ package org.athlium.gym.application.usecase;
 
 import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.model.SessionInstance;
+import org.athlium.gym.domain.model.SessionParticipant;
 import org.athlium.gym.domain.model.SessionStatus;
 import org.athlium.gym.domain.repository.ActivityRepository;
 import org.athlium.gym.domain.repository.SessionInstanceRepository;
+import org.athlium.gym.domain.repository.SessionParticipantRepository;
 import org.athlium.shared.domain.PageResponse;
 import org.athlium.shared.exception.BadRequestException;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +32,7 @@ class GetSessionsUseCaseTest {
         repository = new InMemorySessionRepository();
         useCase.sessionInstanceRepository = repository;
         useCase.activityRepository = new StubActivityRepository();
+        useCase.sessionParticipantRepository = new StubSessionParticipantRepository();
     }
 
     @Test
@@ -76,6 +79,7 @@ class GetSessionsUseCaseTest {
     @Test
     void shouldIncludeActivityInReturnedSessions() {
         SessionInstance session = new SessionInstance();
+        session.setId(1L);
         session.setActivityId(3L);
         repository.responseContent = List.of(session);
 
@@ -92,6 +96,8 @@ class GetSessionsUseCaseTest {
         );
 
         assertEquals("Yoga", response.getContent().getFirst().getActivity().getName());
+        assertEquals("John", response.getContent().getFirst().getParticipants().getFirst().getName());
+        assertEquals("john@test.com", response.getContent().getFirst().getParticipants().getFirst().getEmail());
     }
 
     private static class InMemorySessionRepository implements SessionInstanceRepository {
@@ -192,6 +198,19 @@ class GetSessionsUseCaseTest {
                 io.quarkus.panache.common.Page page
         ) {
             return null;
+        }
+    }
+
+    private static class StubSessionParticipantRepository implements SessionParticipantRepository {
+
+        @Override
+        public Map<Long, List<SessionParticipant>> findBySessionIds(List<Long> sessionIds) {
+            SessionParticipant participant = new SessionParticipant();
+            participant.setId(11L);
+            participant.setName("John");
+            participant.setLastName("Doe");
+            participant.setEmail("john@test.com");
+            return Map.of(1L, List.of(participant));
         }
     }
 }
