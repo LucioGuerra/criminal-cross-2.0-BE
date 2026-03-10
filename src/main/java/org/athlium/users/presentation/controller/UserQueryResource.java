@@ -21,7 +21,7 @@ import org.athlium.users.application.usecase.GetUserByIdUseCase;
 import org.athlium.users.application.usecase.GetUsersByHqUseCase;
 import org.athlium.users.application.usecase.GetUsersByOrgUseCase;
 import org.athlium.users.domain.model.UserWithPackageStatus;
-import org.athlium.users.presentation.dto.UserWithStatusResponse;
+import org.athlium.users.infrastructure.dto.UserResponseDto;
 import org.athlium.users.presentation.mapper.UserQueryDtoMapper;
 
 import java.util.List;
@@ -74,8 +74,8 @@ public class UserQueryResource {
                 usersPage = getAllUsersUseCase.execute(status, search, page, size, sort);
             }
 
-            List<UserWithStatusResponse> mappedContent = userQueryDtoMapper.toResponseList(usersPage.getContent());
-            PageResponse<UserWithStatusResponse> mappedPage = new PageResponse<>(
+            List<UserResponseDto> mappedContent = userQueryDtoMapper.toResponseList(usersPage.getContent());
+            PageResponse<UserResponseDto> mappedPage = new PageResponse<>(
                     mappedContent, usersPage.getPage(), usersPage.getSize(), usersPage.getTotalElements());
 
             return Response.ok(ApiResponse.success("Users retrieved", mappedPage)).build();
@@ -100,7 +100,7 @@ public class UserQueryResource {
     public Response getUserById(@PathParam("id") Long id) {
         try {
             UserWithPackageStatus user = getUserByIdUseCase.execute(id);
-            UserWithStatusResponse response = userQueryDtoMapper.toResponse(user);
+            UserResponseDto response = userQueryDtoMapper.toResponse(user);
             return Response.ok(ApiResponse.success("User found", response)).build();
         } catch (EntityNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)

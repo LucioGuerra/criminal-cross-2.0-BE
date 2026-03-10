@@ -11,6 +11,7 @@ public class UserWithPackageStatus {
     private String lastName;
     private String email;
     private Set<Role> roles;
+    private Set<Long> headquartersIds;
     private Boolean active;
     private PackageStatus packageStatus;
     private LocalDate periodEnd;
@@ -63,6 +64,14 @@ public class UserWithPackageStatus {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public Set<Long> getHeadquartersIds() {
+        return headquartersIds;
+    }
+
+    public void setHeadquartersIds(Set<Long> headquartersIds) {
+        this.headquartersIds = headquartersIds;
     }
 
     public PackageStatus getPackageStatus() {

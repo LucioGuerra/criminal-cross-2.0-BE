@@ -47,6 +47,7 @@ public class OrganizationResource {
     OrganizationDtoMapper mapper;
 
     @GET
+    @Authenticated
     public Response getOrganizations() {
         var response = getOrganizationsUseCase.execute().stream().map(mapper::toResponse).toList();
         return Response.ok(ApiResponse.success("Organizations retrieved", response)).build();

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -92,6 +93,20 @@ class OrganizationResourceE2ETest {
                 .then()
                 .statusCode(403)
                 .body("success", equalTo(false));
+    }
+
+    @Test
+    void shouldAllowClientRoleToListOrganizations() {
+        createOrganization("Org Visible To Client");
+
+        given()
+                .header("Authorization", bearer(CLIENT_TOKEN))
+                .when()
+                .get("/api/organizations")
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.size()", greaterThanOrEqualTo(1));
     }
 
     @Transactional

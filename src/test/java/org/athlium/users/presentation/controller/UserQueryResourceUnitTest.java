@@ -10,11 +10,9 @@ import org.athlium.users.application.usecase.GetAllUsersUseCase;
 import org.athlium.users.application.usecase.GetUserByIdUseCase;
 import org.athlium.users.application.usecase.GetUsersByHqUseCase;
 import org.athlium.users.application.usecase.GetUsersByOrgUseCase;
+import org.athlium.users.infrastructure.dto.UserResponseDto;
 import org.athlium.users.domain.model.PackageStatus;
-import org.athlium.users.domain.model.UserHqMembership;
 import org.athlium.users.domain.model.UserWithPackageStatus;
-import org.athlium.users.presentation.dto.UserHqMembershipResponse;
-import org.athlium.users.presentation.dto.UserWithStatusResponse;
 import org.athlium.users.presentation.mapper.UserQueryDtoMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -306,18 +304,18 @@ class UserQueryResourceUnitTest {
 
     static class FakeUserQueryDtoMapper extends UserQueryDtoMapper {
         @Override
-        public UserWithStatusResponse toResponse(UserWithPackageStatus domain) {
+        public UserResponseDto toResponse(UserWithPackageStatus domain) {
             if (domain == null) return null;
-            UserWithStatusResponse response = new UserWithStatusResponse();
-            response.setId(domain.getId());
-            response.setName(domain.getName());
-            return response;
+            return UserResponseDto.builder()
+                    .id(domain.getId())
+                    .name(domain.getName())
+                    .build();
         }
 
         @Override
-        public List<UserWithStatusResponse> toResponseList(List<UserWithPackageStatus> domains) {
+        public List<UserResponseDto> toResponseList(List<UserWithPackageStatus> domains) {
             if (domains == null) return null;
-            List<UserWithStatusResponse> responses = new ArrayList<>();
+            List<UserResponseDto> responses = new ArrayList<>();
             for (UserWithPackageStatus domain : domains) {
                 responses.add(toResponse(domain));
             }

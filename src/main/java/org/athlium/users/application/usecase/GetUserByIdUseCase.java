@@ -44,6 +44,7 @@ public class GetUserByIdUseCase {
         noPackageUser.setLastName(existingUser.getLastName());
         noPackageUser.setEmail(existingUser.getEmail());
         noPackageUser.setRoles(existingUser.getRoles());
+        noPackageUser.setHeadquartersIds(existingUser.getHeadquartersIds());
         noPackageUser.setActive(existingUser.getActive());
         noPackageUser.setPackageStatus(PackageStatus.NO_PACKAGE);
         noPackageUser.setPeriodEnd(null);

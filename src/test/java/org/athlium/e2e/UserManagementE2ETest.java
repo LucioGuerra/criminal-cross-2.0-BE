@@ -95,7 +95,8 @@ class UserManagementE2ETest {
                 .statusCode(200)
                 .body("success", equalTo(true))
                 .body("data.totalElements", equalTo(1))
-                .body("data.content[0].email", equalTo("target@test.com"));
+                .body("data.content[0].email", equalTo("target@test.com"))
+                .body("data.content[0].headquartersIds", hasItem(100));
     }
 
     @Transactional

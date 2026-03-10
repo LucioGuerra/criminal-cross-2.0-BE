@@ -158,8 +158,10 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
 
         if (!userIds.isEmpty()) {
             Map<Long, Set<Role>> rolesMap = fetchRolesForUsers(userIds);
+            Map<Long, Set<Long>> headquartersMap = fetchHeadquartersForUsers(userIds);
             for (UserWithPackageStatus user : users) {
                 user.setRoles(rolesMap.getOrDefault(user.getId(), Collections.emptySet()));
+                user.setHeadquartersIds(headquartersMap.getOrDefault(user.getId(), Collections.emptySet()));
             }
         }
 
@@ -288,8 +290,10 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
 
         if (!userIds.isEmpty()) {
             Map<Long, Set<Role>> rolesMap = fetchRolesForUsers(userIds);
+            Map<Long, Set<Long>> headquartersMap = fetchHeadquartersForUsers(userIds);
             for (UserWithPackageStatus user : users) {
                 user.setRoles(rolesMap.getOrDefault(user.getId(), Collections.emptySet()));
+                user.setHeadquartersIds(headquartersMap.getOrDefault(user.getId(), Collections.emptySet()));
             }
         }
 
@@ -476,8 +480,10 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
 
         if (!userIds.isEmpty()) {
             Map<Long, Set<Role>> rolesMap = fetchRolesForUsers(userIds);
+            Map<Long, Set<Long>> headquartersMap = fetchHeadquartersForUsers(userIds);
             for (UserWithPackageStatus user : users) {
                 user.setRoles(rolesMap.getOrDefault(user.getId(), Collections.emptySet()));
+                user.setHeadquartersIds(headquartersMap.getOrDefault(user.getId(), Collections.emptySet()));
             }
         }
 
@@ -539,6 +545,8 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
 
         Map<Long, Set<Role>> rolesMap = fetchRolesForUsers(List.of(userId));
         user.setRoles(rolesMap.getOrDefault(userId, Collections.emptySet()));
+        Map<Long, Set<Long>> headquartersMap = fetchHeadquartersForUsers(List.of(userId));
+        user.setHeadquartersIds(headquartersMap.getOrDefault(userId, Collections.emptySet()));
 
         return user;
     }
@@ -589,6 +597,28 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
         }
 
         return rolesMap;
+    }
+
+    private Map<Long, Set<Long>> fetchHeadquartersForUsers(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        String sql = "SELECT uh.user_id, uh.headquarters_id FROM user_headquarters uh WHERE uh.user_id IN (:userIds)";
+        Query query = em.createNativeQuery(sql);
+        query.setParameter("userIds", userIds);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        Map<Long, Set<Long>> headquartersMap = new HashMap<>();
+
+        for (Object[] row : rows) {
+            Long userId = ((Number) row[0]).longValue();
+            Long headquartersId = ((Number) row[1]).longValue();
+            headquartersMap.computeIfAbsent(userId, k -> new HashSet<>()).add(headquartersId);
+        }
+
+        return headquartersMap;
     }
 
     private String buildSortClause(String sort) {

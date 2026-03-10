@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.athlium.users.domain.model.Role;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -19,4 +20,7 @@ public class UserResponseDto {
     private Set<Role> roles;
     private Set<Long> headquartersIds;
     private Boolean active;
+    private String packageStatus;
+    private LocalDate periodEnd;
+    private Integer daysRemaining;
 }
