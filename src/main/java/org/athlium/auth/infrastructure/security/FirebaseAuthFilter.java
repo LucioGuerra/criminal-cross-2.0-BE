@@ -104,6 +104,12 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
             return;
         }
 
+        if (!tokenValidator.isReady()) {
+            abortServiceUnavailable(requestContext,
+                    "Authentication provider is not initialized. Check firebase.mock.enabled and FIREBASE_CREDENTIALS_PATH");
+            return;
+        }
+
         try {
             AuthenticatedUser authenticatedUser = validateAndBuildUser(authHeader);
 
@@ -249,6 +255,14 @@ public class FirebaseAuthFilter implements ContainerRequestFilter {
     private void abortForbidden(ContainerRequestContext requestContext, String message) {
         requestContext.abortWith(
                 Response.status(Response.Status.FORBIDDEN)
+                        .entity(ApiResponse.error(message))
+                        .build()
+        );
+    }
+
+    private void abortServiceUnavailable(ContainerRequestContext requestContext, String message) {
+        requestContext.abortWith(
+                Response.status(Response.Status.SERVICE_UNAVAILABLE)
                         .entity(ApiResponse.error(message))
                         .build()
         );
