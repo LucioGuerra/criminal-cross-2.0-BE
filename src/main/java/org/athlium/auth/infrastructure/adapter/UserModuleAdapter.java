@@ -67,7 +67,7 @@ public class UserModuleAdapter implements UserProvider {
             String firebaseUid,
             AuthenticatedUser.AuthenticatedUserBuilder builder) {
 
-        Optional<User> userOpt = userRepository.findByFirebaseUid(firebaseUid);
+        Optional<User> userOpt = findUserByFirebaseUid(firebaseUid);
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -86,6 +86,20 @@ public class UserModuleAdapter implements UserProvider {
                     .roles(Set.of())
                     .active(false);
         }
+    }
+
+    private Optional<User> findUserByFirebaseUid(String firebaseUid) {
+        Optional<User> userOpt = userRepository.findByFirebaseUid(firebaseUid);
+        if (userOpt.isPresent()) {
+            return userOpt;
+        }
+
+        if (firebaseUid != null && firebaseUid.startsWith("mock-") && firebaseUid.length() > 5) {
+            String withoutMockPrefix = firebaseUid.substring(5);
+            return userRepository.findByFirebaseUid(withoutMockPrefix);
+        }
+
+        return Optional.empty();
     }
 
     @Override
