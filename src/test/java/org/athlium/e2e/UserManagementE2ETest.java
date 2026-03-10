@@ -1,12 +1,15 @@
 package org.athlium.e2e;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
@@ -15,11 +18,14 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
+@TestProfile(UserManagementE2ETest.NoBypassAuthProfile.class)
 class UserManagementE2ETest {
 
     private static final String ADMIN_TOKEN = "users-admin-e2e";
     private static final String ADMIN_UID = "mock-users-admin-e2e";
     private static final String TARGET_UID = "mock-users-target-e2e";
+    private static final String OTHER_CLIENT_TOKEN = "other-client-e2e";
+    private static final String OTHER_CLIENT_UID = "mock-other-client-e2e";
 
     @Inject
     EntityManager entityManager;
@@ -30,6 +36,7 @@ class UserManagementE2ETest {
         ensureOrganizationAndHeadquarters();
         ensureUserWithRoles(1001L, ADMIN_UID, "admin@test.com", "ORG_ADMIN");
         ensureUserWithRoles(1002L, TARGET_UID, "target@test.com", "CLIENT");
+        ensureUserWithRoles(1003L, OTHER_CLIENT_UID, "other-client@test.com", "CLIENT");
     }
 
     @Test
@@ -54,7 +61,9 @@ class UserManagementE2ETest {
     }
 
     @Test
-    void shouldAssignAndUnassignUserToHeadquarters() {
+    void shouldAllowOrgAdminToAssignAndUnassignOtherUserInSameOrganization() {
+        ensureUserHeadquartersMembership(1001L, 100L);
+
         given()
                 .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
@@ -77,7 +86,50 @@ class UserManagementE2ETest {
     }
 
     @Test
+    void shouldAllowSelfAssignForRegularClient() {
+        given()
+                .header("Authorization", bearer("users-target-e2e"))
+                .contentType("application/json")
+                .when()
+                .post("/api/users/firebase/{uid}/headquarters/{headquartersId}", TARGET_UID, 100L)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.headquartersIds", hasItem(100));
+    }
+
+    @Test
+    void shouldForbidAssigningAnotherUserForRegularClient() {
+        given()
+                .header("Authorization", bearer(OTHER_CLIENT_TOKEN))
+                .contentType("application/json")
+                .when()
+                .post("/api/users/firebase/{uid}/headquarters/{headquartersId}", TARGET_UID, 100L)
+                .then()
+                .statusCode(403)
+                .body("success", equalTo(false))
+                .body("message", equalTo("Only headquarters admins, owners, or SUPERADMIN can update other users"));
+    }
+
+    @Test
+    void shouldAllowSelfRemoveForRegularClient() {
+        ensureUserHeadquartersMembership(1002L, 100L);
+
+        given()
+                .header("Authorization", bearer("users-target-e2e"))
+                .contentType("application/json")
+                .when()
+                .delete("/api/users/firebase/{uid}/headquarters/{headquartersId}", TARGET_UID, 100L)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.headquartersIds", not(hasItem(100)));
+    }
+
+    @Test
     void shouldFilterUsersByAssignedHeadquarters() {
+        ensureUserHeadquartersMembership(1001L, 100L);
+
         given()
                 .header("Authorization", bearer(ADMIN_TOKEN))
                 .contentType("application/json")
@@ -94,9 +146,8 @@ class UserManagementE2ETest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true))
-                .body("data.totalElements", equalTo(1))
-                .body("data.content[0].email", equalTo("target@test.com"))
-                .body("data.content[0].headquartersIds", hasItem(100));
+                .body("data.totalElements", equalTo(2))
+                .body("data.content.email", hasItem("target@test.com"));
     }
 
     @Transactional
@@ -138,7 +189,22 @@ class UserManagementE2ETest {
         }
     }
 
+    @Transactional
+    void ensureUserHeadquartersMembership(Long userId, Long headquartersId) {
+        entityManager.createNativeQuery("INSERT INTO user_headquarters (user_id, headquarters_id) VALUES (?, ?) ON CONFLICT DO NOTHING")
+                .setParameter(1, userId)
+                .setParameter(2, headquartersId)
+                .executeUpdate();
+    }
+
     private String bearer(String token) {
         return "Bearer " + token;
+    }
+
+    public static class NoBypassAuthProfile implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Collections.singletonMap("auth.dev-bypass.enabled", "false");
+        }
     }
 }

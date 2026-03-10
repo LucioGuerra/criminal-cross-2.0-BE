@@ -3,6 +3,7 @@ package org.athlium.users.application.usecase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.athlium.shared.exception.DomainException;
+import org.athlium.users.application.service.HeadquartersMembershipAuthorizationService;
 import org.athlium.users.domain.model.Role;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.domain.repository.UserRepository;
@@ -15,8 +16,11 @@ public class RemoveUserFromHeadquartersUseCase {
     @Inject
     UserRepository userRepository;
 
+    @Inject
+    HeadquartersMembershipAuthorizationService authorizationService;
+
     public User execute(String firebaseUid, Long headquartersId, User currentUser) {
-        validateAdminPrivileges(currentUser);
+        authorizationService.authorizeMembershipUpdate(firebaseUid, headquartersId, currentUser);
 
         var user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new DomainException("User not found"));
@@ -46,11 +50,5 @@ public class RemoveUserFromHeadquartersUseCase {
                 .build();
 
         return userRepository.save(updatedUser);
-    }
-
-    private void validateAdminPrivileges(User currentUser) {
-        if (!currentUser.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.ORG_ADMIN)) {
-            throw new DomainException("Only ADMIN or SUPERADMIN can update users");
-        }
     }
 }

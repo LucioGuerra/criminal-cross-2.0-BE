@@ -154,7 +154,7 @@ public class UserResource {
     @POST
     @Path("/firebase/{uid}/headquarters/{headquartersId}")
     @Transactional
-    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    @Authenticated
     public Response assignUserToHeadquarters(@PathParam("uid") String firebaseUid,
             @PathParam("headquartersId") Long headquartersId) {
         try {
@@ -182,7 +182,7 @@ public class UserResource {
     @DELETE
     @Path("/firebase/{uid}/headquarters/{headquartersId}")
     @Transactional
-    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    @Authenticated
     public Response removeUserFromHeadquarters(@PathParam("uid") String firebaseUid,
             @PathParam("headquartersId") Long headquartersId) {
         try {

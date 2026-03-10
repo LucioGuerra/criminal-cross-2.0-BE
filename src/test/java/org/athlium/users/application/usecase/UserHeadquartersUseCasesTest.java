@@ -3,6 +3,7 @@ package org.athlium.users.application.usecase;
 import org.athlium.gym.domain.model.Headquarters;
 import org.athlium.gym.domain.repository.HeadquartersRepository;
 import org.athlium.shared.exception.DomainException;
+import org.athlium.users.application.service.HeadquartersMembershipAuthorizationService;
 import org.athlium.users.domain.model.Role;
 import org.athlium.users.domain.model.User;
 import org.athlium.users.domain.repository.UserRepository;
@@ -27,6 +28,7 @@ class UserHeadquartersUseCasesTest {
     private RemoveUserFromHeadquartersUseCase removeUseCase;
     private CreateUserUseCase createUserUseCase;
     private InMemoryUserRepository userRepository;
+    private StubHeadquartersRepository headquartersRepository;
 
     @BeforeEach
     void setUp() {
@@ -35,19 +37,28 @@ class UserHeadquartersUseCasesTest {
         createUserUseCase = new CreateUserUseCase();
         createUserUseCase.userRepository = userRepository;
 
+        headquartersRepository = new StubHeadquartersRepository(Map.of(
+                1L, 10L,
+                2L, 10L,
+                3L, 20L
+        ));
+
+        var authorizationService = new HeadquartersMembershipAuthorizationService();
+        setField(authorizationService, "headquartersRepository", headquartersRepository);
+
         assignUseCase = new AssignUserToHeadquartersUseCase();
         assignUseCase.userRepository = userRepository;
-        assignUseCase.headquartersRepository = new StubHeadquartersRepository(Set.of(1L, 2L));
+        assignUseCase.authorizationService = authorizationService;
 
         removeUseCase = new RemoveUserFromHeadquartersUseCase();
         removeUseCase.userRepository = userRepository;
+        removeUseCase.authorizationService = authorizationService;
     }
 
     @Test
-    void shouldAssignUserToHeadquarters() {
-        createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
-        User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
-        setRoles(currentUser, Set.of(Role.ORG_ADMIN));
+    void shouldAllowSelfAssignForRegularClient() {
+        User currentUser = createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        setRoles(currentUser, Set.of(Role.CLIENT));
 
         User updated = assignUseCase.execute("target-uid", 1L, currentUser);
 
@@ -73,6 +84,8 @@ class UserHeadquartersUseCasesTest {
         userRepository.save(target);
         User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
         setRoles(currentUser, Set.of(Role.ORG_ADMIN));
+        setHeadquarters(currentUser, Set.of(2L));
+        userRepository.save(currentUser);
 
         DomainException ex = assertThrows(DomainException.class,
                 () -> assignUseCase.execute("target-uid", 1L, currentUser));
@@ -81,23 +94,50 @@ class UserHeadquartersUseCasesTest {
     }
 
     @Test
-    void shouldFailWhenAssigningWithoutAdminRole() {
+    void shouldFailWhenAssigningAnotherUserWithoutAdminOrOwnerRole() {
         createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
         User currentUser = createUserUseCase.execute("client-uid", "client@mail.com", "Client", "User");
 
         DomainException ex = assertThrows(DomainException.class,
                 () -> assignUseCase.execute("target-uid", 1L, currentUser));
 
-        assertEquals("Only ADMIN or SUPERADMIN can update users", ex.getMessage());
+        assertEquals("Only headquarters admins, owners, or SUPERADMIN can update other users", ex.getMessage());
     }
 
     @Test
-    void shouldRemoveUserFromHeadquarters() {
+    void shouldAllowOrgAdminToAssignAnotherUserInSameOrganization() {
+        createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
+        setRoles(currentUser, Set.of(Role.ORG_ADMIN));
+        setHeadquarters(currentUser, Set.of(2L));
+        userRepository.save(currentUser);
+
+        User updated = assignUseCase.execute("target-uid", 1L, currentUser);
+
+        assertTrue(updated.getHeadquartersIds().contains(1L));
+    }
+
+    @Test
+    void shouldAllowOrgOwnerToRemoveAnotherUserInSameOrganization() {
         User target = createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
         setHeadquarters(target, Set.of(1L, 2L));
         userRepository.save(target);
-        User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
-        setRoles(currentUser, Set.of(Role.ORG_ADMIN));
+        User currentUser = createUserUseCase.execute("owner-uid", "owner@mail.com", "Owner", "User");
+        setRoles(currentUser, Set.of(Role.ORG_OWNER));
+        setHeadquarters(currentUser, Set.of(2L));
+        userRepository.save(currentUser);
+
+        User updated = removeUseCase.execute("target-uid", 1L, currentUser);
+
+        assertEquals(Set.of(2L), updated.getHeadquartersIds());
+    }
+
+    @Test
+    void shouldAllowSelfRemoveForRegularClient() {
+        User currentUser = createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        setRoles(currentUser, Set.of(Role.CLIENT));
+        setHeadquarters(currentUser, Set.of(1L, 2L));
+        userRepository.save(currentUser);
 
         User updated = removeUseCase.execute("target-uid", 1L, currentUser);
 
@@ -109,6 +149,8 @@ class UserHeadquartersUseCasesTest {
         createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
         User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
         setRoles(currentUser, Set.of(Role.ORG_ADMIN));
+        setHeadquarters(currentUser, Set.of(2L));
+        userRepository.save(currentUser);
 
         DomainException ex = assertThrows(DomainException.class,
                 () -> removeUseCase.execute("target-uid", 1L, currentUser));
@@ -175,10 +217,10 @@ class UserHeadquartersUseCasesTest {
     }
 
     private static class StubHeadquartersRepository implements HeadquartersRepository {
-        private final Set<Long> ids;
+        private final Map<Long, Long> organizationByHeadquartersId;
 
-        private StubHeadquartersRepository(Set<Long> ids) {
-            this.ids = ids;
+        private StubHeadquartersRepository(Map<Long, Long> organizationByHeadquartersId) {
+            this.organizationByHeadquartersId = organizationByHeadquartersId;
         }
 
         @Override
@@ -188,10 +230,13 @@ class UserHeadquartersUseCasesTest {
 
         @Override
         public Optional<Headquarters> findById(Long id) {
-            if (!ids.contains(id)) {
+            if (!organizationByHeadquartersId.containsKey(id)) {
                 return Optional.empty();
             }
-            return Optional.of(Headquarters.builder().id(id).build());
+            return Optional.of(Headquarters.builder()
+                    .id(id)
+                    .organizationId(organizationByHeadquartersId.get(id))
+                    .build());
         }
 
         @Override
@@ -210,7 +255,7 @@ class UserHeadquartersUseCasesTest {
 
         @Override
         public boolean existsById(Long id) {
-            return ids.contains(id);
+            return organizationByHeadquartersId.containsKey(id);
         }
     }
 
