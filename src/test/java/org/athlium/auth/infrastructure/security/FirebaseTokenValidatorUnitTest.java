@@ -4,6 +4,9 @@ import org.athlium.auth.infrastructure.config.FirebaseConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FirebaseTokenValidatorUnitTest {
@@ -32,5 +35,24 @@ class FirebaseTokenValidatorUnitTest {
     void shouldAcceptAuthorizationValueWithExtraWhitespace() {
         var decoded = validator.validateToken("   Bearer   frontend-token-2   ");
         assertEquals("mock-frontend-token-2", decoded.getUid());
+    }
+
+    @Test
+    void shouldExtractFirebaseUidFromJwtClaimsInMockMode() {
+        String header = encode("{\"alg\":\"RS256\",\"typ\":\"JWT\"}");
+        String payload = encode("{\"user_id\":\"superadmin\",\"sub\":\"sub-fallback\",\"email\":\"superadmin@test.com\",\"name\":\"Super Admin\"}");
+        String token = header + "." + payload + ".signature";
+
+        var decoded = validator.validateToken("Bearer " + token);
+
+        assertEquals("mock-superadmin", decoded.getUid());
+        assertEquals("superadmin@test.com", decoded.getEmail());
+        assertEquals("Super Admin", decoded.getName());
+    }
+
+    private String encode(String json) {
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(json.getBytes(StandardCharsets.UTF_8));
     }
 }

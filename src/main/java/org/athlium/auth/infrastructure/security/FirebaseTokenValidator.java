@@ -3,6 +3,8 @@ package org.athlium.auth.infrastructure.security;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.athlium.auth.application.ports.TokenValidator;
@@ -14,7 +16,10 @@ import org.athlium.auth.infrastructure.config.FirebaseConfig;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Firebase implementation of TokenValidator.
@@ -24,6 +29,7 @@ import java.util.Locale;
 public class FirebaseTokenValidator implements TokenValidator {
 
     private static final Logger LOG = Logger.getLogger(FirebaseTokenValidator.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Inject
     FirebaseConfig firebaseConfig;
@@ -135,19 +141,74 @@ public class FirebaseTokenValidator implements TokenValidator {
      */
     private DecodedToken createMockToken(String token) {
         LOG.warn("Using mock token validation - DO NOT USE IN PRODUCTION");
-        
-        // For mock mode, use the token itself as UID or parse it
-        String uid = token.length() > 20 ? token.substring(0, 20) : token;
-        
+
+        Optional<Map<String, Object>> jwtClaims = parseJwtClaims(token);
+
+        String tokenUid = jwtClaims
+                .map(this::extractUidFromClaims)
+                .filter(uid -> !uid.isBlank())
+                .orElseGet(() -> token.length() > 20 ? token.substring(0, 20) : token);
+
+        String email = jwtClaims
+                .map(claims -> claims.get("email"))
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .orElse("mock-user@example.com");
+
+        String name = jwtClaims
+                .map(claims -> claims.get("name"))
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .orElse("Mock User");
+
         return DecodedToken.builder()
-                .uid("mock-" + uid)
-                .email("mock-user@example.com")
-                .name("Mock User")
+                .uid("mock-" + tokenUid)
+                .email(email)
+                .name(name)
                 .picture(null)
                 .emailVerified(true)
                 .provider(AuthProvider.EMAIL)
                 .issuedAt(Instant.now().minusSeconds(60))
                 .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
+    }
+
+    private Optional<Map<String, Object>> parseJwtClaims(String token) {
+        if (token == null) {
+            return Optional.empty();
+        }
+
+        String[] parts = token.split("\\.");
+        if (parts.length != 3) {
+            return Optional.empty();
+        }
+
+        try {
+            byte[] decodedPayload = Base64.getUrlDecoder().decode(parts[1]);
+            Map<String, Object> claims = OBJECT_MAPPER.readValue(decodedPayload, new TypeReference<>() {
+            });
+            return Optional.of(claims);
+        } catch (Exception e) {
+            LOG.debug("Could not parse JWT claims in mock mode: " + e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private String extractUidFromClaims(Map<String, Object> claims) {
+        if (claims == null || claims.isEmpty()) {
+            return "";
+        }
+
+        Object userId = claims.get("user_id");
+        if (userId instanceof String uid && !uid.isBlank()) {
+            return uid;
+        }
+
+        Object sub = claims.get("sub");
+        if (sub instanceof String uid && !uid.isBlank()) {
+            return uid;
+        }
+
+        return "";
     }
 }

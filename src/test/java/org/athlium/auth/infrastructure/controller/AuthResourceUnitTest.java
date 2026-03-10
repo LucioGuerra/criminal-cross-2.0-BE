@@ -65,6 +65,15 @@ class AuthResourceUnitTest {
         assertTrue(body.isSuccess());
     }
 
+    @Test
+    void shouldReturnCurrentUserOnMeEndpoint() {
+        Response response = resource.getCurrentUser();
+
+        assertEquals(200, response.getStatus());
+        ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
+        assertTrue(body.isSuccess());
+    }
+
     private static class StubAuthService extends AuthService {
         private AuthenticatedUser authUser() {
             return AuthenticatedUser.builder()
@@ -101,6 +110,11 @@ class AuthResourceUnitTest {
                     authUser(),
                     new FirebaseSessionTokens("firebase-access", "firebase-refresh", 3600L, "firebase-uid-100", "ana@example.com")
             );
+        }
+
+        @Override
+        public AuthenticatedUser getCurrentUser() {
+            return authUser();
         }
     }
 }
