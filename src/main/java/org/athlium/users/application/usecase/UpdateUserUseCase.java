@@ -13,10 +13,10 @@ public class UpdateUserUseCase {
     @Inject
     UserRepository userRepository;
 
-    public User execute(String firebaseUid, String email, String name, String lastName, Boolean active, User currentUser) {
+    public User execute(Long userId, String email, String name, String lastName, Boolean active, User currentUser) {
         validateAdminPrivileges(currentUser);
 
-        var user = userRepository.findByFirebaseUid(firebaseUid)
+        var user = userRepository.findById(userId)
                 .orElseThrow(() -> new DomainException("User not found"));
 
         if (user.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {

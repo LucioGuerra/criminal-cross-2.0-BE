@@ -26,6 +26,7 @@ class UserManagementE2ETest {
     private static final String OWNER_TOKEN = "users-owner-e2e";
     private static final String OWNER_UID = "mock-users-owner-e2e";
     private static final String TARGET_UID = "mock-users-target-e2e";
+    private static final Long TARGET_USER_ID = 1002L;
     private static final String OTHER_CLIENT_TOKEN = "other-client-e2e";
     private static final String OTHER_CLIENT_UID = "mock-other-client-e2e";
 
@@ -53,7 +54,7 @@ class UserManagementE2ETest {
                         "lastName", "User Updated",
                         "active", false))
                 .when()
-                .put("/api/users/firebase/{uid}", TARGET_UID)
+                .put("/api/users/{id}", TARGET_USER_ID)
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true))

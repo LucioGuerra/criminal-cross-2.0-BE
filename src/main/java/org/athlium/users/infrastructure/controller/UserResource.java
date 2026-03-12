@@ -90,17 +90,39 @@ public class UserResource {
     }
 
     @PUT
+    @Path("/{id}")
+    @Transactional
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    public Response updateUserById(@PathParam("id") Long userId, @Valid UpdateUserRequestDto request) {
+        return updateUserInternal(userId, request);
+    }
+
+    @PUT
     @Path("/firebase/{uid}")
     @Transactional
     @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
     public Response updateUser(@PathParam("uid") String firebaseUid, @Valid UpdateUserRequestDto request) {
+        try {
+            Long userId = getUserByUidUseCase.execute(firebaseUid)
+                    .map(User::getId)
+                    .orElseThrow(() -> new DomainException("User not found"));
+
+            return updateUserInternal(userId, request);
+        } catch (DomainException e) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        }
+    }
+
+    private Response updateUserInternal(Long userId, UpdateUserRequestDto request) {
         try {
             AuthenticatedUser authUser = securityContext.requireCurrentUser();
 
             User currentUser = getCurrentUserForAdministrativeActions(authUser);
 
             var user = updateUserUseCase.execute(
-                    firebaseUid,
+                    userId,
                     request.getEmail(),
                     request.getName(),
                     request.getLastName(),

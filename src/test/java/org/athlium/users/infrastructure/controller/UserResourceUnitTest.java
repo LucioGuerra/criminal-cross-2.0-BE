@@ -81,7 +81,7 @@ class UserResourceUnitTest {
     void shouldUpdateUserInBypassModeWithoutPersistedCurrentUser() {
         UpdateUserRequestDto request = new UpdateUserRequestDto("target@updated.com", "Target", "Updated", true);
 
-        Response response = resource.updateUser("target-firebase-uid", request);
+        Response response = resource.updateUserById(10L, request);
 
         assertEquals(200, response.getStatus());
         assertTrue(updateUserUseCase.currentUser.hasRole(Role.SUPERADMIN));
@@ -150,11 +150,11 @@ class UserResourceUnitTest {
         User currentUser;
 
         @Override
-        public User execute(String firebaseUid, String email, String name, String lastName, Boolean active, User currentUser) {
+        public User execute(Long userId, String email, String name, String lastName, Boolean active, User currentUser) {
             this.currentUser = currentUser;
             return User.builder()
-                    .id(10L)
-                    .firebaseUid(firebaseUid)
+                    .id(userId)
+                    .firebaseUid("target-firebase-uid")
                     .email(email)
                     .name(name)
                     .lastName(lastName)

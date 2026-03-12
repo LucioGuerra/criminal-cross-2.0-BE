@@ -36,11 +36,11 @@ class UpdateUserUseCaseTest {
 
     @Test
     void shouldUpdateEditableFieldsWhenCurrentUserIsOrgAdmin() {
-        createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        User targetUser = createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
         User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
 
-        User updated = updateUserUseCase.execute("target-uid", "target-updated@mail.com", "Target Updated", "User Updated", false,
+        User updated = updateUserUseCase.execute(targetUser.getId(), "target-updated@mail.com", "Target Updated", "User Updated", false,
                 currentUser);
 
         assertEquals("target-updated@mail.com", updated.getEmail());
@@ -51,24 +51,24 @@ class UpdateUserUseCaseTest {
 
     @Test
     void shouldFailWhenCurrentUserIsNotAdmin() {
-        createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        User targetUser = createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
         User currentUser = createUserUseCase.execute("client-uid", "client@mail.com", "Client", "User");
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserUseCase.execute("target-uid", "other@mail.com", "Other", "User", true, currentUser));
+                () -> updateUserUseCase.execute(targetUser.getId(), "other@mail.com", "Other", "User", true, currentUser));
 
         assertEquals("Only ADMIN or SUPERADMIN can update users", ex.getMessage());
     }
 
     @Test
     void shouldFailWhenEmailAlreadyExistsForDifferentUser() {
-        createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        User targetUser = createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
         createUserUseCase.execute("other-uid", "other@mail.com", "Other", "User");
         User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserUseCase.execute("target-uid", "other@mail.com", "Target", "User", true, currentUser));
+                () -> updateUserUseCase.execute(targetUser.getId(), "other@mail.com", "Target", "User", true, currentUser));
 
         assertEquals("Email is already in use", ex.getMessage());
     }
@@ -83,7 +83,7 @@ class UpdateUserUseCaseTest {
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserUseCase.execute("target-uid", "target@mail.com", "Target", "User", true, currentUser));
+                () -> updateUserUseCase.execute(targetUser.getId(), "target@mail.com", "Target", "User", true, currentUser));
 
         assertEquals("Only SUPERADMIN can update a SUPERADMIN user", ex.getMessage());
     }
