@@ -29,7 +29,7 @@ import java.util.List;
 @Path("/api/users")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+@Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN", "ORG_OWNER"})
 public class UserQueryResource {
 
     @Inject

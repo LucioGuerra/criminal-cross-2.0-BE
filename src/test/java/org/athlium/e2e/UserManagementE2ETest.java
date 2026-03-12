@@ -23,6 +23,8 @@ class UserManagementE2ETest {
 
     private static final String ADMIN_TOKEN = "users-admin-e2e";
     private static final String ADMIN_UID = "mock-users-admin-e2e";
+    private static final String OWNER_TOKEN = "users-owner-e2e";
+    private static final String OWNER_UID = "mock-users-owner-e2e";
     private static final String TARGET_UID = "mock-users-target-e2e";
     private static final String OTHER_CLIENT_TOKEN = "other-client-e2e";
     private static final String OTHER_CLIENT_UID = "mock-other-client-e2e";
@@ -35,6 +37,7 @@ class UserManagementE2ETest {
         cleanData();
         ensureOrganizationAndHeadquarters();
         ensureUserWithRoles(1001L, ADMIN_UID, "admin@test.com", "ORG_ADMIN");
+        ensureUserWithRoles(1004L, OWNER_UID, "owner@test.com", "ORG_OWNER");
         ensureUserWithRoles(1002L, TARGET_UID, "target@test.com", "CLIENT");
         ensureUserWithRoles(1003L, OTHER_CLIENT_UID, "other-client@test.com", "CLIENT");
     }
@@ -148,6 +151,29 @@ class UserManagementE2ETest {
                 .body("success", equalTo(true))
                 .body("data.totalElements", equalTo(2))
                 .body("data.content.email", hasItem("target@test.com"));
+    }
+
+    @Test
+    void shouldAllowOrgOwnerToListUsers() {
+        given()
+                .header("Authorization", bearer(OWNER_TOKEN))
+                .when()
+                .get("/api/users")
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true));
+    }
+
+    @Test
+    void shouldForbidRegularClientFromListingUsers() {
+        given()
+                .header("Authorization", bearer(OTHER_CLIENT_TOKEN))
+                .when()
+                .get("/api/users")
+                .then()
+                .statusCode(403)
+                .body("success", equalTo(false))
+                .body("message", equalTo("Insufficient permissions"));
     }
 
     @Transactional
