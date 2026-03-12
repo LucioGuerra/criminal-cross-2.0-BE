@@ -108,6 +108,18 @@ class UpdateUserRolesUseCaseTest {
     }
 
     @Test
+    void shouldFailWhenOrgAdminAssignsOrgAdminRole() {
+        createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
+        setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
+
+        DomainException ex = assertThrows(DomainException.class,
+                () -> updateUserRolesUseCase.execute("target-uid", Set.of(Role.ORG_ADMIN), currentUser));
+
+        assertEquals("ORG_ADMIN can only assign PROFESSOR or CLIENT roles", ex.getMessage());
+    }
+
+    @Test
     void shouldFailWhenOrgAdminTriesToUpdateSuperAdminUser() {
         User targetUser = createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
         setRoles(targetUser, Set.of(Role.CLIENT, Role.SUPERADMIN));

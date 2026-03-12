@@ -18,6 +18,11 @@ public class UpdateUserRolesUseCase {
             Role.CLIENT
     );
 
+    private static final Set<Role> ORG_ADMIN_ALLOWED_TARGET_ROLES = Set.of(
+            Role.PROFESSOR,
+            Role.CLIENT
+    );
+
     @Inject
     UserRepository userRepository;
 
@@ -36,17 +41,24 @@ public class UpdateUserRolesUseCase {
             throw new DomainException("Only SUPERADMIN can assign SUPERADMIN role");
         }
 
+        var user = userRepository.findByFirebaseUid(firebaseUid)
+                .orElseThrow(() -> new DomainException("User not found"));
+
+        if (user.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
+            throw new DomainException("Only SUPERADMIN can update a SUPERADMIN user");
+        }
+
         if (currentUser.hasRole(Role.ORG_OWNER)
                 && !currentUser.hasRole(Role.SUPERADMIN)
                 && !ORG_OWNER_ALLOWED_TARGET_ROLES.containsAll(newRoles)) {
             throw new DomainException("ORG_OWNER can only assign ORG_ADMIN, PROFESSOR or CLIENT roles");
         }
 
-        var user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new DomainException("User not found"));
-
-        if (user.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
-            throw new DomainException("Only SUPERADMIN can update a SUPERADMIN user");
+        if (currentUser.hasRole(Role.ORG_ADMIN)
+                && !currentUser.hasRole(Role.ORG_OWNER)
+                && !currentUser.hasRole(Role.SUPERADMIN)
+                && !ORG_ADMIN_ALLOWED_TARGET_ROLES.containsAll(newRoles)) {
+            throw new DomainException("ORG_ADMIN can only assign PROFESSOR or CLIENT roles");
         }
 
         var updatedUser = User.builder()
