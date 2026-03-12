@@ -162,6 +162,14 @@ For more: [Quarkus Native Guide](https://quarkus.io/guides/maven-tooling)
 - `GET /api/auth/me` - Get current user (Firebase identity + local roles)
 - `POST /api/auth/verify-token` - Deprecated (`410 Gone`)
 
+### Users & Gym (Current Contract)
+- `GET /api/users` and `GET /api/users/{id}` are available for `SUPERADMIN`, `ORG_ADMIN`, and `ORG_OWNER`.
+- Preferred full user update route is `PUT /api/users/{id}`; `PUT /api/users/firebase/{uid}` remains for backward compatibility.
+- Role assignment matrix: `ORG_OWNER` can assign `ORG_ADMIN`/`PROFESSOR`/`CLIENT`; `ORG_ADMIN` can assign `PROFESSOR`/`CLIENT`; `SUPERADMIN` keeps full control.
+- Headquarters membership updates allow self assign/remove; managing other users requires org-scoped `ORG_ADMIN`/`ORG_OWNER` or `SUPERADMIN`.
+- `GET /api/organizations` / `GET /api/organizations/{id}` and `GET /api/headquarters` / `GET /api/headquarters/{id}` are open to any authenticated user.
+- Session responses include `participants` with participant identity fields: `id`, `name`, `lastName`, `email`.
+
 ### Health & Monitoring
 - `GET /q/health` - Health check
 - `GET /q/health/ready` - Readiness check

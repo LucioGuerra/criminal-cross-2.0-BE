@@ -13,13 +13,13 @@ Policy conventions:
 
 | Resource | Method | Path | Allowed Roles |
 |---|---|---|---|
-| OrganizationResource | GET | `/api/organizations` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN`, `PROFESSOR` |
-| OrganizationResource | GET | `/api/organizations/{id}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN`, `PROFESSOR` |
+| OrganizationResource | GET | `/api/organizations` | Any authenticated user |
+| OrganizationResource | GET | `/api/organizations/{id}` | Any authenticated user |
 | OrganizationResource | POST | `/api/organizations` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
 | OrganizationResource | PUT | `/api/organizations/{id}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
 | OrganizationResource | DELETE | `/api/organizations/{id}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
-| HeadquartersResource | GET | `/api/headquarters` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN`, `PROFESSOR` |
-| HeadquartersResource | GET | `/api/headquarters/{id}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN`, `PROFESSOR` |
+| HeadquartersResource | GET | `/api/headquarters` | Any authenticated user |
+| HeadquartersResource | GET | `/api/headquarters/{id}` | Any authenticated user |
 | HeadquartersResource | POST | `/api/headquarters` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
 | HeadquartersResource | PUT | `/api/headquarters/{id}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
 | HeadquartersResource | DELETE | `/api/headquarters/{id}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
@@ -63,7 +63,10 @@ Policy conventions:
 | Resource | Existing Annotation | Notes |
 |---|---|---|
 | PaymentResource | `@Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN", "PROFESSOR"})` | Naming matches `Role` enum |
-| UserQueryResource | `@Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})` | Naming matches `Role` enum |
+| UserQueryResource | `@Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN", "ORG_OWNER"})` | Query access includes org owners |
 | UserResource#createUser | `@Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})` | Naming matches `Role` enum |
 | UserResource#getUserByUid | `@Authenticated` | Auth required, no role restriction |
-| UserResource#updateUserRoles | `@Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})` | Naming matches `Role` enum |
+| UserResource#updateUserById | `PUT /api/users/{id}` | Preferred full user update route (internal ID) |
+| UserResource#updateUser (legacy) | `PUT /api/users/firebase/{uid}` | Kept for compatibility |
+| UserResource#updateUserRoles | Role matrix: `SUPERADMIN` (all), `ORG_OWNER` (`ORG_ADMIN`/`PROFESSOR`/`CLIENT`), `ORG_ADMIN` (`PROFESSOR`/`CLIENT`) | Restriction enforced in role update use case |
+| UserResource#assignUserToHeadquarters / removeUserFromHeadquarters | `@Authenticated` + org-scoped authorization | Self assign/remove allowed; managing others requires org-scoped admin/owner or `SUPERADMIN` |

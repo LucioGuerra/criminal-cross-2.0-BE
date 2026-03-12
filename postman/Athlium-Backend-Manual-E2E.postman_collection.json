@@ -2,7 +2,7 @@
   "info": {
     "name": "Athlium Backend - Manual E2E",
     "_postman_id": "f6f2dd52-1174-4f5d-a8a0-8f5f6f6df0f2",
-    "description": "Manual flow collection for auth, gym config/scheduling, sessions, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.\n\nAuth note (Firebase BFF):\n- Register/Login use email/password payloads.\n- Login/Register/Refresh scripts store accessToken and refreshToken automatically.\n- Use accessToken as Authorization Bearer token (Firebase ID token).\n- Call GET /api/auth/me to enrich identity with local userId/roles.",
+    "description": "Manual flow collection for auth, gym config/scheduling, sessions, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.\n\nAuth note (Firebase BFF):\n- Register/Login use email/password payloads.\n- Login/Register/Refresh scripts store accessToken and refreshToken automatically.\n- Use accessToken as Authorization Bearer token (Firebase ID token).\n- Call GET /api/auth/me to enrich identity with local userId/roles.\n\nCurrent API notes:\n- Organization/Headquarters GET endpoints are available to any authenticated user.\n- Session responses include participants entries with id, name, lastName, and email.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -283,6 +283,7 @@
         },
         {
           "name": "List Sessions (Set sessionId)",
+          "description": "Returns session list including participants[]. Each participant exposes id, name, lastName, email.",
           "event": [
             {
               "listen": "test",
@@ -303,6 +304,7 @@
         },
         {
           "name": "Get Session by ID",
+          "description": "Session detail includes participants[].",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/sessions/{{sessionId}}"

@@ -21,7 +21,7 @@
     { "key": "auth_email", "value": "demo.user@example.com" },
     { "key": "auth_password", "value": "ChangeMe123!" },
     { "key": "id_token", "value": "", "description": "DEPRECATED: only for /api/auth/verify-token (410 Gone). Do not use in frontend flows." },
-    { "key": "firebase_uid", "value": "demo-uid-001" },
+    { "key": "firebase_uid", "value": "demo-uid-001", "description": "Used by firebase UID compatibility routes." },
     { "key": "user_id", "value": "1" },
     { "key": "organization_id", "value": "1" },
     { "key": "headquarters_id", "value": "1" },
@@ -243,6 +243,7 @@
     },
     {
       "name": "02 Users",
+      "description": "Users API coverage:\n- Query endpoints include SUPERADMIN, ORG_ADMIN, ORG_OWNER.\n- Preferred full update route uses internal ID: PUT /api/users/{id}.\n- Legacy firebase UID update route is kept for compatibility.\n- Role assignment matrix: ORG_OWNER -> ORG_ADMIN/PROFESSOR/CLIENT, ORG_ADMIN -> PROFESSOR/CLIENT, SUPERADMIN -> unrestricted.\n- HQ membership updates allow self-assign/remove; managing others requires org-scoped admin/owner or SUPERADMIN.",
       "item": [
         {
           "name": "Create User",
@@ -271,22 +272,63 @@
           }
         },
         {
-          "name": "Get User By Firebase UID",
+          "name": "Get User By Firebase UID (Lookup)",
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/users/firebase/{{firebase_uid}}"
           }
         },
         {
-          "name": "Update User Roles",
+          "name": "Update User By ID (Preferred)",
           "request": {
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"roles\": [\"CLIENT\", \"ORG_ADMIN\"]\n}"
+              "raw": "{\n  \"email\": \"demo.updated+{{user_id}}@example.com\",\n  \"name\": \"Demo Updated\",\n  \"lastName\": \"User Updated\",\n  \"active\": true\n}"
+            },
+            "url": "{{base_url}}/api/users/{{user_id}}"
+          }
+        },
+        {
+          "name": "Update User By Firebase UID (Legacy Compatibility)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo.legacy+{{firebase_uid}}@example.com\",\n  \"name\": \"Legacy Update\",\n  \"lastName\": \"Compatibility\",\n  \"active\": true\n}"
+            },
+            "url": "{{base_url}}/api/users/firebase/{{firebase_uid}}"
+          }
+        },
+        {
+          "name": "Update User Roles",
+          "description": "Role assignment matrix: SUPERADMIN can assign any role; ORG_OWNER can assign ORG_ADMIN/PROFESSOR/CLIENT; ORG_ADMIN can assign PROFESSOR/CLIENT.",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roles\": [\"CLIENT\", \"PROFESSOR\"]\n}"
             },
             "url": "{{base_url}}/api/users/firebase/{{firebase_uid}}/roles"
+          }
+        },
+        {
+          "name": "Assign User To Headquarters",
+          "description": "Self-assign is allowed. Managing other users requires org-scoped ORG_ADMIN/ORG_OWNER or SUPERADMIN.",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/users/firebase/{{firebase_uid}}/headquarters/{{headquarters_id}}"
+          }
+        },
+        {
+          "name": "Remove User From Headquarters",
+          "description": "Self-remove is allowed. Managing other users requires org-scoped ORG_ADMIN/ORG_OWNER or SUPERADMIN.",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/users/firebase/{{firebase_uid}}/headquarters/{{headquarters_id}}"
           }
         },
         {
@@ -319,6 +361,7 @@
     },
     {
       "name": "03 Gym - Organizations",
+      "description": "Read endpoints are open to any authenticated user. Mutations remain restricted to SUPERADMIN/ORG_OWNER/ORG_ADMIN.",
       "item": [
         {
           "name": "List Organizations",
@@ -382,6 +425,7 @@
     },
     {
       "name": "04 Gym - Headquarters",
+      "description": "Read endpoints are open to any authenticated user. Mutations remain restricted to SUPERADMIN/ORG_OWNER/ORG_ADMIN.",
       "item": [
         {
           "name": "List Headquarters",
@@ -612,6 +656,7 @@
     },
     {
       "name": "08 Gym - Sessions",
+      "description": "Session DTOs include participants with id, name, lastName, and email.",
       "item": [
         {
           "name": "List Sessions",
@@ -639,7 +684,16 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/sessions/{{session_id}}"
-          }
+          },
+          "response": [
+            {
+              "name": "OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 10,\n    \"organizationId\": 1,\n    \"headquartersId\": 2,\n    \"activity\": {\n      \"id\": 5,\n      \"name\": \"Cross Training\"\n    },\n    \"participants\": [\n      {\n        \"id\": 101,\n        \"name\": \"Ana\",\n        \"lastName\": \"Perez\",\n        \"email\": \"ana.perez@example.com\"\n      }\n    ]\n  }\n}"
+            }
+          ]
         }
       ]
     },
