@@ -12,12 +12,20 @@ import java.util.Set;
 @ApplicationScoped
 public class UpdateUserRolesUseCase {
 
+    private static final Set<Role> ORG_OWNER_ALLOWED_TARGET_ROLES = Set.of(
+            Role.ORG_ADMIN,
+            Role.PROFESSOR,
+            Role.CLIENT
+    );
+
     @Inject
     UserRepository userRepository;
 
     public User execute(String firebaseUid, Set<Role> newRoles, User currentUser) {
-        if (!currentUser.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.ORG_ADMIN)) {
-            throw new DomainException("Only ADMIN or SUPERADMIN can update user roles");
+        if (!currentUser.hasRole(Role.SUPERADMIN)
+                && !currentUser.hasRole(Role.ORG_ADMIN)
+                && !currentUser.hasRole(Role.ORG_OWNER)) {
+            throw new DomainException("Only ORG_ADMIN, ORG_OWNER or SUPERADMIN can update user roles");
         }
 
         if (newRoles == null || newRoles.isEmpty()) {
@@ -26,6 +34,12 @@ public class UpdateUserRolesUseCase {
 
         if (newRoles.contains(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
             throw new DomainException("Only SUPERADMIN can assign SUPERADMIN role");
+        }
+
+        if (currentUser.hasRole(Role.ORG_OWNER)
+                && !currentUser.hasRole(Role.SUPERADMIN)
+                && !ORG_OWNER_ALLOWED_TARGET_ROLES.containsAll(newRoles)) {
+            throw new DomainException("ORG_OWNER can only assign ORG_ADMIN, PROFESSOR or CLIENT roles");
         }
 
         var user = userRepository.findByFirebaseUid(firebaseUid)

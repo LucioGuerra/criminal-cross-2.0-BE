@@ -56,7 +56,31 @@ class UpdateUserRolesUseCaseTest {
         DomainException ex = assertThrows(DomainException.class,
                 () -> updateUserRolesUseCase.execute("target-uid", Set.of(Role.PROFESSOR), currentUser));
 
-        assertEquals("Only ADMIN or SUPERADMIN can update user roles", ex.getMessage());
+        assertEquals("Only ORG_ADMIN, ORG_OWNER or SUPERADMIN can update user roles", ex.getMessage());
+    }
+
+    @Test
+    void shouldUpdateRolesWhenCurrentUserIsOrgOwnerWithAllowedRoles() {
+        createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        User currentUser = createUserUseCase.execute("owner-uid", "owner@mail.com", "Owner", "User");
+        setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_OWNER));
+
+        User updated = updateUserRolesUseCase.execute("target-uid", Set.of(Role.ORG_ADMIN, Role.PROFESSOR), currentUser);
+
+        assertTrue(updated.hasRole(Role.ORG_ADMIN));
+        assertTrue(updated.hasRole(Role.PROFESSOR));
+    }
+
+    @Test
+    void shouldFailWhenOrgOwnerAssignsOrgOwnerRole() {
+        createUserUseCase.execute("target-uid", "target@mail.com", "Target", "User");
+        User currentUser = createUserUseCase.execute("owner-uid", "owner@mail.com", "Owner", "User");
+        setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_OWNER));
+
+        DomainException ex = assertThrows(DomainException.class,
+                () -> updateUserRolesUseCase.execute("target-uid", Set.of(Role.ORG_OWNER), currentUser));
+
+        assertEquals("ORG_OWNER can only assign ORG_ADMIN, PROFESSOR or CLIENT roles", ex.getMessage());
     }
 
     @Test
