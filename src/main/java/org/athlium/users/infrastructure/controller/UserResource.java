@@ -148,7 +148,7 @@ public class UserResource {
     @PUT
     @Path("/{id}/roles")
     @Transactional
-    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN", "ORG_OWNER"})
     public Response updateUserRolesById(@PathParam("id") Long userId, @Valid UpdateRolesRequestDto request) {
         try {
             AuthenticatedUser authUser = securityContext.requireCurrentUser();
@@ -176,7 +176,7 @@ public class UserResource {
     @PUT
     @Path("/firebase/{uid}/roles")
     @Transactional
-    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN", "ORG_OWNER"})
     public Response updateUserRoles(@PathParam("uid") String firebaseUid, @Valid UpdateRolesRequestDto request) {
         try {
             AuthenticatedUser authUser = securityContext.requireCurrentUser();

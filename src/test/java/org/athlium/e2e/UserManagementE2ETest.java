@@ -84,6 +84,50 @@ class UserManagementE2ETest {
     }
 
     @Test
+    void shouldAllowOrgOwnerToAssignOrgAdminProfessorAndClientByInternalUserId() {
+        given()
+                .header("Authorization", bearer(OWNER_TOKEN))
+                .contentType("application/json")
+                .body(Map.of("roles", new String[]{"ORG_ADMIN", "PROFESSOR", "CLIENT"}))
+                .when()
+                .put("/api/users/{id}/roles", TARGET_USER_ID)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.roles", hasItem("ORG_ADMIN"))
+                .body("data.roles", hasItem("PROFESSOR"))
+                .body("data.roles", hasItem("CLIENT"));
+    }
+
+    @Test
+    void shouldForbidOrgOwnerFromAssigningOrgOwnerByInternalUserId() {
+        given()
+                .header("Authorization", bearer(OWNER_TOKEN))
+                .contentType("application/json")
+                .body(Map.of("roles", new String[]{"ORG_OWNER"}))
+                .when()
+                .put("/api/users/{id}/roles", TARGET_USER_ID)
+                .then()
+                .statusCode(403)
+                .body("success", equalTo(false))
+                .body("message", equalTo("ORG_OWNER can only assign ORG_ADMIN, PROFESSOR or CLIENT roles"));
+    }
+
+    @Test
+    void shouldForbidOrgAdminFromAssigningOrgAdminByInternalUserId() {
+        given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
+                .contentType("application/json")
+                .body(Map.of("roles", new String[]{"ORG_ADMIN"}))
+                .when()
+                .put("/api/users/{id}/roles", TARGET_USER_ID)
+                .then()
+                .statusCode(403)
+                .body("success", equalTo(false))
+                .body("message", equalTo("ORG_ADMIN can only assign PROFESSOR or CLIENT roles"));
+    }
+
+    @Test
     void shouldForbidRoleUpdateByInternalUserIdForRegularClient() {
         given()
                 .header("Authorization", bearer(OTHER_CLIENT_TOKEN))
