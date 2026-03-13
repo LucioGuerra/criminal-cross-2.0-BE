@@ -2,6 +2,8 @@ package org.athlium.gym.presentation.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class ActivityResponse {
     private Long id;
@@ -13,4 +15,6 @@ public class ActivityResponse {
     private Boolean isActive;
 
     private Long hqId;
+
+    private List<SessionResponse> sessions;
 }

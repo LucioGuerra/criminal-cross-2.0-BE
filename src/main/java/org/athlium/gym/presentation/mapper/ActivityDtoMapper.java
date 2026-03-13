@@ -21,6 +21,7 @@ public interface ActivityDtoMapper {
     @Mapping(target = "hqId", ignore = true)
     Activity toDomain(ActivityUpdateInput input);
 
+    @Mapping(target = "sessions", ignore = true)
     ActivityResponse toResponse(Activity activity);
 
     List<ActivityResponse> toResponseList(List<Activity> activities);

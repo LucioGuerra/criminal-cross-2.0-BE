@@ -15,14 +15,25 @@ import jakarta.ws.rs.core.Response;
 import org.athlium.auth.infrastructure.security.Authenticated;
 import org.athlium.gym.application.usecase.CreateHeadquartersUseCase;
 import org.athlium.gym.application.usecase.DeleteHeadquartersUseCase;
+import org.athlium.gym.application.usecase.GetActivitiesUseCase;
 import org.athlium.gym.application.usecase.GetAllHeadquartersUseCase;
 import org.athlium.gym.application.usecase.GetHeadquartersByOrganizationUseCase;
 import org.athlium.gym.application.usecase.GetHeadquartersUseCase;
+import org.athlium.gym.application.usecase.GetSessionsUseCase;
+import org.athlium.gym.domain.model.Headquarters;
 import org.athlium.gym.application.usecase.UpdateHeadquartersUseCase;
 import org.athlium.gym.presentation.dto.HeadquartersInput;
+import org.athlium.gym.presentation.dto.HeadquartersResponse;
+import org.athlium.gym.presentation.mapper.ActivityDtoMapper;
 import org.athlium.gym.presentation.mapper.HeadquartersDtoMapper;
+import org.athlium.gym.presentation.mapper.SessionDtoMapper;
 import org.athlium.shared.dto.ApiResponse;
 import org.athlium.shared.exception.EntityNotFoundException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Path("/api/headquarters")
 @Produces(MediaType.APPLICATION_JSON)
@@ -43,6 +54,12 @@ public class HeadquartersResource {
     GetHeadquartersByOrganizationUseCase getHeadquartersByOrganizationUseCase;
 
     @Inject
+    GetActivitiesUseCase getActivitiesUseCase;
+
+    @Inject
+    GetSessionsUseCase getSessionsUseCase;
+
+    @Inject
     UpdateHeadquartersUseCase updateHeadquartersUseCase;
 
     @Inject
@@ -51,13 +68,19 @@ public class HeadquartersResource {
     @Inject
     HeadquartersDtoMapper mapper;
 
+    @Inject
+    ActivityDtoMapper activityDtoMapper;
+
+    @Inject
+    SessionDtoMapper sessionDtoMapper;
+
     @GET
     @Authenticated
     public Response getHeadquarters(@QueryParam("organizationId") Long organizationId) {
         var result = organizationId == null
                 ? getAllHeadquartersUseCase.execute()
                 : getHeadquartersByOrganizationUseCase.execute(organizationId);
-        var response = result.stream().map(mapper::toResponse).toList();
+        var response = result.stream().map(this::toResponseWithActivitiesAndSessions).toList();
         return Response.ok(ApiResponse.success("Headquarters retrieved", response)).build();
     }
 
@@ -67,9 +90,60 @@ public class HeadquartersResource {
     public Response getHeadquarter(@PathParam("id") Long id) {
         try {
             var headquarters = getHeadquartersUseCase.execute(id);
-            return Response.ok(ApiResponse.success("Headquarters found", mapper.toResponse(headquarters))).build();
+            return Response.ok(ApiResponse.success("Headquarters found", toResponseWithActivitiesAndSessions(headquarters)))
+                    .build();
         } catch (EntityNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(ApiResponse.error(e.getMessage())).build();
+        }
+    }
+
+    private HeadquartersResponse toResponseWithActivitiesAndSessions(Headquarters headquarters) {
+        HeadquartersResponse response = mapper.toResponse(headquarters);
+
+        List<org.athlium.gym.domain.model.Activity> activities =
+                getActivitiesUseCase.executeAllByHeadquarter(headquarters.getId(), null);
+        List<org.athlium.gym.domain.model.SessionInstance> sessions = loadAllSessionsByHeadquarters(headquarters.getId());
+
+        Map<Long, List<org.athlium.gym.presentation.dto.SessionResponse>> sessionsByActivity = sessions.stream()
+                .filter(session -> session.getActivityId() != null)
+                .collect(Collectors.groupingBy(
+                        org.athlium.gym.domain.model.SessionInstance::getActivityId,
+                        Collectors.mapping(sessionDtoMapper::toResponse, Collectors.toList())
+                ));
+
+        var activityResponses = activityDtoMapper.toResponseList(activities);
+        for (var activityResponse : activityResponses) {
+            activityResponse.setSessions(sessionsByActivity.getOrDefault(activityResponse.getId(), List.of()));
+        }
+
+        response.setActivities(activityResponses);
+        return response;
+    }
+
+    private List<org.athlium.gym.domain.model.SessionInstance> loadAllSessionsByHeadquarters(Long headquartersId) {
+        final int pageSize = 100;
+        int page = 1;
+        List<org.athlium.gym.domain.model.SessionInstance> sessions = new ArrayList<>();
+
+        while (true) {
+            var pageResponse = getSessionsUseCase.execute(
+                    null,
+                    headquartersId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    page,
+                    pageSize,
+                    "startsAt:asc"
+            );
+
+            sessions.addAll(pageResponse.getContent());
+            if (pageResponse.getContent().size() < pageSize) {
+                return sessions;
+            }
+
+            page++;
         }
     }
 

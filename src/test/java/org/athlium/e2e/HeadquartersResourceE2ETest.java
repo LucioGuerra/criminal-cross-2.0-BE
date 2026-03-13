@@ -4,6 +4,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.path.json.JsonPath;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.athlium.gym.domain.model.SessionSource;
+import org.athlium.gym.domain.model.SessionStatus;
+import org.athlium.gym.infrastructure.entity.ActivityEntity;
+import org.athlium.gym.infrastructure.entity.SessionInstanceEntity;
+import org.athlium.gym.infrastructure.repository.ActivityPanacheRepository;
 import org.athlium.bookings.infrastructure.repository.BookingPanacheRepository;
 import org.athlium.gym.infrastructure.repository.HeadquartersPanacheRepository;
 import org.athlium.gym.infrastructure.repository.OrganizationPanacheRepository;
@@ -11,6 +16,7 @@ import org.athlium.gym.infrastructure.repository.SessionInstancePanacheRepositor
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
@@ -37,6 +43,9 @@ class HeadquartersResourceE2ETest {
     SessionInstancePanacheRepository sessionInstanceRepository;
 
     @Inject
+    ActivityPanacheRepository activityRepository;
+
+    @Inject
     jakarta.persistence.EntityManager entityManager;
 
     @BeforeEach
@@ -49,7 +58,9 @@ class HeadquartersResourceE2ETest {
     @Test
     void shouldAllowClientRoleToListHeadquarters() {
         Long organizationId = createOrganization("Org For HQ List");
-        createHeadquarters(organizationId, "HQ Visible To Client");
+        Long headquartersId = createHeadquarters(organizationId, "HQ Visible To Client");
+        Long activityId = createActivity(headquartersId, "Crossfit", "Intense class");
+        createSession(organizationId, headquartersId, activityId, Instant.parse("2026-03-20T10:00:00Z"));
 
         given()
                 .header("Authorization", bearer(CLIENT_TOKEN))
@@ -58,13 +69,17 @@ class HeadquartersResourceE2ETest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true))
-                .body("data.size()", greaterThanOrEqualTo(1));
+                .body("data.size()", greaterThanOrEqualTo(1))
+                .body("data[0].activities.size()", greaterThanOrEqualTo(1))
+                .body("data[0].activities[0].sessions.size()", greaterThanOrEqualTo(1));
     }
 
     @Test
     void shouldAllowClientRoleToGetHeadquarterById() {
         Long organizationId = createOrganization("Org For HQ Detail");
         Long headquartersId = createHeadquarters(organizationId, "HQ Detail For Client");
+        Long activityId = createActivity(headquartersId, "Pilates", "Core");
+        createSession(organizationId, headquartersId, activityId, Instant.parse("2026-03-20T11:00:00Z"));
 
         given()
                 .header("Authorization", bearer(CLIENT_TOKEN))
@@ -74,7 +89,34 @@ class HeadquartersResourceE2ETest {
                 .statusCode(200)
                 .body("success", equalTo(true))
                 .body("data.id", equalTo(headquartersId.intValue()))
-                .body("data.name", equalTo("HQ Detail For Client"));
+                .body("data.name", equalTo("HQ Detail For Client"))
+                .body("data.activities.size()", greaterThanOrEqualTo(1))
+                .body("data.activities[0].sessions.size()", greaterThanOrEqualTo(1));
+    }
+
+    @Transactional
+    Long createActivity(Long headquartersId, String name, String description) {
+        ActivityEntity entity = new ActivityEntity();
+        entity.setName(name);
+        entity.setDescription(description);
+        entity.setIsActive(true);
+        entity.setHqId(headquartersId);
+        activityRepository.persist(entity);
+        return entity.id;
+    }
+
+    @Transactional
+    Long createSession(Long organizationId, Long headquartersId, Long activityId, Instant startsAt) {
+        SessionInstanceEntity entity = new SessionInstanceEntity();
+        entity.setOrganizationId(organizationId);
+        entity.setHeadquartersId(headquartersId);
+        entity.setActivityId(activityId);
+        entity.setStartsAt(startsAt);
+        entity.setEndsAt(startsAt.plusSeconds(3600));
+        entity.setStatus(SessionStatus.OPEN);
+        entity.setSource(SessionSource.MANUAL);
+        sessionInstanceRepository.persist(entity);
+        return entity.id;
     }
 
     private Long createOrganization(String name) {
