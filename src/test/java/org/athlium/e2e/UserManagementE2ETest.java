@@ -25,6 +25,8 @@ class UserManagementE2ETest {
     private static final String ADMIN_UID = "mock-users-admin-e2e";
     private static final String OWNER_TOKEN = "users-owner-e2e";
     private static final String OWNER_UID = "mock-users-owner-e2e";
+    private static final String PROFESSOR_TOKEN = "users-professor-e2e";
+    private static final String PROFESSOR_UID = "mock-users-professor-e2e";
     private static final String TARGET_UID = "mock-users-target-e2e";
     private static final Long TARGET_USER_ID = 1002L;
     private static final String OTHER_CLIENT_TOKEN = "other-client-e2e";
@@ -39,6 +41,7 @@ class UserManagementE2ETest {
         ensureOrganizationAndHeadquarters();
         ensureUserWithRoles(1001L, ADMIN_UID, "admin@test.com", "ORG_ADMIN");
         ensureUserWithRoles(1004L, OWNER_UID, "owner@test.com", "ORG_OWNER");
+        ensureUserWithRoles(1005L, PROFESSOR_UID, "professor@test.com", "PROFESSOR");
         ensureUserWithRoles(1002L, TARGET_UID, "target@test.com", "CLIENT");
         ensureUserWithRoles(1003L, OTHER_CLIENT_UID, "other-client@test.com", "CLIENT");
     }
@@ -280,6 +283,43 @@ class UserManagementE2ETest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true));
+    }
+
+    @Test
+    void shouldAllowProfessorToListUsers() {
+        given()
+                .header("Authorization", bearer(PROFESSOR_TOKEN))
+                .when()
+                .get("/api/users")
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true));
+    }
+
+    @Test
+    void shouldAllowProfessorToGetUserById() {
+        given()
+                .header("Authorization", bearer(PROFESSOR_TOKEN))
+                .when()
+                .get("/api/users/{id}", TARGET_USER_ID)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.id", equalTo(TARGET_USER_ID.intValue()));
+    }
+
+    @Test
+    void shouldForbidProfessorFromUpdatingUserRoles() {
+        given()
+                .header("Authorization", bearer(PROFESSOR_TOKEN))
+                .contentType("application/json")
+                .body(Map.of("roles", new String[]{"CLIENT"}))
+                .when()
+                .put("/api/users/{id}/roles", TARGET_USER_ID)
+                .then()
+                .statusCode(403)
+                .body("success", equalTo(false))
+                .body("message", equalTo("Insufficient permissions"));
     }
 
     @Test
