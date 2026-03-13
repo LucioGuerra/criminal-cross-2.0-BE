@@ -146,6 +146,34 @@ public class UserResource {
     }
 
     @PUT
+    @Path("/{id}/roles")
+    @Transactional
+    @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
+    public Response updateUserRolesById(@PathParam("id") Long userId, @Valid UpdateRolesRequestDto request) {
+        try {
+            AuthenticatedUser authUser = securityContext.requireCurrentUser();
+
+            User currentUser = getCurrentUserForAdministrativeActions(authUser);
+
+            var user = updateUserRolesUseCase.execute(userId, request.getRoles(), currentUser);
+            var response = userDtoMapper.toResponseDto(user);
+            return Response.ok(ApiResponse.success("User roles updated successfully", response)).build();
+        } catch (DomainException e) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Authentication is required"))
+                    .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error(e.getMessage()))
+                    .build();
+        }
+    }
+
+    @PUT
     @Path("/firebase/{uid}/roles")
     @Transactional
     @Authenticated(roles = {"SUPERADMIN", "ORG_ADMIN"})
@@ -155,7 +183,7 @@ public class UserResource {
 
             User currentUser = getCurrentUserForAdministrativeActions(authUser);
 
-            var user = updateUserRolesUseCase.execute(firebaseUid, request.getRoles(), currentUser);
+            var user = updateUserRolesUseCase.executeByFirebaseUid(firebaseUid, request.getRoles(), currentUser);
             var response = userDtoMapper.toResponseDto(user);
             return Response.ok(ApiResponse.success("User roles updated successfully", response)).build();
         } catch (DomainException e) {

@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UpdateUserRolesUseCaseTest {
 
+    private static final Long TARGET_USER_ID = 100L;
+
     private UpdateUserRolesUseCase updateUserRolesUseCase;
     private CreateUserUseCase createUserUseCase;
     private InMemoryUserRepository userRepository;
@@ -41,7 +43,7 @@ class UpdateUserRolesUseCaseTest {
         User currentUser = createUserUseCase.execute("admin-uid", "admin@mail.com", "Admin", "User");
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
 
-        User updated = updateUserRolesUseCase.execute("target-uid", Set.of(Role.CLIENT, Role.PROFESSOR), currentUser);
+        User updated = updateUserRolesUseCase.execute(TARGET_USER_ID, Set.of(Role.CLIENT, Role.PROFESSOR), currentUser);
 
         assertTrue(updated.hasRole(Role.CLIENT));
         assertTrue(updated.hasRole(Role.PROFESSOR));
@@ -54,7 +56,7 @@ class UpdateUserRolesUseCaseTest {
         User currentUser = createUserUseCase.execute("client-uid", "client@mail.com", "Client", "User");
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserRolesUseCase.execute("target-uid", Set.of(Role.PROFESSOR), currentUser));
+                () -> updateUserRolesUseCase.execute(TARGET_USER_ID, Set.of(Role.PROFESSOR), currentUser));
 
         assertEquals("Only ORG_ADMIN, ORG_OWNER or SUPERADMIN can update user roles", ex.getMessage());
     }
@@ -65,7 +67,7 @@ class UpdateUserRolesUseCaseTest {
         User currentUser = createUserUseCase.execute("owner-uid", "owner@mail.com", "Owner", "User");
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_OWNER));
 
-        User updated = updateUserRolesUseCase.execute("target-uid", Set.of(Role.ORG_ADMIN, Role.PROFESSOR), currentUser);
+        User updated = updateUserRolesUseCase.execute(TARGET_USER_ID, Set.of(Role.ORG_ADMIN, Role.PROFESSOR), currentUser);
 
         assertTrue(updated.hasRole(Role.ORG_ADMIN));
         assertTrue(updated.hasRole(Role.PROFESSOR));
@@ -78,7 +80,7 @@ class UpdateUserRolesUseCaseTest {
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_OWNER));
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserRolesUseCase.execute("target-uid", Set.of(Role.ORG_OWNER), currentUser));
+                () -> updateUserRolesUseCase.execute(TARGET_USER_ID, Set.of(Role.ORG_OWNER), currentUser));
 
         assertEquals("ORG_OWNER can only assign ORG_ADMIN, PROFESSOR or CLIENT roles", ex.getMessage());
     }
@@ -90,7 +92,7 @@ class UpdateUserRolesUseCaseTest {
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserRolesUseCase.execute("target-uid", Set.of(), currentUser));
+                () -> updateUserRolesUseCase.execute(TARGET_USER_ID, Set.of(), currentUser));
 
         assertEquals("At least one role is required", ex.getMessage());
     }
@@ -102,7 +104,7 @@ class UpdateUserRolesUseCaseTest {
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserRolesUseCase.execute("target-uid", Set.of(Role.SUPERADMIN), currentUser));
+                () -> updateUserRolesUseCase.execute(TARGET_USER_ID, Set.of(Role.SUPERADMIN), currentUser));
 
         assertEquals("Only SUPERADMIN can assign SUPERADMIN role", ex.getMessage());
     }
@@ -114,7 +116,7 @@ class UpdateUserRolesUseCaseTest {
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserRolesUseCase.execute("target-uid", Set.of(Role.ORG_ADMIN), currentUser));
+                () -> updateUserRolesUseCase.execute(TARGET_USER_ID, Set.of(Role.ORG_ADMIN), currentUser));
 
         assertEquals("ORG_ADMIN can only assign PROFESSOR or CLIENT roles", ex.getMessage());
     }
@@ -129,7 +131,7 @@ class UpdateUserRolesUseCaseTest {
         setRoles(currentUser, Set.of(Role.CLIENT, Role.ORG_ADMIN));
 
         DomainException ex = assertThrows(DomainException.class,
-                () -> updateUserRolesUseCase.execute("target-uid", Set.of(Role.ORG_OWNER), currentUser));
+                () -> updateUserRolesUseCase.execute(TARGET_USER_ID, Set.of(Role.ORG_OWNER), currentUser));
 
         assertEquals("Only SUPERADMIN can update a SUPERADMIN user", ex.getMessage());
     }

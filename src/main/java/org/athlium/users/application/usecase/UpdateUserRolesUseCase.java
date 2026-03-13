@@ -26,7 +26,21 @@ public class UpdateUserRolesUseCase {
     @Inject
     UserRepository userRepository;
 
-    public User execute(String firebaseUid, Set<Role> newRoles, User currentUser) {
+    public User execute(Long userId, Set<Role> newRoles, User currentUser) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new DomainException("User not found"));
+
+        return executeForTargetUser(user, newRoles, currentUser);
+    }
+
+    public User executeByFirebaseUid(String firebaseUid, Set<Role> newRoles, User currentUser) {
+        var user = userRepository.findByFirebaseUid(firebaseUid)
+                .orElseThrow(() -> new DomainException("User not found"));
+
+        return executeForTargetUser(user, newRoles, currentUser);
+    }
+
+    private User executeForTargetUser(User user, Set<Role> newRoles, User currentUser) {
         if (!currentUser.hasRole(Role.SUPERADMIN)
                 && !currentUser.hasRole(Role.ORG_ADMIN)
                 && !currentUser.hasRole(Role.ORG_OWNER)) {
@@ -40,9 +54,6 @@ public class UpdateUserRolesUseCase {
         if (newRoles.contains(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
             throw new DomainException("Only SUPERADMIN can assign SUPERADMIN role");
         }
-
-        var user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new DomainException("User not found"));
 
         if (user.hasRole(Role.SUPERADMIN) && !currentUser.hasRole(Role.SUPERADMIN)) {
             throw new DomainException("Only SUPERADMIN can update a SUPERADMIN user");

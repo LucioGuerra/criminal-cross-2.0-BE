@@ -17,7 +17,8 @@ Módulo responsable de la gestión de usuarios globales y roles del sistema.
 - `GET /api/users/firebase/{uid}`: requiere usuario autenticado
 - `PUT /api/users/{id}`: actualizacion completa por ID interno (**endpoint preferido**)
 - `PUT /api/users/firebase/{uid}`: actualizacion completa por Firebase UID (legado, mantener por compatibilidad)
-- `PUT /api/users/firebase/{uid}/roles`: actualiza roles
+- `PUT /api/users/{id}/roles`: actualiza roles por ID interno (**endpoint preferido**)
+- `PUT /api/users/firebase/{uid}/roles`: actualiza roles por Firebase UID (legado, mantener por compatibilidad)
 - `POST /api/users/firebase/{uid}/headquarters/{headquartersId}`: asigna membresia HQ
 - `DELETE /api/users/firebase/{uid}/headquarters/{headquartersId}`: remueve membresia HQ
 - `POST /api/users/sync`: **deprecated** para frontend (mantener solo por compatibilidad)

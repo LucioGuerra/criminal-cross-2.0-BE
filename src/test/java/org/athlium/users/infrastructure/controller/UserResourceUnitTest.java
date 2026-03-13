@@ -68,13 +68,24 @@ class UserResourceUnitTest {
     void shouldUpdateUserRolesInBypassModeWithoutPersistedCurrentUser() {
         UpdateRolesRequestDto request = new UpdateRolesRequestDto(Set.of(Role.CLIENT));
 
-        Response response = resource.updateUserRoles("target-firebase-uid", request);
+        Response response = resource.updateUserRolesById(10L, request);
 
         assertEquals(200, response.getStatus());
+        assertEquals(10L, updateUserRolesUseCase.targetUserId);
         assertTrue(updateUserRolesUseCase.currentUser.hasRole(Role.SUPERADMIN));
 
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
         assertTrue(body.isSuccess());
+    }
+
+    @Test
+    void shouldKeepLegacyFirebaseUidRoleUpdateEndpointForCompatibility() {
+        UpdateRolesRequestDto request = new UpdateRolesRequestDto(Set.of(Role.CLIENT));
+
+        Response response = resource.updateUserRoles("target-firebase-uid", request);
+
+        assertEquals(200, response.getStatus());
+        assertEquals(10L, updateUserRolesUseCase.targetUserId);
     }
 
     @Test
@@ -123,19 +134,30 @@ class UserResourceUnitTest {
     private static class StubGetUserByUidUseCase extends GetUserByUidUseCase {
         @Override
         public Optional<User> execute(String firebaseUid) {
-            return Optional.empty();
+            return Optional.of(User.builder()
+                    .id(10L)
+                    .firebaseUid(firebaseUid)
+                    .email("target@example.com")
+                    .name("Target")
+                    .lastName("User")
+                    .roles(Set.of(Role.CLIENT))
+                    .headquartersIds(Set.of())
+                    .active(true)
+                    .build());
         }
     }
 
     private static class StubUpdateUserRolesUseCase extends UpdateUserRolesUseCase {
+        Long targetUserId;
         User currentUser;
 
         @Override
-        public User execute(String firebaseUid, Set<Role> newRoles, User currentUser) {
+        public User execute(Long userId, Set<Role> newRoles, User currentUser) {
+            this.targetUserId = userId;
             this.currentUser = currentUser;
             return User.builder()
-                    .id(10L)
-                    .firebaseUid(firebaseUid)
+                    .id(userId)
+                    .firebaseUid("target-firebase-uid")
                     .email("target@example.com")
                     .name("Target")
                     .lastName("User")
@@ -143,6 +165,11 @@ class UserResourceUnitTest {
                     .headquartersIds(Set.of())
                     .active(true)
                     .build();
+        }
+
+        @Override
+        public User executeByFirebaseUid(String firebaseUid, Set<Role> newRoles, User currentUser) {
+            return execute(10L, newRoles, currentUser);
         }
     }
 

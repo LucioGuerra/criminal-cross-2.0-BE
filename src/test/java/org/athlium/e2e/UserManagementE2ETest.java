@@ -65,6 +65,36 @@ class UserManagementE2ETest {
     }
 
     @Test
+    void shouldUpdateUserRolesByInternalUserId() {
+        given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
+                .contentType("application/json")
+                .body(Map.of("roles", new String[]{"CLIENT", "PROFESSOR"}))
+                .when()
+                .put("/api/users/{id}/roles", TARGET_USER_ID)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.id", equalTo(TARGET_USER_ID.intValue()))
+                .body("data.roles", hasItem("CLIENT"))
+                .body("data.roles", hasItem("PROFESSOR"));
+    }
+
+    @Test
+    void shouldForbidRoleUpdateByInternalUserIdForRegularClient() {
+        given()
+                .header("Authorization", bearer(OTHER_CLIENT_TOKEN))
+                .contentType("application/json")
+                .body(Map.of("roles", new String[]{"CLIENT"}))
+                .when()
+                .put("/api/users/{id}/roles", TARGET_USER_ID)
+                .then()
+                .statusCode(403)
+                .body("success", equalTo(false))
+                .body("message", equalTo("Insufficient permissions"));
+    }
+
+    @Test
     void shouldAllowOrgAdminToAssignAndUnassignOtherUserInSameOrganization() {
         ensureUserHeadquartersMembership(1001L, 100L);
 
