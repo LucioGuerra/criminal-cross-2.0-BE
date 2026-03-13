@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.athlium.users.domain.model.Role;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -23,6 +24,9 @@ public class AuthenticatedUser {
     // User data from local database (populated after sync)
     private final Long userId;
     private final Set<Role> roles;
+    private final Long organizationId;
+    private final String organizationName;
+    private final List<AuthenticatedHeadquarters> headquarters;
     private final boolean active;
 
     public AuthenticatedUser(String firebaseUid,
@@ -32,6 +36,9 @@ public class AuthenticatedUser {
                              AuthProvider provider,
                              Long userId,
                              Set<Role> roles,
+                             Long organizationId,
+                             String organizationName,
+                             List<AuthenticatedHeadquarters> headquarters,
                              boolean active) {
         this.firebaseUid = firebaseUid;
         this.email = email;
@@ -40,6 +47,9 @@ public class AuthenticatedUser {
         this.provider = provider;
         this.userId = userId;
         this.roles = roles;
+        this.organizationId = organizationId;
+        this.organizationName = organizationName;
+        this.headquarters = headquarters;
         this.active = active;
     }
 
@@ -69,6 +79,18 @@ public class AuthenticatedUser {
 
     public Set<Role> getRoles() {
         return roles;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public String getOrganizationName() {
+        return organizationName;
+    }
+
+    public List<AuthenticatedHeadquarters> getHeadquarters() {
+        return headquarters;
     }
 
     public boolean isActive() {
@@ -109,5 +131,12 @@ public class AuthenticatedUser {
      */
     public boolean isSuperAdmin() {
         return hasRole(Role.SUPERADMIN);
+    }
+
+    @Getter
+    @Builder
+    public static class AuthenticatedHeadquarters {
+        private final Long id;
+        private final String name;
     }
 }

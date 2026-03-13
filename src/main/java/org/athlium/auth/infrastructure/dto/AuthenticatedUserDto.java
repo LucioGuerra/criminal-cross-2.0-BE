@@ -25,6 +25,7 @@ public class AuthenticatedUserDto {
     // Local user data
     private Long userId;
     private Set<String> roles;
+    private UserOrganizationDto organization;
     private boolean registered;
     private boolean active;
 }

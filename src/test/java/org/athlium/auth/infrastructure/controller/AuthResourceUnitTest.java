@@ -9,6 +9,7 @@ import org.athlium.auth.domain.model.AuthProvider;
 import org.athlium.auth.domain.model.AuthenticatedUser;
 import org.athlium.auth.domain.model.FirebaseSessionTokens;
 import org.athlium.auth.infrastructure.dto.LoginRequestDto;
+import org.athlium.auth.infrastructure.dto.LoginResponseDto;
 import org.athlium.auth.infrastructure.dto.RegisterRequestDto;
 import org.athlium.auth.infrastructure.dto.VerifyTokenRequestDto;
 import org.athlium.auth.infrastructure.mapper.AuthMapper;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -74,6 +76,21 @@ class AuthResourceUnitTest {
         assertTrue(body.isSuccess());
     }
 
+    @Test
+    void shouldIncludeOrganizationWithHeadquartersInLoginPayload() {
+        Response response = resource.login(new LoginRequestDto("ana@example.com", "secret-123"));
+
+        assertEquals(200, response.getStatus());
+        ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
+        LoginResponseDto loginResponse = (LoginResponseDto) body.getData();
+
+        assertEquals(7L, loginResponse.getUser().getOrganization().getId());
+        assertEquals("Athlium Org", loginResponse.getUser().getOrganization().getName());
+        assertEquals(2, loginResponse.getUser().getOrganization().getHeadquarters().size());
+        assertEquals(10L, loginResponse.getUser().getOrganization().getHeadquarters().get(0).getId());
+        assertEquals("HQ Norte", loginResponse.getUser().getOrganization().getHeadquarters().get(0).getName());
+    }
+
     private static class StubAuthService extends AuthService {
         private AuthenticatedUser authUser() {
             return AuthenticatedUser.builder()
@@ -84,6 +101,12 @@ class AuthResourceUnitTest {
                     .provider(AuthProvider.EMAIL)
                     .userId(99L)
                     .roles(EnumSet.of(Role.CLIENT))
+                    .organizationId(7L)
+                    .organizationName("Athlium Org")
+                    .headquarters(List.of(
+                            AuthenticatedUser.AuthenticatedHeadquarters.builder().id(10L).name("HQ Norte").build(),
+                            AuthenticatedUser.AuthenticatedHeadquarters.builder().id(11L).name("HQ Centro").build()
+                    ))
                     .active(true)
                     .build();
         }

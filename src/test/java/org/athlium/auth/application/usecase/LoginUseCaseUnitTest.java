@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,6 +43,10 @@ class LoginUseCaseUnitTest {
         assertEquals("firebase-uid-100", result.user().getFirebaseUid());
         assertEquals(15L, result.user().getUserId());
         assertTrue(result.user().hasRole(Role.CLIENT));
+        assertEquals(2L, result.user().getOrganizationId());
+        assertEquals("Athlium Org", result.user().getOrganizationName());
+        assertEquals(2, result.user().getHeadquarters().size());
+        assertEquals(20L, result.user().getHeadquarters().get(0).getId());
         assertTrue(result.user().isRegistered());
     }
 
@@ -103,6 +108,12 @@ class LoginUseCaseUnitTest {
             return builder
                     .userId(15L)
                     .roles(EnumSet.of(Role.CLIENT))
+                    .organizationId(2L)
+                    .organizationName("Athlium Org")
+                    .headquarters(List.of(
+                            AuthenticatedUser.AuthenticatedHeadquarters.builder().id(20L).name("HQ One").build(),
+                            AuthenticatedUser.AuthenticatedHeadquarters.builder().id(21L).name("HQ Two").build()
+                    ))
                     .active(true);
         }
 
