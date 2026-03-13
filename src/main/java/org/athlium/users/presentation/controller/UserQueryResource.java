@@ -50,6 +50,7 @@ public class UserQueryResource {
     @GET
     public Response getUsers(
             @QueryParam("headquartersId") Long headquartersId,
+            @QueryParam("headquarterId") Long headquarterId,
             @QueryParam("headquartetsId") Long headquartetsId,
             @QueryParam("organizationId") Long organizationId,
             @QueryParam("status") String status,
@@ -59,13 +60,26 @@ public class UserQueryResource {
             @DefaultValue("name:asc") @QueryParam("sort") String sort) {
 
         try {
+            if (headquartersId != null && headquarterId != null && !headquartersId.equals(headquarterId)) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ApiResponse.error("Query params headquartersId and headquarterId must match when both are provided"))
+                        .build();
+            }
+
             if (headquartersId != null && headquartetsId != null && !headquartersId.equals(headquartetsId)) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(ApiResponse.error("Query params headquartersId and headquartetsId must match when both are provided"))
                         .build();
             }
 
-            Long effectiveHeadquartersId = headquartersId != null ? headquartersId : headquartetsId;
+            if (headquarterId != null && headquartetsId != null && !headquarterId.equals(headquartetsId)) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ApiResponse.error("Query params headquarterId and headquartetsId must match when both are provided"))
+                        .build();
+            }
+
+            Long effectiveHeadquartersId = headquartersId != null ? headquartersId
+                    : (headquarterId != null ? headquarterId : headquartetsId);
 
             if (effectiveHeadquartersId != null && organizationId != null) {
                 return Response.status(Response.Status.BAD_REQUEST)
@@ -106,13 +120,25 @@ public class UserQueryResource {
 
     Response getUsers(
             Long headquartersId,
+            Long headquarterId,
             Long organizationId,
             String status,
             String search,
             int page,
             int size,
             String sort) {
-        return getUsers(headquartersId, null, organizationId, status, search, page, size, sort);
+        return getUsers(headquartersId, headquarterId, null, organizationId, status, search, page, size, sort);
+    }
+
+    Response getUsers(
+            Long headquartersId,
+            Long organizationId,
+            String status,
+            String search,
+            int page,
+            int size,
+            String sort) {
+        return getUsers(headquartersId, null, null, organizationId, status, search, page, size, sort);
     }
 
     @GET

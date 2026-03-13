@@ -20,6 +20,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PaymentRepositoryImplTest {
@@ -137,6 +138,51 @@ class PaymentRepositoryImplTest {
         assertEquals(0, page.getTotalElements());
         assertEquals(1, fakeEntityManager.sqlStatements.size());
         assertFalse(fakeEntityManager.sqlStatements.getFirst().contains("LIMIT :size OFFSET :offset"));
+    }
+
+    @Test
+    void shouldMapNullableForeignKeysWithoutThrowing() {
+        QuerySpec countQuery = QuerySpec.forCount(1L);
+        QuerySpec dataQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+                9L,
+                new BigDecimal("45.50"),
+                "CARD",
+                LocalDate.of(2026, 1, 5),
+                null,
+                null,
+                null,
+                null,
+                null
+        }));
+        QuerySpec activitiesQuery = QuerySpec.forRows(List.of());
+
+        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, activitiesQuery));
+        PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
+        repository.em = fakeEntityManager.proxy();
+
+        PaymentSearchCriteria criteria = new PaymentSearchCriteria(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                10,
+                "paid_at",
+                false
+        );
+
+        var page = repository.findPayments(criteria);
+
+        assertEquals(1, page.getContent().size());
+        PaymentListItem item = page.getContent().getFirst();
+        assertNull(item.getClientId());
+        assertNull(item.getHeadquartersId());
+        assertNull(item.getOrganizationId());
     }
 
     private record QuerySpec(Object singleResult, List<Object[]> rows, Map<String, Object> params) {

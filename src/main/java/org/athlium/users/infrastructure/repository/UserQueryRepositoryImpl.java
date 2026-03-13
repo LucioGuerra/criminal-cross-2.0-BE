@@ -546,9 +546,22 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
         user.setEmail((String) row[3]);
         user.setActive((Boolean) row[4]);
         user.setPackageStatus(PackageStatus.valueOf((String) row[5]));
-        user.setPeriodEnd(row[6] != null ? ((java.sql.Date) row[6]).toLocalDate() : null);
+        user.setPeriodEnd(parseLocalDate(row[6]));
         user.setDaysRemaining(row[7] != null ? ((Number) row[7]).intValue() : null);
         return user;
+    }
+
+    private LocalDate parseLocalDate(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof LocalDate localDate) {
+            return localDate;
+        }
+        if (value instanceof java.sql.Date sqlDate) {
+            return sqlDate.toLocalDate();
+        }
+        return LocalDate.parse(value.toString());
     }
 
     private UserHqMembership mapHqMembershipRow(Object[] row) {

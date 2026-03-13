@@ -191,9 +191,9 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         LocalDate paidAt = parseLocalDate(row[3]);
         String userName = (String) row[4];
         String userLastName = (String) row[5];
-        Long clientId = ((Number) row[6]).longValue();
-        Long headquartersId = ((Number) row[7]).longValue();
-        Long organizationId = ((Number) row[8]).longValue();
+        Long clientId = toLong(row[6]);
+        Long headquartersId = toLong(row[7]);
+        Long organizationId = toLong(row[8]);
         return new PaymentListItem(id, amount, paymentMethod, paidAt, userName, userLastName, List.of(), clientId,
                 headquartersId, organizationId);
     }
@@ -238,7 +238,7 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             activity.setName((String) row[2]);
             activity.setDescription((String) row[3]);
             activity.setIsActive(parseBoolean(row[4]));
-            activity.setHqId(((Number) row[5]).longValue());
+            activity.setHqId(toLong(row[5]));
 
             activitiesByPayment.computeIfAbsent(paymentId, key -> new ArrayList<>()).add(activity);
             seenIds.add(activityId);
@@ -258,6 +258,9 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     }
 
     private PaymentMethod parsePaymentMethod(Object value) {
+        if (value == null) {
+            return null;
+        }
         if (value instanceof PaymentMethod paymentMethod) {
             return paymentMethod;
         }
@@ -265,6 +268,9 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     }
 
     private LocalDate parseLocalDate(Object value) {
+        if (value == null) {
+            return null;
+        }
         if (value instanceof LocalDate localDate) {
             return localDate;
         }
@@ -272,5 +278,12 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             return date.toLocalDate();
         }
         return LocalDate.parse(value.toString());
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return ((Number) value).longValue();
     }
 }
