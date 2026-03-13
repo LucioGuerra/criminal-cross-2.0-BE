@@ -10,5 +10,5 @@ public class OrganizationResponse {
 
     private String name;
 
-    private List<HeadquartersResponse> headquarters;
+    private List<OrganizationHeadquartersResponse> headquarters;
 }
