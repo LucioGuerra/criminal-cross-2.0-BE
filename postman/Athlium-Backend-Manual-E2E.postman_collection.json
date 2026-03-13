@@ -2,7 +2,7 @@
   "info": {
     "name": "Athlium Backend - Manual E2E",
     "_postman_id": "f6f2dd52-1174-4f5d-a8a0-8f5f6f6df0f2",
-    "description": "Manual flow collection for auth, gym config/scheduling, sessions, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.\n\nAuth note (Firebase BFF):\n- Register/Login use email/password payloads.\n- Login/Register/Refresh scripts store accessToken and refreshToken automatically.\n- Use accessToken as Authorization Bearer token (Firebase ID token).\n- Call GET /api/auth/me to enrich identity with local userId/roles.\n\nCurrent API notes:\n- Organization/Headquarters GET endpoints are available to any authenticated user.\n- Session responses include participants entries with id, name, lastName, and email.",
+    "description": "Manual flow collection for auth, gym config/scheduling, sessions, users, and bookings.\n\nBefore running:\n1) Start DBs: podman-compose -f podman-compose.yaml up -d\n2) Run backend: FIREBASE_MOCK_ENABLED=true ./mvnw quarkus:dev\n3) Set baseUrl if needed.\n\nAuth note (Firebase BFF):\n- Register/Login use email/password payloads.\n- Login/Register/Refresh scripts store accessToken and refreshToken automatically.\n- Use accessToken as Authorization Bearer token (Firebase ID token).\n- Call GET /api/auth/me to enrich identity with local userId/roles.\n\nCurrent API notes:\n- Organization/Headquarters GET endpoints are available to any authenticated user.\n- Headquarters GET includes nested activities and activity sessions.\n- Users list supports headquartersId and hq alias; do not combine headquarters and organization filters.\n- Booking create/list/cancel is self-only for CLIENT and cross-user for staff/admin roles.\n- Session responses include participants entries with id, name, lastName, and email.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,6 +15,7 @@
     { "key": "headquartersId", "value": "1" },
     { "key": "activityId", "value": "1" },
     { "key": "sessionId", "value": "" },
+    { "key": "localUserId", "value": "1" },
     { "key": "bookingId1", "value": "" },
     { "key": "bookingId2", "value": "" },
     { "key": "bookingId3", "value": "" },
@@ -47,6 +48,7 @@
                   "  pm.collectionVariables.set('accessToken', '');",
                   "  pm.collectionVariables.set('refreshToken', '');",
                   "}",
+                  "if (r?.data?.user?.userId) pm.collectionVariables.set('localUserId', String(r.data.user.userId));",
                   "if (r && r.data && r.data.tokens) {",
                   "  pm.collectionVariables.set('accessToken', r.data.tokens.accessToken || '');",
                   "  pm.collectionVariables.set('refreshToken', r.data.tokens.refreshToken || '');",
@@ -76,6 +78,7 @@
               "script": {
                 "exec": [
                   "const r = pm.response.json();",
+                  "if (r?.data?.user?.userId) pm.collectionVariables.set('localUserId', String(r.data.user.userId));",
                   "if (r && r.data && r.data.tokens) {",
                   "  pm.collectionVariables.set('accessToken', r.data.tokens.accessToken || '');",
                   "  pm.collectionVariables.set('refreshToken', r.data.tokens.refreshToken || '');",
@@ -128,6 +131,19 @@
         },
         {
           "name": "Me (Identity + Local Roles)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "const id = r?.data?.user?.userId;",
+                  "if (id) pm.collectionVariables.set('localUserId', String(id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
@@ -313,10 +329,52 @@
       ]
     },
     {
-      "name": "5. Bookings",
+      "name": "5. Users Access Rules",
+      "description": "Covers updated user query filters and preferred role update by internal user id.",
       "item": [
         {
-          "name": "Create Booking User 101",
+          "name": "List Users by headquartersId",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users?headquartersId={{headquartersId}}&page=1&size=20&sort=name:asc"
+          }
+        },
+        {
+          "name": "List Users by hq alias",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users?hq={{headquartersId}}&page=1&size=20&sort=name:asc"
+          }
+        },
+        {
+          "name": "Get User by localUserId",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/{{localUserId}}"
+          }
+        },
+        {
+          "name": "Update Roles by userId (preferred)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roles\": [\"CLIENT\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{localUserId}}/roles"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Bookings",
+      "description": "CLIENT can only manage own bookings (use localUserId). Staff/admin roles can manage bookings for other users.",
+      "item": [
+        {
+          "name": "Create Booking Self",
           "event": [
             {
               "listen": "test",
@@ -338,13 +396,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": 101\n}"
+              "raw": "{\n  \"userId\": {{localUserId}}\n}"
             },
             "url": "{{baseUrl}}/api/sessions/{{sessionId}}/bookings"
           }
         },
         {
-          "name": "Create Booking User 102",
+          "name": "Create Booking Other User (Staff/Admin)",
+          "description": "Requires PROFESSOR/ORG_ADMIN/ORG_OWNER/SUPERADMIN role.",
           "event": [
             {
               "listen": "test",
@@ -372,7 +431,8 @@
           }
         },
         {
-          "name": "Create Booking User 103 (Waitlist)",
+          "name": "Create Booking Other User Waitlist (Staff/Admin)",
+          "description": "Requires elevated role and configured maxParticipants/waitlist.",
           "event": [
             {
               "listen": "test",
@@ -403,7 +463,7 @@
           "name": "List Bookings by Session",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/bookings?sessionId={{sessionId}}&sort=createdAt:asc"
+            "url": "{{baseUrl}}/api/bookings?sessionId={{sessionId}}&userId={{localUserId}}&sort=createdAt:asc"
           }
         },
         {
@@ -430,7 +490,7 @@
           "name": "List Bookings Final",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/bookings?sessionId={{sessionId}}&sort=createdAt:asc"
+            "url": "{{baseUrl}}/api/bookings?sessionId={{sessionId}}&userId={{localUserId}}&sort=createdAt:asc"
           }
         }
       ]

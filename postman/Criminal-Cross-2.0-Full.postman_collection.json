@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Criminal-Cross-2.0 Full API",
-    "description": "Complete importable Postman collection for Criminal-Cross-2.0 backend modules.\n\nAuth flow (Firebase BFF):\n1) Call POST /api/auth/register or POST /api/auth/login with email/password.\n2) Save data.tokens.accessToken as Bearer token (Firebase ID token).\n3) Use POST /api/auth/refresh with refresh token when access token expires.\n4) Use GET /api/auth/me to enrich identity with local userId/roles.",
+    "description": "Complete importable Postman collection for Criminal-Cross-2.0 backend modules.\n\nAuth flow (Firebase BFF):\n1) Call POST /api/auth/register or POST /api/auth/login with email/password.\n2) Save data.tokens.accessToken as Bearer token (Firebase ID token).\n3) Use POST /api/auth/refresh with refresh token when access token expires.\n4) Use GET /api/auth/me to enrich identity with local userId/roles.\n\nError envelope notes:\n- Most endpoint-level validations return { success, message } with data = null.\n- Uncaught/centralized errors use GlobalExceptionMapper and include data.code (and data.details for validation errors).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -23,6 +23,7 @@
     { "key": "id_token", "value": "", "description": "DEPRECATED: only for /api/auth/verify-token (410 Gone). Do not use in frontend flows." },
     { "key": "firebase_uid", "value": "demo-uid-001", "description": "Used by firebase UID compatibility routes." },
     { "key": "user_id", "value": "1" },
+    { "key": "local_user_id", "value": "1", "description": "Authenticated local user id from /api/auth/me. Use this for self-service booking calls." },
     { "key": "organization_id", "value": "1" },
     { "key": "headquarters_id", "value": "1" },
     { "key": "activity_id", "value": "1" },
@@ -83,7 +84,7 @@
                   "const tokens = data.tokens || {};",
                   "if (tokens.accessToken) pm.collectionVariables.set('bearer_token', tokens.accessToken);",
                   "if (tokens.refreshToken) pm.collectionVariables.set('refresh_token', tokens.refreshToken);",
-                  "if (data.user && data.user.userId) pm.collectionVariables.set('user_id', String(data.user.userId));",
+                  "if (data.user && data.user.userId) { pm.collectionVariables.set('user_id', String(data.user.userId)); pm.collectionVariables.set('local_user_id', String(data.user.userId)); }",
                   "if (data.user && data.user.firebaseUid) pm.collectionVariables.set('firebase_uid', String(data.user.firebaseUid));"
                 ]
               }
@@ -123,7 +124,7 @@
                   "const tokens = data.tokens || {};",
                   "if (tokens.accessToken) pm.collectionVariables.set('bearer_token', tokens.accessToken);",
                   "if (tokens.refreshToken) pm.collectionVariables.set('refresh_token', tokens.refreshToken);",
-                  "if (data.user && data.user.userId) pm.collectionVariables.set('user_id', String(data.user.userId));",
+                  "if (data.user && data.user.userId) { pm.collectionVariables.set('user_id', String(data.user.userId)); pm.collectionVariables.set('local_user_id', String(data.user.userId)); }",
                   "if (data.user && data.user.firebaseUid) pm.collectionVariables.set('firebase_uid', String(data.user.firebaseUid));"
                 ]
               }
@@ -189,6 +190,20 @@
         {
           "name": "Me",
           "description": "Returns authenticated Firebase identity enriched with local Athlium user fields (userId, roles, registered, active).",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const user = body && body.data ? body.data.user : null;",
+                  "if (user && user.userId) { pm.collectionVariables.set('local_user_id', String(user.userId)); pm.collectionVariables.set('user_id', String(user.userId)); }",
+                  "if (user && user.firebaseUid) pm.collectionVariables.set('firebase_uid', String(user.firebaseUid));"
+                ]
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
@@ -212,38 +227,12 @@
               "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"firebaseUid\": \"firebase-uid-123\",\n      \"email\": \"demo.user@example.com\",\n      \"name\": \"Demo User\",\n      \"userId\": 42,\n      \"roles\": [\"CLIENT\", \"ORG_ADMIN\"],\n      \"registered\": true,\n      \"active\": true\n    },\n    \"needsRegistration\": false,\n    \"message\": \"Current user retrieved successfully\"\n  }\n}"
             }
           ]
-        },
-        {
-          "name": "Logout (Single Session)",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\",\n  \"logoutAll\": false\n}"
-            },
-            "url": "{{base_url}}/api/auth/logout"
-          }
-        },
-        {
-          "name": "Logout (All Sessions)",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"logoutAll\": true\n}"
-            },
-            "url": "{{base_url}}/api/auth/logout"
-          }
         }
       ]
     },
     {
       "name": "02 Users",
-      "description": "Users API coverage:\n- Query endpoints include SUPERADMIN, ORG_ADMIN, ORG_OWNER.\n- Preferred full update route uses internal ID: PUT /api/users/{id}.\n- Legacy firebase UID update route is kept for compatibility.\n- Role assignment matrix: ORG_OWNER -> ORG_ADMIN/PROFESSOR/CLIENT, ORG_ADMIN -> PROFESSOR/CLIENT, SUPERADMIN -> unrestricted.\n- HQ membership updates allow self-assign/remove; managing others requires org-scoped admin/owner or SUPERADMIN.",
+      "description": "Users API coverage:\n- Query endpoints include SUPERADMIN, ORG_ADMIN, ORG_OWNER.\n- GET /api/users supports headquartersId and hq alias (must match if both are sent).\n- Users can be filtered by headquarters OR organization, never both at once.\n- User headquarters payload now returns [{ id, name, organization: { id, name } }].\n- Preferred full update route uses internal ID: PUT /api/users/{id}.\n- Preferred role update route uses internal ID: PUT /api/users/{id}/roles (firebase UID variant remains for compatibility).\n- Role assignment matrix: ORG_OWNER -> ORG_ADMIN/PROFESSOR/CLIENT, ORG_ADMIN -> PROFESSOR/CLIENT, SUPERADMIN -> unrestricted.\n- HQ membership updates allow self-assign/remove; managing others requires org-scoped admin/owner or SUPERADMIN.",
       "item": [
         {
           "name": "Create User",
@@ -279,6 +268,46 @@
           }
         },
         {
+          "name": "List Users (headquartersId)",
+          "description": "Primary headquarters filter. Equivalent to hq alias.",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users?headquartersId={{headquarters_id}}&status=active&search=demo&page=1&size=20&sort=name:asc"
+          },
+          "response": [
+            {
+              "name": "OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Users retrieved\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 42,\n        \"name\": \"Demo\",\n        \"lastName\": \"User\",\n        \"email\": \"demo.user@example.com\",\n        \"roles\": [\"CLIENT\"],\n        \"headquarters\": [\n          {\n            \"id\": 7,\n            \"name\": \"Central Branch\",\n            \"organization\": {\n              \"id\": 1,\n              \"name\": \"Criminal Cross HQ\"\n            }\n          }\n        ],\n        \"active\": true,\n        \"packageStatus\": \"ACTIVE\",\n        \"periodEnd\": \"2026-04-10\",\n        \"daysRemaining\": 28\n      }\n    ],\n    \"page\": 1,\n    \"size\": 20,\n    \"total\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Users (hq alias)",
+          "description": "Alias for headquartersId filter. If both headquartersId and hq are present, they must match.",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users?hq={{headquarters_id}}&page=1&size=20&sort=name:asc"
+          }
+        },
+        {
+          "name": "List Users (organizationId)",
+          "description": "Use organizationId when querying users by organization scope.",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users?organizationId={{organization_id}}&page=1&size=20&sort=name:asc"
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users/{{user_id}}"
+          }
+        },
+        {
           "name": "Update User By ID (Preferred)",
           "request": {
             "method": "PUT",
@@ -303,8 +332,20 @@
           }
         },
         {
-          "name": "Update User Roles",
+          "name": "Update User Roles By ID (Preferred)",
           "description": "Role assignment matrix: SUPERADMIN can assign any role; ORG_OWNER can assign ORG_ADMIN/PROFESSOR/CLIENT; ORG_ADMIN can assign PROFESSOR/CLIENT.",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roles\": [\"CLIENT\", \"PROFESSOR\"]\n}"
+            },
+            "url": "{{base_url}}/api/users/{{user_id}}/roles"
+          }
+        },
+        {
+          "name": "Update User Roles By Firebase UID (Legacy Compatibility)",
           "request": {
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -425,7 +466,7 @@
     },
     {
       "name": "04 Gym - Headquarters",
-      "description": "Read endpoints are open to any authenticated user. Mutations remain restricted to SUPERADMIN/ORG_OWNER/ORG_ADMIN.",
+      "description": "Read endpoints are open to any authenticated user. Mutations remain restricted to SUPERADMIN/ORG_OWNER/ORG_ADMIN. Headquarters GET responses now include nested activities, and each activity includes sessions.",
       "item": [
         {
           "name": "List Headquarters",
@@ -446,7 +487,16 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/headquarters/{{headquarters_id}}"
-          }
+          },
+          "response": [
+            {
+              "name": "OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Headquarters found\",\n  \"data\": {\n    \"id\": 7,\n    \"organizationId\": 1,\n    \"name\": \"Central Branch\",\n    \"activities\": [\n      {\n        \"id\": 5,\n        \"name\": \"Cross Training\",\n        \"description\": \"Functional class\",\n        \"sessions\": [\n          {\n            \"id\": 99,\n            \"activityId\": 5,\n            \"startsAt\": \"2026-03-20T18:00:00Z\",\n            \"endsAt\": \"2026-03-20T19:00:00Z\",\n            \"status\": \"SCHEDULED\"\n          }\n        ]\n      }\n    ]\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Create Headquarters",
@@ -482,6 +532,13 @@
               "mode": "raw",
               "raw": "{\n  \"organizationId\": {{organization_id}},\n  \"name\": \"Central Branch Updated\"\n}"
             },
+            "url": "{{base_url}}/api/headquarters/{{headquarters_id}}"
+          }
+        },
+        {
+          "name": "Delete Headquarters",
+          "request": {
+            "method": "DELETE",
             "url": "{{base_url}}/api/headquarters/{{headquarters_id}}"
           }
         }
@@ -547,6 +604,13 @@
             },
             "url": "{{base_url}}/api/activities/{{activity_id}}"
           }
+        },
+        {
+          "name": "Delete Activity",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/activities/{{activity_id}}"
+          }
         }
       ]
     },
@@ -583,6 +647,25 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/activity-schedules?headquartersId={{headquarters_id}}"
+          }
+        },
+        {
+          "name": "Update Activity Schedule",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": {{organization_id}},\n  \"headquartersId\": {{headquarters_id}},\n  \"activityId\": {{activity_id}},\n  \"dayOfWeek\": 2,\n  \"startTime\": \"19:00\",\n  \"durationMinutes\": 60,\n  \"active\": true\n}"
+            },
+            "url": "{{base_url}}/api/activity-schedules/{{activity_schedule_id}}"
+          }
+        },
+        {
+          "name": "Delete Activity Schedule",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/activity-schedules/{{activity_schedule_id}}"
           }
         },
         {
@@ -680,6 +763,14 @@
           }
         },
         {
+          "name": "List Sessions (gymId/branchId aliases)",
+          "description": "gymId is accepted as organizationId alias and branchId as headquartersId alias.",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/sessions?gymId={{organization_id}}&branchId={{headquarters_id}}&activityId={{activity_id}}&page=1&limit=20&sort=startsAt:asc"
+          }
+        },
+        {
           "name": "Get Session By ID",
           "request": {
             "method": "GET",
@@ -699,9 +790,11 @@
     },
     {
       "name": "09 Bookings",
+      "description": "Self-or-staff rules: CLIENT users can only create/list/cancel their own bookings. PROFESSOR/ORG_ADMIN/ORG_OWNER/SUPERADMIN can manage bookings for other users.",
       "item": [
         {
-          "name": "Create Booking",
+          "name": "Create Booking (Self)",
+          "description": "For CLIENT tokens, omit userId or use local_user_id.",
           "event": [
             {
               "listen": "test",
@@ -723,6 +816,22 @@
             ],
             "body": {
               "mode": "raw",
+              "raw": "{\n  \"userId\": {{local_user_id}}\n}"
+            },
+            "url": "{{base_url}}/api/sessions/{{session_id}}/bookings"
+          }
+        },
+        {
+          "name": "Create Booking (Staff for another user)",
+          "description": "Requires PROFESSOR/ORG_ADMIN/ORG_OWNER/SUPERADMIN role.",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idempotency_key}}-staff" }
+            ],
+            "body": {
+              "mode": "raw",
               "raw": "{\n  \"userId\": {{user_id}}\n}"
             },
             "url": "{{base_url}}/api/sessions/{{session_id}}/bookings"
@@ -739,7 +848,16 @@
           }
         },
         {
-          "name": "List Bookings",
+          "name": "List Bookings (Self)",
+          "description": "For CLIENT tokens, either omit userId or pass local_user_id.",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/bookings?sessionId={{session_id}}&userId={{local_user_id}}&page=1&limit=20&sort=createdAt:desc"
+          }
+        },
+        {
+          "name": "List Bookings (Staff for another user)",
+          "description": "Requires PROFESSOR/ORG_ADMIN/ORG_OWNER/SUPERADMIN role.",
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/bookings?sessionId={{session_id}}&userId={{user_id}}&page=1&limit=20&sort=createdAt:desc"
