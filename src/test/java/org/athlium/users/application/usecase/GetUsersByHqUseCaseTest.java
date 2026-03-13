@@ -160,10 +160,9 @@ class GetUsersByHqUseCaseTest {
         }
 
         @Override
-        public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds, Long organizationId) {
+        public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds) {
             this.findHqMembershipsCalled = true;
             this.lastUserIds = userIds;
-            this.lastOrganizationId = organizationId;
             return List.of();
         }
 

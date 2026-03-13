@@ -7,11 +7,15 @@ import org.athlium.shared.exception.BadRequestException;
 import org.athlium.shared.exception.EntityNotFoundException;
 import org.athlium.users.domain.model.PackageStatus;
 import org.athlium.users.domain.model.User;
+import org.athlium.users.domain.model.UserHqMembership;
 import org.athlium.users.domain.model.UserWithPackageStatus;
 import org.athlium.users.domain.repository.UserQueryRepository;
 import org.athlium.users.domain.repository.UserRepository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class GetUserByIdUseCase {
@@ -38,18 +42,26 @@ public class GetUserByIdUseCase {
         }
 
         User existingUser = user.get();
+        var memberships = userQueryRepository.findHqMembershipsByUserIds(List.of(existingUser.getId()));
         UserWithPackageStatus noPackageUser = new UserWithPackageStatus();
         noPackageUser.setId(existingUser.getId());
         noPackageUser.setName(existingUser.getName());
         noPackageUser.setLastName(existingUser.getLastName());
         noPackageUser.setEmail(existingUser.getEmail());
         noPackageUser.setRoles(existingUser.getRoles());
-        noPackageUser.setHeadquartersIds(existingUser.getHeadquartersIds());
+        noPackageUser.setHqMemberships(memberships);
+        noPackageUser.setHeadquartersIds(extractHeadquartersIds(memberships));
         noPackageUser.setActive(existingUser.getActive());
         noPackageUser.setPackageStatus(PackageStatus.NO_PACKAGE);
         noPackageUser.setPeriodEnd(null);
         noPackageUser.setDaysRemaining(null);
 
         return noPackageUser;
+    }
+
+    private Set<Long> extractHeadquartersIds(List<UserHqMembership> memberships) {
+        return memberships.stream()
+                .map(UserHqMembership::getHqId)
+                .collect(Collectors.toSet());
     }
 }

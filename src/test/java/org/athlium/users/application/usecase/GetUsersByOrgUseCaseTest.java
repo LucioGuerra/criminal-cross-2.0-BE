@@ -11,9 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -89,54 +87,6 @@ class GetUsersByOrgUseCaseTest {
         assertEquals("ali", repository.lastSearch);
     }
 
-    @Test
-    void shouldEnrichUsersWithHqMemberships() {
-        repository.addUser(createTestUser(1L, "Alice", PackageStatus.ACTIVE));
-        repository.addUser(createTestUser(2L, "Bob", PackageStatus.EXPIRING));
-
-        UserHqMembership aliceMembership = createHqMembership(1L, 10L, "HQ Alpha", PackageStatus.ACTIVE);
-        UserHqMembership bobMembership = createHqMembership(2L, 20L, "HQ Beta", PackageStatus.EXPIRING);
-        repository.addHqMembership(aliceMembership);
-        repository.addHqMembership(bobMembership);
-
-        PageResponse<UserWithPackageStatus> result = useCase.execute(5L, null, null, 1, 20, null);
-
-        assertTrue(repository.findHqMembershipsCalled);
-        assertEquals(2, result.getContent().size());
-
-        UserWithPackageStatus alice = result.getContent().get(0);
-        assertNotNull(alice.getHqMemberships());
-        assertEquals(1, alice.getHqMemberships().size());
-        assertEquals("HQ Alpha", alice.getHqMemberships().get(0).getHqName());
-
-        UserWithPackageStatus bob = result.getContent().get(1);
-        assertNotNull(bob.getHqMemberships());
-        assertEquals(1, bob.getHqMemberships().size());
-        assertEquals("HQ Beta", bob.getHqMemberships().get(0).getHqName());
-    }
-
-    @Test
-    void shouldHandleEmptyUserListWithoutCallingHqMemberships() {
-        // No users added — empty page
-
-        PageResponse<UserWithPackageStatus> result = useCase.execute(1L, null, null, 1, 20, null);
-
-        assertTrue(result.getContent().isEmpty());
-        assertFalse(repository.findHqMembershipsCalled);
-    }
-
-    @Test
-    void shouldReturnEmptyHqMembershipsForUsersWithNone() {
-        repository.addUser(createTestUser(1L, "Alice", PackageStatus.ACTIVE));
-        // No HQ memberships added
-
-        PageResponse<UserWithPackageStatus> result = useCase.execute(5L, null, null, 1, 20, null);
-
-        UserWithPackageStatus alice = result.getContent().get(0);
-        assertNotNull(alice.getHqMemberships());
-        assertTrue(alice.getHqMemberships().isEmpty());
-    }
-
     private static UserWithPackageStatus createTestUser(Long id, String name, PackageStatus status) {
         UserWithPackageStatus user = new UserWithPackageStatus();
         user.setId(id);
@@ -150,34 +100,17 @@ class GetUsersByOrgUseCaseTest {
         return user;
     }
 
-    private static UserHqMembership createHqMembership(Long userId, Long hqId, String hqName, PackageStatus status) {
-        UserHqMembership membership = new UserHqMembership();
-        membership.setUserId(userId);
-        membership.setHqId(hqId);
-        membership.setHqName(hqName);
-        membership.setPackageStatus(status);
-        membership.setPeriodEnd(LocalDate.now().plusDays(30));
-        membership.setDaysRemaining(30);
-        return membership;
-    }
-
     static class InMemoryUserQueryRepository implements UserQueryRepository {
         private final List<UserWithPackageStatus> users = new ArrayList<>();
-        private final List<UserHqMembership> hqMemberships = new ArrayList<>();
 
         Long lastOrganizationId;
         String lastSearch;
         int lastPage;
         int lastSize;
         String lastSort;
-        boolean findHqMembershipsCalled;
 
         void addUser(UserWithPackageStatus user) {
             users.add(user);
-        }
-
-        void addHqMembership(UserHqMembership membership) {
-            hqMemberships.add(membership);
         }
 
         @Override
@@ -198,16 +131,8 @@ class GetUsersByOrgUseCaseTest {
         }
 
         @Override
-        public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds, Long organizationId) {
-            this.findHqMembershipsCalled = true;
-            // Return memberships whose userId is in the requested list
-            List<UserHqMembership> result = new ArrayList<>();
-            for (UserHqMembership m : hqMemberships) {
-                if (userIds.contains(m.getUserId())) {
-                    result.add(m);
-                }
-            }
-            return result;
+        public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds) {
+            return List.of();
         }
 
         @Override

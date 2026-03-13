@@ -106,7 +106,8 @@ class UserManagementE2ETest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true))
-                .body("data.headquartersIds", hasItem(100));
+                .body("data.headquarters.id", hasItem(100))
+                .body("data.headquarters.organization.id", hasItem(10));
 
         given()
                 .header("Authorization", bearer(ADMIN_TOKEN))
@@ -116,7 +117,7 @@ class UserManagementE2ETest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true))
-                .body("data.headquartersIds", not(hasItem(100)));
+                .body("data.headquarters.id", not(hasItem(100)));
     }
 
     @Test
@@ -129,7 +130,7 @@ class UserManagementE2ETest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true))
-                .body("data.headquartersIds", hasItem(100));
+                .body("data.headquarters.id", hasItem(100));
     }
 
     @Test
@@ -157,7 +158,7 @@ class UserManagementE2ETest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true))
-                .body("data.headquartersIds", not(hasItem(100)));
+                .body("data.headquarters.id", not(hasItem(100)));
     }
 
     @Test

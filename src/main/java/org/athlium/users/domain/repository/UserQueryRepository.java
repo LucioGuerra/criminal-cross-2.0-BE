@@ -14,7 +14,7 @@ public interface UserQueryRepository {
     PageResponse<UserWithPackageStatus> findUsersByOrganization(Long organizationId, String status,
             String search, int page, int size, String sort);
 
-    List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds, Long organizationId);
+    List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds);
 
     PageResponse<UserWithPackageStatus> findAllUsers(String status, String search,
             int page, int size, String sort);

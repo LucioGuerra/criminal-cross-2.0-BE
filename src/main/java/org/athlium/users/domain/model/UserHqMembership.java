@@ -7,6 +7,8 @@ public class UserHqMembership {
     private Long userId;
     private Long hqId;
     private String hqName;
+    private Long organizationId;
+    private String organizationName;
     private PackageStatus packageStatus;
     private LocalDate periodEnd;
     private Integer daysRemaining;
@@ -33,6 +35,22 @@ public class UserHqMembership {
 
     public void setHqName(String hqName) {
         this.hqName = hqName;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
+    }
+
+    public String getOrganizationName() {
+        return organizationName;
+    }
+
+    public void setOrganizationName(String organizationName) {
+        this.organizationName = organizationName;
     }
 
     public PackageStatus getPackageStatus() {

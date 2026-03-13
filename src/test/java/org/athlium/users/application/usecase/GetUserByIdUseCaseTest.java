@@ -64,6 +64,7 @@ class GetUserByIdUseCaseTest {
                 .active(true)
                 .build();
         userRepository.setFindByIdResult(user);
+        queryRepository.setHqMemberships(List.of(createMembership(1L, 10L, "HQ Norte", 7L, "Org Norte")));
 
         UserWithPackageStatus result = useCase.execute(1L);
 
@@ -71,6 +72,8 @@ class GetUserByIdUseCaseTest {
         assertEquals(1L, result.getId());
         assertEquals("Bob", result.getName());
         assertEquals(PackageStatus.NO_PACKAGE, result.getPackageStatus());
+        assertEquals(1, result.getHqMemberships().size());
+        assertEquals(10L, result.getHqMemberships().get(0).getHqId());
         assertNull(result.getPeriodEnd());
         assertNull(result.getDaysRemaining());
     }
@@ -103,11 +106,26 @@ class GetUserByIdUseCaseTest {
         return user;
     }
 
+    private static UserHqMembership createMembership(Long userId, Long hqId, String hqName, Long orgId, String orgName) {
+        UserHqMembership membership = new UserHqMembership();
+        membership.setUserId(userId);
+        membership.setHqId(hqId);
+        membership.setHqName(hqName);
+        membership.setOrganizationId(orgId);
+        membership.setOrganizationName(orgName);
+        return membership;
+    }
+
     static class InMemoryUserQueryRepository implements UserQueryRepository {
         private UserWithPackageStatus findByIdResult;
+        private List<UserHqMembership> hqMemberships = List.of();
 
         void setFindUserByIdResult(UserWithPackageStatus result) {
             this.findByIdResult = result;
+        }
+
+        void setHqMemberships(List<UserHqMembership> hqMemberships) {
+            this.hqMemberships = hqMemberships;
         }
 
         @Override
@@ -123,8 +141,8 @@ class GetUserByIdUseCaseTest {
         }
 
         @Override
-        public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds, Long organizationId) {
-            throw new UnsupportedOperationException("Not used in this test");
+        public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds) {
+            return hqMemberships;
         }
 
         @Override

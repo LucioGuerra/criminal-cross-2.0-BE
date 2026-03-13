@@ -6,14 +6,8 @@ import jakarta.inject.Inject;
 import org.athlium.shared.domain.PageResponse;
 import org.athlium.shared.exception.BadRequestException;
 import org.athlium.users.domain.model.PackageStatus;
-import org.athlium.users.domain.model.UserHqMembership;
 import org.athlium.users.domain.model.UserWithPackageStatus;
 import org.athlium.users.domain.repository.UserQueryRepository;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @ApplicationScoped
 public class GetUsersByOrgUseCase {
@@ -40,33 +34,6 @@ public class GetUsersByOrgUseCase {
             sort = "name:asc";
         }
 
-        PageResponse<UserWithPackageStatus> usersPage = userQueryRepository
-                .findUsersByOrganization(organizationId, status, search, page - 1, size, sort);
-
-        List<UserWithPackageStatus> users = usersPage.getContent();
-        if (!users.isEmpty()) {
-            List<Long> userIds = new ArrayList<>();
-            for (UserWithPackageStatus user : users) {
-                userIds.add(user.getId());
-            }
-
-            List<UserHqMembership> allMemberships = userQueryRepository
-                    .findHqMembershipsByUserIds(userIds, organizationId);
-
-            Map<Long, List<UserHqMembership>> membershipsByUserId = new HashMap<>();
-            for (UserHqMembership membership : allMemberships) {
-                membershipsByUserId
-                        .computeIfAbsent(membership.getUserId(), k -> new ArrayList<>())
-                        .add(membership);
-            }
-
-            for (UserWithPackageStatus user : users) {
-                List<UserHqMembership> userMemberships = membershipsByUserId
-                        .getOrDefault(user.getId(), List.of());
-                user.setHqMemberships(userMemberships);
-            }
-        }
-
-        return usersPage;
+        return userQueryRepository.findUsersByOrganization(organizationId, status, search, page - 1, size, sort);
     }
 }

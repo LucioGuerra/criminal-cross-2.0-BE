@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -230,7 +231,7 @@ class UserResourceUnitTest {
         }
     }
 
-    private static class StubUserDtoMapper implements UserDtoMapper {
+    private static class StubUserDtoMapper extends UserDtoMapper {
         @Override
         public UserResponseDto toResponseDto(User user) {
             return UserResponseDto.builder()
@@ -240,7 +241,7 @@ class UserResourceUnitTest {
                     .name(user.getName())
                     .lastName(user.getLastName())
                     .roles(user.getRoles())
-                    .headquartersIds(user.getHeadquartersIds())
+                    .headquarters(List.of())
                     .active(user.getActive())
                     .build();
         }

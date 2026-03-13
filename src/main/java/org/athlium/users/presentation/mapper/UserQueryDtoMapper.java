@@ -2,7 +2,10 @@ package org.athlium.users.presentation.mapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import org.athlium.users.domain.model.UserHqMembership;
 import org.athlium.users.domain.model.UserWithPackageStatus;
+import org.athlium.users.infrastructure.dto.UserHeadquartersDto;
+import org.athlium.users.infrastructure.dto.UserOrganizationDto;
 import org.athlium.users.infrastructure.dto.UserResponseDto;
 
 import java.util.ArrayList;
@@ -22,7 +25,7 @@ public class UserQueryDtoMapper {
                 .lastName(domain.getLastName())
                 .email(domain.getEmail())
                 .roles(domain.getRoles())
-                .headquartersIds(domain.getHeadquartersIds())
+                .headquarters(toHeadquartersDtos(domain.getHqMemberships()))
                 .active(domain.getActive())
                 .packageStatus(domain.getPackageStatus() != null ? domain.getPackageStatus().name() : null)
                 .periodEnd(domain.getPeriodEnd())
@@ -40,5 +43,24 @@ public class UserQueryDtoMapper {
             responses.add(toResponse(domain));
         }
         return responses;
+    }
+
+    private List<UserHeadquartersDto> toHeadquartersDtos(List<UserHqMembership> memberships) {
+        if (memberships == null || memberships.isEmpty()) {
+            return List.of();
+        }
+
+        List<UserHeadquartersDto> headquarters = new ArrayList<>();
+        for (UserHqMembership membership : memberships) {
+            headquarters.add(UserHeadquartersDto.builder()
+                    .id(membership.getHqId())
+                    .name(membership.getHqName())
+                    .organization(UserOrganizationDto.builder()
+                            .id(membership.getOrganizationId())
+                            .name(membership.getOrganizationName())
+                            .build())
+                    .build());
+        }
+        return headquarters;
     }
 }

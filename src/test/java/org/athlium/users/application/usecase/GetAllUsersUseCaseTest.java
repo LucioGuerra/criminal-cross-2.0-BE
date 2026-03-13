@@ -131,7 +131,7 @@ class GetAllUsersUseCaseTest {
         }
 
         @Override
-        public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds, Long organizationId) {
+        public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds) {
             return List.of();
         }
 

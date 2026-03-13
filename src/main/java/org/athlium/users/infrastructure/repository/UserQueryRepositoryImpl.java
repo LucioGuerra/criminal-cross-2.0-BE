@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class UserQueryRepositoryImpl implements UserQueryRepository {
@@ -158,10 +159,13 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
 
         if (!userIds.isEmpty()) {
             Map<Long, Set<Role>> rolesMap = fetchRolesForUsers(userIds);
-            Map<Long, Set<Long>> headquartersMap = fetchHeadquartersForUsers(userIds);
+            List<UserHqMembership> memberships = findHqMembershipsByUserIds(userIds);
+            Map<Long, List<UserHqMembership>> membershipsMap = groupMembershipsByUserId(memberships);
             for (UserWithPackageStatus user : users) {
                 user.setRoles(rolesMap.getOrDefault(user.getId(), Collections.emptySet()));
-                user.setHeadquartersIds(headquartersMap.getOrDefault(user.getId(), Collections.emptySet()));
+                List<UserHqMembership> userMemberships = membershipsMap.getOrDefault(user.getId(), List.of());
+                user.setHqMemberships(userMemberships);
+                user.setHeadquartersIds(extractHeadquartersIds(userMemberships));
             }
         }
 
@@ -290,10 +294,13 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
 
         if (!userIds.isEmpty()) {
             Map<Long, Set<Role>> rolesMap = fetchRolesForUsers(userIds);
-            Map<Long, Set<Long>> headquartersMap = fetchHeadquartersForUsers(userIds);
+            List<UserHqMembership> memberships = findHqMembershipsByUserIds(userIds);
+            Map<Long, List<UserHqMembership>> membershipsMap = groupMembershipsByUserId(memberships);
             for (UserWithPackageStatus user : users) {
                 user.setRoles(rolesMap.getOrDefault(user.getId(), Collections.emptySet()));
-                user.setHeadquartersIds(headquartersMap.getOrDefault(user.getId(), Collections.emptySet()));
+                List<UserHqMembership> userMemberships = membershipsMap.getOrDefault(user.getId(), List.of());
+                user.setHqMemberships(userMemberships);
+                user.setHeadquartersIds(extractHeadquartersIds(userMemberships));
             }
         }
 
@@ -301,52 +308,22 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
     }
 
     @Override
-    public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds, Long organizationId) {
+    public List<UserHqMembership> findHqMembershipsByUserIds(List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
             return Collections.emptyList();
         }
 
         String sql = """
-                WITH user_hq_packages AS (
-                    SELECT u.id AS user_id, h.id AS hq_id, h.name AS hq_name,
-                           cp.period_end,
-                           CASE
-                               WHEN cp.active = false THEN 3
-                               WHEN cp.period_end < CURRENT_DATE THEN 3
-                               WHEN cp.period_end <= CURRENT_DATE + 3 THEN 2
-                               ELSE 1
-                           END AS status_rank,
-                           CASE
-                               WHEN cp.active = false THEN 'INACTIVE'
-                               WHEN cp.period_end < CURRENT_DATE THEN 'INACTIVE'
-                               WHEN cp.period_end <= CURRENT_DATE + 3 THEN 'EXPIRING'
-                               ELSE 'ACTIVE'
-                           END AS package_status
-                    FROM users u
-                    JOIN client_packages cp ON cp.user_id = u.id
-                    JOIN client_package_credits cpc ON cpc.package_id = cp.id
-                    JOIN activity a ON a.id = cpc.activity_id
-                    JOIN headquarters h ON h.id = a.hq_id
-                    WHERE h.organization_id = :orgId AND u.id IN (:userIds)
-                ),
-                best_hq_status AS (
-                    SELECT user_id, hq_id, hq_name,
-                           package_status, period_end,
-                           (period_end - CURRENT_DATE) AS days_remaining,
-                           ROW_NUMBER() OVER (
-                               PARTITION BY user_id, hq_id
-                               ORDER BY status_rank ASC, period_end DESC
-                           ) AS rn
-                    FROM user_hq_packages
-                )
-                SELECT user_id, hq_id, hq_name, package_status, period_end, days_remaining
-                FROM best_hq_status
-                WHERE rn = 1
-                ORDER BY user_id, hq_name
+                SELECT uh.user_id, h.id AS hq_id, h.name AS hq_name,
+                       o.id AS organization_id, o.name AS organization_name
+                FROM user_headquarters uh
+                JOIN headquarters h ON h.id = uh.headquarters_id
+                JOIN organizations o ON o.id = h.organization_id
+                WHERE uh.user_id IN (:userIds)
+                ORDER BY uh.user_id, h.name
                 """;
 
         Query query = em.createNativeQuery(sql);
-        query.setParameter("orgId", organizationId);
         query.setParameter("userIds", userIds);
 
         @SuppressWarnings("unchecked")
@@ -480,10 +457,13 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
 
         if (!userIds.isEmpty()) {
             Map<Long, Set<Role>> rolesMap = fetchRolesForUsers(userIds);
-            Map<Long, Set<Long>> headquartersMap = fetchHeadquartersForUsers(userIds);
+            List<UserHqMembership> memberships = findHqMembershipsByUserIds(userIds);
+            Map<Long, List<UserHqMembership>> membershipsMap = groupMembershipsByUserId(memberships);
             for (UserWithPackageStatus user : users) {
                 user.setRoles(rolesMap.getOrDefault(user.getId(), Collections.emptySet()));
-                user.setHeadquartersIds(headquartersMap.getOrDefault(user.getId(), Collections.emptySet()));
+                List<UserHqMembership> userMemberships = membershipsMap.getOrDefault(user.getId(), List.of());
+                user.setHqMemberships(userMemberships);
+                user.setHeadquartersIds(extractHeadquartersIds(userMemberships));
             }
         }
 
@@ -545,8 +525,9 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
 
         Map<Long, Set<Role>> rolesMap = fetchRolesForUsers(List.of(userId));
         user.setRoles(rolesMap.getOrDefault(userId, Collections.emptySet()));
-        Map<Long, Set<Long>> headquartersMap = fetchHeadquartersForUsers(List.of(userId));
-        user.setHeadquartersIds(headquartersMap.getOrDefault(userId, Collections.emptySet()));
+        List<UserHqMembership> memberships = findHqMembershipsByUserIds(List.of(userId));
+        user.setHqMemberships(memberships);
+        user.setHeadquartersIds(extractHeadquartersIds(memberships));
 
         return user;
     }
@@ -571,10 +552,23 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
         membership.setUserId(((Number) row[0]).longValue());
         membership.setHqId(((Number) row[1]).longValue());
         membership.setHqName((String) row[2]);
-        membership.setPackageStatus(PackageStatus.valueOf((String) row[3]));
-        membership.setPeriodEnd(row[4] != null ? ((java.sql.Date) row[4]).toLocalDate() : null);
-        membership.setDaysRemaining(row[5] != null ? ((Number) row[5]).intValue() : null);
+        membership.setOrganizationId(((Number) row[3]).longValue());
+        membership.setOrganizationName((String) row[4]);
         return membership;
+    }
+
+    private Map<Long, List<UserHqMembership>> groupMembershipsByUserId(List<UserHqMembership> memberships) {
+        Map<Long, List<UserHqMembership>> grouped = new HashMap<>();
+        for (UserHqMembership membership : memberships) {
+            grouped.computeIfAbsent(membership.getUserId(), ignored -> new ArrayList<>()).add(membership);
+        }
+        return grouped;
+    }
+
+    private Set<Long> extractHeadquartersIds(List<UserHqMembership> memberships) {
+        return memberships.stream()
+                .map(UserHqMembership::getHqId)
+                .collect(Collectors.toSet());
     }
 
     private Map<Long, Set<Role>> fetchRolesForUsers(List<Long> userIds) {
@@ -597,28 +591,6 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
         }
 
         return rolesMap;
-    }
-
-    private Map<Long, Set<Long>> fetchHeadquartersForUsers(List<Long> userIds) {
-        if (userIds.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        String sql = "SELECT uh.user_id, uh.headquarters_id FROM user_headquarters uh WHERE uh.user_id IN (:userIds)";
-        Query query = em.createNativeQuery(sql);
-        query.setParameter("userIds", userIds);
-
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = query.getResultList();
-        Map<Long, Set<Long>> headquartersMap = new HashMap<>();
-
-        for (Object[] row : rows) {
-            Long userId = ((Number) row[0]).longValue();
-            Long headquartersId = ((Number) row[1]).longValue();
-            headquartersMap.computeIfAbsent(userId, k -> new HashSet<>()).add(headquartersId);
-        }
-
-        return headquartersMap;
     }
 
     private String buildSortClause(String sort) {

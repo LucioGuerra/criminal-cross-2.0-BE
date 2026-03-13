@@ -6,6 +6,7 @@ import lombok.Getter;
 import org.athlium.users.domain.model.Role;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -18,7 +19,7 @@ public class UserResponseDto {
     private String email;
     private String firebaseUid;
     private Set<Role> roles;
-    private Set<Long> headquartersIds;
+    private List<UserHeadquartersDto> headquarters;
     private Boolean active;
     private String packageStatus;
     private LocalDate periodEnd;
