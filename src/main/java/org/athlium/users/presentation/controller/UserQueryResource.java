@@ -50,7 +50,7 @@ public class UserQueryResource {
     @GET
     public Response getUsers(
             @QueryParam("headquartersId") Long headquartersId,
-            @QueryParam("hq") Long hq,
+            @QueryParam("headquartetsId") Long headquartetsId,
             @QueryParam("organizationId") Long organizationId,
             @QueryParam("status") String status,
             @QueryParam("search") String search,
@@ -59,13 +59,13 @@ public class UserQueryResource {
             @DefaultValue("name:asc") @QueryParam("sort") String sort) {
 
         try {
-            if (headquartersId != null && hq != null && !headquartersId.equals(hq)) {
+            if (headquartersId != null && headquartetsId != null && !headquartersId.equals(headquartetsId)) {
                 return Response.status(Response.Status.BAD_REQUEST)
-                        .entity(ApiResponse.error("Query params headquartersId and hq must match when both are provided"))
+                        .entity(ApiResponse.error("Query params headquartersId and headquartetsId must match when both are provided"))
                         .build();
             }
 
-            Long effectiveHeadquartersId = headquartersId != null ? headquartersId : hq;
+            Long effectiveHeadquartersId = headquartersId != null ? headquartersId : headquartetsId;
 
             if (effectiveHeadquartersId != null && organizationId != null) {
                 return Response.status(Response.Status.BAD_REQUEST)

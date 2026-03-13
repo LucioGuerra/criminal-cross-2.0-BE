@@ -226,7 +226,7 @@ class UserManagementE2ETest {
     }
 
     @Test
-    void shouldFilterUsersByHqAlias() {
+    void shouldFilterUsersByHeadquartetsIdAlias() {
         ensureUserHeadquartersMembership(1001L, 100L);
 
         given()
@@ -239,7 +239,7 @@ class UserManagementE2ETest {
 
         given()
                 .header("Authorization", bearer(ADMIN_TOKEN))
-                .queryParam("hq", 100L)
+                .queryParam("headquartetsId", 100L)
                 .when()
                 .get("/api/users")
                 .then()

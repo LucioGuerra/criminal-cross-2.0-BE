@@ -75,7 +75,7 @@ class UserQueryResourceUnitTest {
     }
 
     @Test
-    void shouldReturn200WithUsersFilteredByHqAlias() {
+    void shouldReturn200WithUsersFilteredByHeadquartetsIdAlias() {
         hqUseCase.setResult(new PageResponse<>(
                 List.of(createTestUser(1L, "Alice")), 0, 20, 1));
 
@@ -88,13 +88,13 @@ class UserQueryResourceUnitTest {
     }
 
     @Test
-    void shouldReturn400WhenHeadquartersIdAndHqDiffer() {
+    void shouldReturn400WhenHeadquartersIdAndHeadquartetsIdDiffer() {
         Response response = resource.getUsers(1L, 2L, null, null, null, 1, 20, "name:asc");
 
         assertEquals(400, response.getStatus());
         ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
         assertFalse(body.isSuccess());
-        assertEquals("Query params headquartersId and hq must match when both are provided", body.getMessage());
+        assertEquals("Query params headquartersId and headquartetsId must match when both are provided", body.getMessage());
     }
 
     @Test
