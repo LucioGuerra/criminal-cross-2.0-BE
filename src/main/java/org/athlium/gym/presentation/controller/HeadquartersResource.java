@@ -19,6 +19,7 @@ import org.athlium.gym.application.usecase.GetActivitiesUseCase;
 import org.athlium.gym.application.usecase.GetAllHeadquartersUseCase;
 import org.athlium.gym.application.usecase.GetHeadquartersByOrganizationUseCase;
 import org.athlium.gym.application.usecase.GetHeadquartersUseCase;
+import org.athlium.gym.application.usecase.GetOrganizationUseCase;
 import org.athlium.gym.application.usecase.GetSessionsUseCase;
 import org.athlium.gym.domain.model.Headquarters;
 import org.athlium.gym.application.usecase.UpdateHeadquartersUseCase;
@@ -52,6 +53,9 @@ public class HeadquartersResource {
 
     @Inject
     GetHeadquartersByOrganizationUseCase getHeadquartersByOrganizationUseCase;
+
+    @Inject
+    GetOrganizationUseCase getOrganizationUseCase;
 
     @Inject
     GetActivitiesUseCase getActivitiesUseCase;
@@ -99,6 +103,15 @@ public class HeadquartersResource {
 
     private HeadquartersResponse toResponseWithActivitiesAndSessions(Headquarters headquarters) {
         HeadquartersResponse response = mapper.toResponse(headquarters);
+
+        // Fetch and set organization details
+        try {
+            var organization = getOrganizationUseCase.execute(headquarters.getOrganizationId());
+            response.setOrganization(mapper.toOrganizationResponse(organization));
+        } catch (Exception e) {
+            // If organization not found, set organizationId only
+            // The response already has organizationId from the mapper
+        }
 
         List<org.athlium.gym.domain.model.Activity> activities =
                 getActivitiesUseCase.executeAllByHeadquarter(headquarters.getId(), null);

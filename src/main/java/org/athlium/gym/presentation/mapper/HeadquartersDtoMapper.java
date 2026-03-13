@@ -1,7 +1,9 @@
 package org.athlium.gym.presentation.mapper;
 
 import org.athlium.gym.domain.model.Headquarters;
+import org.athlium.gym.domain.model.Organization;
 import org.athlium.gym.presentation.dto.HeadquartersInput;
+import org.athlium.gym.presentation.dto.HeadquartersOrganizationResponse;
 import org.athlium.gym.presentation.dto.HeadquartersResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -15,4 +17,8 @@ public interface HeadquartersDtoMapper {
 
     @Mapping(target = "organization", ignore = true)
     HeadquartersResponse toResponse(Headquarters domain);
+
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "name", target = "name")
+    HeadquartersOrganizationResponse toOrganizationResponse(Organization organization);
 }

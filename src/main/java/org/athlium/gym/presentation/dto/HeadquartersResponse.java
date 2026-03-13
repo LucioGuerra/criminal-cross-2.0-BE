@@ -14,5 +14,5 @@ public class HeadquartersResponse {
 
     private List<ActivityResponse> activities;
 
-    private OrganizationResponse organization;
+    private HeadquartersOrganizationResponse organization;
 }

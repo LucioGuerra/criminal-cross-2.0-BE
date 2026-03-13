@@ -18,11 +18,14 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 class HeadquartersResourceE2ETest {
@@ -62,7 +65,7 @@ class HeadquartersResourceE2ETest {
         Long activityId = createActivity(headquartersId, "Crossfit", "Intense class");
         createSession(organizationId, headquartersId, activityId, Instant.parse("2026-03-20T10:00:00Z"));
 
-        given()
+        JsonPath response = given()
                 .header("Authorization", bearer(CLIENT_TOKEN))
                 .when()
                 .get("/api/headquarters")
@@ -71,7 +74,15 @@ class HeadquartersResourceE2ETest {
                 .body("success", equalTo(true))
                 .body("data.size()", greaterThanOrEqualTo(1))
                 .body("data[0].activities.size()", greaterThanOrEqualTo(1))
-                .body("data[0].activities[0].sessions.size()", greaterThanOrEqualTo(1));
+                .body("data[0].activities[0].sessions.size()", greaterThanOrEqualTo(1))
+                .extract()
+                .jsonPath();
+
+        Map<String, Object> organization = response.getMap("data[0].organization");
+        assertNotNull(organization);
+        assertEquals(Set.of("id", "name"), organization.keySet());
+        assertEquals(organizationId.intValue(), organization.get("id"));
+        assertEquals("Org For HQ List", organization.get("name"));
     }
 
     @Test
@@ -81,7 +92,7 @@ class HeadquartersResourceE2ETest {
         Long activityId = createActivity(headquartersId, "Pilates", "Core");
         createSession(organizationId, headquartersId, activityId, Instant.parse("2026-03-20T11:00:00Z"));
 
-        given()
+        JsonPath response = given()
                 .header("Authorization", bearer(CLIENT_TOKEN))
                 .when()
                 .get("/api/headquarters/{id}", headquartersId)
@@ -91,7 +102,15 @@ class HeadquartersResourceE2ETest {
                 .body("data.id", equalTo(headquartersId.intValue()))
                 .body("data.name", equalTo("HQ Detail For Client"))
                 .body("data.activities.size()", greaterThanOrEqualTo(1))
-                .body("data.activities[0].sessions.size()", greaterThanOrEqualTo(1));
+                .body("data.activities[0].sessions.size()", greaterThanOrEqualTo(1))
+                .extract()
+                .jsonPath();
+
+        Map<String, Object> organization = response.getMap("data.organization");
+        assertNotNull(organization);
+        assertEquals(Set.of("id", "name"), organization.keySet());
+        assertEquals(organizationId.intValue(), organization.get("id"));
+        assertEquals("Org For HQ Detail", organization.get("name"));
     }
 
     @Transactional

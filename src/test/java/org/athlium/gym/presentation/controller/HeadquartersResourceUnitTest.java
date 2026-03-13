@@ -4,12 +4,15 @@ import jakarta.ws.rs.core.Response;
 import org.athlium.gym.application.usecase.GetActivitiesUseCase;
 import org.athlium.gym.application.usecase.GetAllHeadquartersUseCase;
 import org.athlium.gym.application.usecase.GetHeadquartersUseCase;
+import org.athlium.gym.application.usecase.GetOrganizationUseCase;
 import org.athlium.gym.application.usecase.GetSessionsUseCase;
 import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.domain.model.Headquarters;
+import org.athlium.gym.domain.model.Organization;
 import org.athlium.gym.domain.model.SessionInstance;
 import org.athlium.gym.presentation.dto.ActivityResponse;
 import org.athlium.gym.presentation.dto.HeadquartersInput;
+import org.athlium.gym.presentation.dto.HeadquartersOrganizationResponse;
 import org.athlium.gym.presentation.dto.HeadquartersResponse;
 import org.athlium.gym.presentation.dto.SessionResponse;
 import org.athlium.gym.presentation.mapper.ActivityDtoMapper;
@@ -32,6 +35,7 @@ class HeadquartersResourceUnitTest {
     private HeadquartersResource resource;
     private StubGetAllHeadquartersUseCase getAllHeadquartersUseCase;
     private StubGetHeadquartersUseCase getHeadquartersUseCase;
+    private StubGetOrganizationUseCase getOrganizationUseCase;
     private StubGetActivitiesUseCase getActivitiesUseCase;
     private StubGetSessionsUseCase getSessionsUseCase;
 
@@ -41,11 +45,13 @@ class HeadquartersResourceUnitTest {
 
         getAllHeadquartersUseCase = new StubGetAllHeadquartersUseCase();
         getHeadquartersUseCase = new StubGetHeadquartersUseCase();
+        getOrganizationUseCase = new StubGetOrganizationUseCase();
         getActivitiesUseCase = new StubGetActivitiesUseCase();
         getSessionsUseCase = new StubGetSessionsUseCase();
 
         resource.getAllHeadquartersUseCase = getAllHeadquartersUseCase;
         resource.getHeadquartersUseCase = getHeadquartersUseCase;
+        resource.getOrganizationUseCase = getOrganizationUseCase;
         resource.getActivitiesUseCase = getActivitiesUseCase;
         resource.getSessionsUseCase = getSessionsUseCase;
         resource.mapper = new StubHeadquartersDtoMapper();
@@ -57,6 +63,9 @@ class HeadquartersResourceUnitTest {
     void shouldIncludeActivitiesAndSessionsWhenListingHeadquarters() {
         Headquarters headquarters = Headquarters.builder().id(10L).organizationId(1L).name("HQ A").build();
         getAllHeadquartersUseCase.response = List.of(headquarters);
+
+        Organization organization = Organization.builder().id(1L).name("Test Organization").build();
+        getOrganizationUseCase.response = organization;
 
         Activity activity = Activity.builder().id(100L).name("Yoga").description("Morning").hqId(10L).build();
         getActivitiesUseCase.response = List.of(activity);
@@ -78,12 +87,18 @@ class HeadquartersResourceUnitTest {
         assertEquals("Yoga", item.getActivities().get(0).getName());
         assertEquals(1, item.getActivities().get(0).getSessions().size());
         assertEquals(1000L, item.getActivities().get(0).getSessions().get(0).getId());
+        assertNotNull(item.getOrganization());
+        assertEquals(1L, item.getOrganization().getId());
+        assertEquals("Test Organization", item.getOrganization().getName());
     }
 
     @Test
     void shouldIncludeActivitiesAndSessionsWhenGettingHeadquartersById() {
         Headquarters headquarters = Headquarters.builder().id(11L).organizationId(1L).name("HQ B").build();
         getHeadquartersUseCase.response = headquarters;
+
+        Organization organization = Organization.builder().id(1L).name("Test Organization").build();
+        getOrganizationUseCase.response = organization;
 
         Activity activity = Activity.builder().id(200L).name("Pilates").description("Core").hqId(11L).build();
         getActivitiesUseCase.response = List.of(activity);
@@ -102,6 +117,9 @@ class HeadquartersResourceUnitTest {
         assertEquals(1, item.getActivities().size());
         assertEquals(1, item.getActivities().get(0).getSessions().size());
         assertEquals(2000L, item.getActivities().get(0).getSessions().get(0).getId());
+        assertNotNull(item.getOrganization());
+        assertEquals(1L, item.getOrganization().getId());
+        assertEquals("Test Organization", item.getOrganization().getName());
     }
 
     private static class StubGetAllHeadquartersUseCase extends GetAllHeadquartersUseCase {
@@ -118,6 +136,15 @@ class HeadquartersResourceUnitTest {
 
         @Override
         public Headquarters execute(Long id) {
+            return response;
+        }
+    }
+
+    private static class StubGetOrganizationUseCase extends GetOrganizationUseCase {
+        Organization response;
+
+        @Override
+        public Organization execute(Long id) {
             return response;
         }
     }
@@ -166,6 +193,14 @@ class HeadquartersResourceUnitTest {
             response.setId(domain.getId());
             response.setOrganizationId(domain.getOrganizationId());
             response.setName(domain.getName());
+            return response;
+        }
+
+        @Override
+        public HeadquartersOrganizationResponse toOrganizationResponse(Organization organization) {
+            HeadquartersOrganizationResponse response = new HeadquartersOrganizationResponse();
+            response.setId(organization.getId());
+            response.setName(organization.getName());
             return response;
         }
     }
