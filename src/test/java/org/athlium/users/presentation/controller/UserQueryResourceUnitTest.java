@@ -75,6 +75,29 @@ class UserQueryResourceUnitTest {
     }
 
     @Test
+    void shouldReturn200WithUsersFilteredByHqAlias() {
+        hqUseCase.setResult(new PageResponse<>(
+                List.of(createTestUser(1L, "Alice")), 0, 20, 1));
+
+        Response response = resource.getUsers(null, 1L, null, null, null, 1, 20, "name:asc");
+
+        assertEquals(200, response.getStatus());
+        assertTrue(hqUseCase.executeCalled);
+        assertFalse(orgUseCase.executeCalled);
+        assertFalse(allUsersUseCase.executeCalled);
+    }
+
+    @Test
+    void shouldReturn400WhenHeadquartersIdAndHqDiffer() {
+        Response response = resource.getUsers(1L, 2L, null, null, null, 1, 20, "name:asc");
+
+        assertEquals(400, response.getStatus());
+        ApiResponse<?> body = (ApiResponse<?>) response.getEntity();
+        assertFalse(body.isSuccess());
+        assertEquals("Query params headquartersId and hq must match when both are provided", body.getMessage());
+    }
+
+    @Test
     void shouldReturn200WithUsersFilteredByOrg() {
         orgUseCase.setResult(new PageResponse<>(
                 List.of(createTestUser(2L, "Bob")), 0, 20, 1));

@@ -50,6 +50,7 @@ public class UserQueryResource {
     @GET
     public Response getUsers(
             @QueryParam("headquartersId") Long headquartersId,
+            @QueryParam("hq") Long hq,
             @QueryParam("organizationId") Long organizationId,
             @QueryParam("status") String status,
             @QueryParam("search") String search,
@@ -58,7 +59,15 @@ public class UserQueryResource {
             @DefaultValue("name:asc") @QueryParam("sort") String sort) {
 
         try {
-            if (headquartersId != null && organizationId != null) {
+            if (headquartersId != null && hq != null && !headquartersId.equals(hq)) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ApiResponse.error("Query params headquartersId and hq must match when both are provided"))
+                        .build();
+            }
+
+            Long effectiveHeadquartersId = headquartersId != null ? headquartersId : hq;
+
+            if (effectiveHeadquartersId != null && organizationId != null) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(ApiResponse.error("Cannot filter by both headquartersId and organizationId"))
                         .build();
@@ -66,8 +75,8 @@ public class UserQueryResource {
 
             PageResponse<UserWithPackageStatus> usersPage;
 
-            if (headquartersId != null) {
-                usersPage = getUsersByHqUseCase.execute(headquartersId, status, search, page, size, sort);
+            if (effectiveHeadquartersId != null) {
+                usersPage = getUsersByHqUseCase.execute(effectiveHeadquartersId, status, search, page, size, sort);
             } else if (organizationId != null) {
                 usersPage = getUsersByOrgUseCase.execute(organizationId, status, search, page, size, sort);
             } else {
@@ -93,6 +102,17 @@ public class UserQueryResource {
                     .entity(ApiResponse.error("Unexpected error"))
                     .build();
         }
+    }
+
+    Response getUsers(
+            Long headquartersId,
+            Long organizationId,
+            String status,
+            String search,
+            int page,
+            int size,
+            String sort) {
+        return getUsers(headquartersId, null, organizationId, status, search, page, size, sort);
     }
 
     @GET

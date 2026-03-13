@@ -186,6 +186,31 @@ class UserManagementE2ETest {
     }
 
     @Test
+    void shouldFilterUsersByHqAlias() {
+        ensureUserHeadquartersMembership(1001L, 100L);
+
+        given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
+                .contentType("application/json")
+                .when()
+                .post("/api/users/firebase/{uid}/headquarters/{headquartersId}", TARGET_UID, 100L)
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
+                .queryParam("hq", 100L)
+                .when()
+                .get("/api/users")
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.totalElements", equalTo(2))
+                .body("data.content.email", hasItem("target@test.com"))
+                .body("data.content.email", not(hasItem("other-client@test.com")));
+    }
+
+    @Test
     void shouldFilterUsersByOrganizationThroughHeadquartersMembership() {
         ensureOrganizationAndHeadquarters(20L, 200L, "Org Two", "Sede Sur");
         ensureUserHeadquartersMembership(1001L, 100L);
