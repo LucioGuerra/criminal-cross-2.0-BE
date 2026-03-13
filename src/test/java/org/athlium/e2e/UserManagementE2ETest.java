@@ -121,6 +121,31 @@ class UserManagementE2ETest {
     }
 
     @Test
+    void shouldAllowOrgOwnerToAssignAndUnassignOtherUserInSameOrganization() {
+        ensureUserHeadquartersMembership(1004L, 100L);
+
+        given()
+                .header("Authorization", bearer(OWNER_TOKEN))
+                .contentType("application/json")
+                .when()
+                .post("/api/users/firebase/{uid}/headquarters/{headquartersId}", TARGET_UID, 100L)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.headquarters.id", hasItem(100));
+
+        given()
+                .header("Authorization", bearer(OWNER_TOKEN))
+                .contentType("application/json")
+                .when()
+                .delete("/api/users/firebase/{uid}/headquarters/{headquartersId}", TARGET_UID, 100L)
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.headquarters.id", not(hasItem(100)));
+    }
+
+    @Test
     void shouldAllowSelfAssignForRegularClient() {
         given()
                 .header("Authorization", bearer("users-target-e2e"))
@@ -140,6 +165,21 @@ class UserManagementE2ETest {
                 .contentType("application/json")
                 .when()
                 .post("/api/users/firebase/{uid}/headquarters/{headquartersId}", TARGET_UID, 100L)
+                .then()
+                .statusCode(403)
+                .body("success", equalTo(false))
+                .body("message", equalTo("Only headquarters admins, owners, or SUPERADMIN can update other users"));
+    }
+
+    @Test
+    void shouldForbidRemovingAnotherUserForRegularClient() {
+        ensureUserHeadquartersMembership(1002L, 100L);
+
+        given()
+                .header("Authorization", bearer(OTHER_CLIENT_TOKEN))
+                .contentType("application/json")
+                .when()
+                .delete("/api/users/firebase/{uid}/headquarters/{headquartersId}", TARGET_UID, 100L)
                 .then()
                 .statusCode(403)
                 .body("success", equalTo(false))
