@@ -186,6 +186,27 @@ class UserManagementE2ETest {
     }
 
     @Test
+    void shouldFilterUsersByOrganizationThroughHeadquartersMembership() {
+        ensureOrganizationAndHeadquarters(20L, 200L, "Org Two", "Sede Sur");
+        ensureUserHeadquartersMembership(1001L, 100L);
+        ensureUserHeadquartersMembership(1002L, 100L);
+        ensureUserHeadquartersMembership(1003L, 200L);
+
+        given()
+                .header("Authorization", bearer(ADMIN_TOKEN))
+                .queryParam("organizationId", 10L)
+                .when()
+                .get("/api/users")
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.totalElements", equalTo(2))
+                .body("data.content.email", hasItem("admin@test.com"))
+                .body("data.content.email", hasItem("target@test.com"))
+                .body("data.content.email", not(hasItem("other-client@test.com")));
+    }
+
+    @Test
     void shouldAllowOrgOwnerToListUsers() {
         given()
                 .header("Authorization", bearer(OWNER_TOKEN))
@@ -228,6 +249,20 @@ class UserManagementE2ETest {
                 .executeUpdate();
 
         entityManager.createNativeQuery("INSERT INTO headquarters (id, organization_id, name) VALUES (100, 10, 'Sede Centro') ON CONFLICT DO NOTHING")
+                .executeUpdate();
+    }
+
+    @Transactional
+    void ensureOrganizationAndHeadquarters(Long organizationId, Long headquartersId, String organizationName, String headquartersName) {
+        entityManager.createNativeQuery("INSERT INTO organizations (id, name) VALUES (?, ?) ON CONFLICT DO NOTHING")
+                .setParameter(1, organizationId)
+                .setParameter(2, organizationName)
+                .executeUpdate();
+
+        entityManager.createNativeQuery("INSERT INTO headquarters (id, organization_id, name) VALUES (?, ?, ?) ON CONFLICT DO NOTHING")
+                .setParameter(1, headquartersId)
+                .setParameter(2, organizationId)
+                .setParameter(3, headquartersName)
                 .executeUpdate();
     }
 
