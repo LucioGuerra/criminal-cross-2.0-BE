@@ -187,8 +187,18 @@ class CreateClientPackageUseCaseTest {
         }
 
         @Override
+        public Payment update(Payment payment) {
+            return payment;
+        }
+
+        @Override
         public Optional<Payment> findById(Long paymentId) {
             return payments.stream().filter(payment -> paymentId.equals(payment.getId())).findFirst();
+        }
+
+        @Override
+        public boolean deleteById(Long paymentId) {
+            return false;
         }
 
         @Override

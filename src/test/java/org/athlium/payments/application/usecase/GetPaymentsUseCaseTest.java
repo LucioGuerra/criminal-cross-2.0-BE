@@ -90,8 +90,18 @@ class GetPaymentsUseCaseTest {
         }
 
         @Override
+        public Payment update(Payment payment) {
+            return payment;
+        }
+
+        @Override
         public Optional<Payment> findById(Long paymentId) {
             return Optional.empty();
+        }
+
+        @Override
+        public boolean deleteById(Long paymentId) {
+            return false;
         }
 
         @Override

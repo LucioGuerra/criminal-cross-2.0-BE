@@ -12,6 +12,7 @@ import org.athlium.payments.domain.model.PaymentSearchCriteria;
 import org.athlium.payments.domain.repository.PaymentRepository;
 import org.athlium.payments.infrastructure.entity.PaymentEntity;
 import org.athlium.shared.domain.PageResponse;
+import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -27,6 +28,8 @@ import java.util.Set;
 
 @ApplicationScoped
 public class PaymentRepositoryImpl implements PaymentRepository {
+
+    private static final Logger LOG = Logger.getLogger(PaymentRepositoryImpl.class);
 
     @Inject
     PaymentPanacheRepository paymentPanacheRepository;
@@ -48,8 +51,29 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     }
 
     @Override
+    public Payment update(Payment payment) {
+        PaymentEntity entity = paymentPanacheRepository.findById(payment.getId());
+        if (entity == null) {
+            return null;
+        }
+
+        entity.amount = payment.getAmount();
+        entity.method = payment.getMethod();
+        entity.paidAt = payment.getPaidAt();
+        entity.clientId = payment.getClientId();
+        entity.headquartersId = payment.getHeadquartersId();
+        entity.organizationId = payment.getOrganizationId();
+        return toDomain(entity);
+    }
+
+    @Override
     public Optional<Payment> findById(Long paymentId) {
         return paymentPanacheRepository.findByIdOptional(paymentId).map(this::toDomain);
+    }
+
+    @Override
+    public boolean deleteById(Long paymentId) {
+        return paymentPanacheRepository.deleteById(paymentId);
     }
 
     @Override
@@ -186,7 +210,7 @@ public class PaymentRepositoryImpl implements PaymentRepository {
 
     private PaymentListItem mapRow(Object[] row) {
         Long id = ((Number) row[0]).longValue();
-        BigDecimal amount = (BigDecimal) row[1];
+        BigDecimal amount = toBigDecimal(row[1]);
         PaymentMethod paymentMethod = parsePaymentMethod(row[2]);
         LocalDate paidAt = parseLocalDate(row[3]);
         String userName = (String) row[4];
@@ -203,23 +227,30 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             return Map.of();
         }
 
-        Query query = em.createNativeQuery("""
-                SELECT cp.payment_id,
-                       a.id,
-                       a.name,
-                       a.description,
-                       a.is_active,
-                       a.hq_id
-                FROM client_packages cp
-                JOIN client_package_credits cpc ON cpc.package_id = cp.id
-                JOIN activity a ON a.id = cpc.activity_id
-                WHERE cp.payment_id IN (:paymentIds)
-                ORDER BY cp.payment_id, a.name
-                """);
-        query.setParameter("paymentIds", paymentIds);
+        List<Object[]> rows;
+        try {
+            Query query = em.createNativeQuery("""
+                    SELECT cp.payment_id,
+                           a.id,
+                           a.name,
+                           a.description,
+                           a.is_active,
+                           a.hq_id
+                    FROM client_packages cp
+                    JOIN client_package_credits cpc ON cpc.package_id = cp.id
+                    JOIN activity a ON a.id = cpc.activity_id
+                    WHERE cp.payment_id IN (:paymentIds)
+                    ORDER BY cp.payment_id, a.name
+                    """);
+            query.setParameter("paymentIds", paymentIds);
 
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = query.getResultList();
+            @SuppressWarnings("unchecked")
+            List<Object[]> resultRows = query.getResultList();
+            rows = resultRows;
+        } catch (RuntimeException ex) {
+            LOG.warn("Failed to fetch activities for payments list. Returning payments without activities.", ex);
+            return Map.of();
+        }
 
         Map<Long, List<Activity>> activitiesByPayment = new LinkedHashMap<>();
         Map<Long, Set<Long>> activityIdsByPayment = new LinkedHashMap<>();
@@ -259,12 +290,29 @@ public class PaymentRepositoryImpl implements PaymentRepository {
 
     private PaymentMethod parsePaymentMethod(Object value) {
         if (value == null) {
-            return null;
+            return PaymentMethod.OTHER;
         }
         if (value instanceof PaymentMethod paymentMethod) {
             return paymentMethod;
         }
-        return PaymentMethod.valueOf(value.toString().trim().toUpperCase());
+        try {
+            return PaymentMethod.valueOf(value.toString().trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return PaymentMethod.OTHER;
+        }
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal bigDecimal) {
+            return bigDecimal;
+        }
+        if (value instanceof Number number) {
+            return new BigDecimal(number.toString());
+        }
+        return new BigDecimal(value.toString());
     }
 
     private LocalDate parseLocalDate(Object value) {

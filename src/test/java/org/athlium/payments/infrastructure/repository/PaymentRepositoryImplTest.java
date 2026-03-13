@@ -185,6 +185,48 @@ class PaymentRepositoryImplTest {
         assertNull(item.getOrganizationId());
     }
 
+    @Test
+    void shouldFallbackToOtherPaymentMethodWhenDatabaseValueIsUnknown() {
+        QuerySpec countQuery = QuerySpec.forCount(1L);
+        QuerySpec dataQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+                14L,
+                new BigDecimal("20.00"),
+                "MERCADO_PAGO",
+                LocalDate.of(2026, 2, 1),
+                "Maria",
+                "Perez",
+                8L,
+                2L,
+                1L
+        }));
+        QuerySpec activitiesQuery = QuerySpec.forRows(List.of());
+
+        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, activitiesQuery));
+        PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
+        repository.em = fakeEntityManager.proxy();
+
+        PaymentSearchCriteria criteria = new PaymentSearchCriteria(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                20,
+                "paid_at",
+                false
+        );
+
+        var page = repository.findPayments(criteria);
+
+        assertEquals(1, page.getContent().size());
+        assertEquals(PaymentMethod.OTHER, page.getContent().getFirst().getPaymentMethod());
+    }
+
     private record QuerySpec(Object singleResult, List<Object[]> rows, Map<String, Object> params) {
 
         static QuerySpec forCount(Object singleResult) {

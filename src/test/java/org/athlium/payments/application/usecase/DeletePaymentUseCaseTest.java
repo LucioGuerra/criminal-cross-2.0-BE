@@ -14,19 +14,32 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class GetPaymentByIdUseCaseTest {
+class DeletePaymentUseCaseTest {
 
-    private GetPaymentByIdUseCase useCase;
+    private DeletePaymentUseCase useCase;
     private InMemoryPaymentRepository repository;
 
     @BeforeEach
     void setUp() {
-        useCase = new GetPaymentByIdUseCase();
+        useCase = new DeletePaymentUseCase();
         repository = new InMemoryPaymentRepository();
         useCase.paymentRepository = repository;
+    }
+
+    @Test
+    void shouldDeletePaymentById() {
+        repository.deleteResult = true;
+
+        useCase.execute(9L);
+
+        assertEquals(9L, repository.deletedId);
+    }
+
+    @Test
+    void shouldThrowWhenPaymentDoesNotExist() {
+        assertThrows(EntityNotFoundException.class, () -> useCase.execute(77L));
     }
 
     @Test
@@ -35,24 +48,9 @@ class GetPaymentByIdUseCaseTest {
         assertEquals("paymentId must be a positive number", exception.getMessage());
     }
 
-    @Test
-    void shouldThrowWhenPaymentDoesNotExist() {
-        assertThrows(EntityNotFoundException.class, () -> useCase.execute(33L));
-    }
-
-    @Test
-    void shouldReturnPaymentWhenExists() {
-        Payment expected = new Payment();
-        expected.setId(2L);
-        repository.payment = expected;
-
-        Payment result = useCase.execute(2L);
-
-        assertSame(expected, result);
-    }
-
     private static class InMemoryPaymentRepository implements PaymentRepository {
-        Payment payment;
+        Long deletedId;
+        boolean deleteResult;
 
         @Override
         public Payment save(Payment payment) {
@@ -66,15 +64,13 @@ class GetPaymentByIdUseCaseTest {
 
         @Override
         public Optional<Payment> findById(Long paymentId) {
-            if (payment != null && paymentId.equals(payment.getId())) {
-                return Optional.of(payment);
-            }
             return Optional.empty();
         }
 
         @Override
         public boolean deleteById(Long paymentId) {
-            return false;
+            this.deletedId = paymentId;
+            return deleteResult;
         }
 
         @Override

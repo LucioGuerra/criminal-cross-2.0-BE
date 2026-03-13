@@ -4,13 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.DefaultValue;
 import org.athlium.gym.domain.model.Activity;
 import org.athlium.payments.application.usecase.CreatePaymentUseCase;
+import org.athlium.payments.application.usecase.DeletePaymentUseCase;
 import org.athlium.payments.application.usecase.GetPaymentByIdUseCase;
 import org.athlium.payments.application.usecase.GetPaymentsUseCase;
+import org.athlium.payments.application.usecase.UpdatePaymentUseCase;
 import org.athlium.payments.domain.model.Payment;
 import org.athlium.payments.domain.model.PaymentListItem;
 import org.athlium.payments.domain.model.PaymentMethod;
 import org.athlium.payments.presentation.dto.CreatePaymentRequest;
 import org.athlium.payments.presentation.dto.PaymentListItemResponse;
+import org.athlium.payments.presentation.dto.UpdatePaymentRequest;
 import org.athlium.payments.presentation.mapper.PaymentDtoMapper;
 import org.athlium.shared.domain.PageResponse;
 import org.athlium.shared.dto.ApiResponse;
@@ -62,6 +65,8 @@ class PaymentResourceTest {
         resource.getPaymentsUseCase = getPaymentsUseCase;
         resource.getPaymentByIdUseCase = new GetPaymentByIdUseCase();
         resource.createPaymentUseCase = new CreatePaymentUseCase();
+        resource.updatePaymentUseCase = new UpdatePaymentUseCase();
+        resource.deletePaymentUseCase = new DeletePaymentUseCase();
         resource.paymentDtoMapper = new PaymentDtoMapper();
 
         var response = resource.getPayments("ana", null, null, null, null, null, null,
@@ -101,6 +106,8 @@ class PaymentResourceTest {
         resource.getPaymentsUseCase = getPaymentsUseCase;
         resource.getPaymentByIdUseCase = new GetPaymentByIdUseCase();
         resource.createPaymentUseCase = new CreatePaymentUseCase();
+        resource.updatePaymentUseCase = new UpdatePaymentUseCase();
+        resource.deletePaymentUseCase = new DeletePaymentUseCase();
         resource.paymentDtoMapper = new PaymentDtoMapper();
 
         var response = resource.getPayments(null, null, null, null, null, null, null,
@@ -133,6 +140,8 @@ class PaymentResourceTest {
         resource.getPaymentsUseCase = new GetPaymentsUseCase();
         resource.getPaymentByIdUseCase = getPaymentByIdUseCase;
         resource.createPaymentUseCase = new CreatePaymentUseCase();
+        resource.updatePaymentUseCase = new UpdatePaymentUseCase();
+        resource.deletePaymentUseCase = new DeletePaymentUseCase();
         resource.paymentDtoMapper = new PaymentDtoMapper();
 
         var response = resource.getPaymentById(11L);
@@ -156,6 +165,8 @@ class PaymentResourceTest {
         resource.getPaymentsUseCase = new GetPaymentsUseCase();
         resource.getPaymentByIdUseCase = getPaymentByIdUseCase;
         resource.createPaymentUseCase = new CreatePaymentUseCase();
+        resource.updatePaymentUseCase = new UpdatePaymentUseCase();
+        resource.deletePaymentUseCase = new DeletePaymentUseCase();
         resource.paymentDtoMapper = new PaymentDtoMapper();
 
         var response = resource.getPaymentById(404L);
@@ -225,6 +236,8 @@ class PaymentResourceTest {
         resource.createPaymentUseCase = createPaymentUseCase;
         resource.getPaymentsUseCase = new GetPaymentsUseCase();
         resource.getPaymentByIdUseCase = new GetPaymentByIdUseCase();
+        resource.updatePaymentUseCase = new UpdatePaymentUseCase();
+        resource.deletePaymentUseCase = new DeletePaymentUseCase();
         resource.paymentDtoMapper = new PaymentDtoMapper();
 
         CreatePaymentRequest request = new CreatePaymentRequest();
@@ -240,5 +253,109 @@ class PaymentResourceTest {
         ApiResponse<?> apiResponse = (ApiResponse<?>) response.getEntity();
         assertTrue(apiResponse.isSuccess());
         assertEquals("Payment created", apiResponse.getMessage());
+    }
+
+    @Test
+    void shouldDelegateGetPaymentsWithHeadquartersFilterAndPagination() {
+        CapturingGetPaymentsUseCase getPaymentsUseCase = new CapturingGetPaymentsUseCase();
+
+        PaymentResource resource = new PaymentResource();
+        resource.getPaymentsUseCase = getPaymentsUseCase;
+        resource.getPaymentByIdUseCase = new GetPaymentByIdUseCase();
+        resource.createPaymentUseCase = new CreatePaymentUseCase();
+        resource.updatePaymentUseCase = new UpdatePaymentUseCase();
+        resource.deletePaymentUseCase = new DeletePaymentUseCase();
+        resource.paymentDtoMapper = new PaymentDtoMapper();
+
+        var response = resource.getPayments(null, null, null, null, null, null, null,
+                3L, null, 2, 5, "paidAt:desc");
+
+        assertEquals(200, response.getStatus());
+        assertEquals(3L, getPaymentsUseCase.lastHeadquartersId);
+        assertEquals(2, getPaymentsUseCase.lastPage);
+        assertEquals(5, getPaymentsUseCase.lastSize);
+    }
+
+    @Test
+    void shouldUpdatePayment() {
+        UpdatePaymentUseCase updatePaymentUseCase = new UpdatePaymentUseCase() {
+            @Override
+            public Payment execute(Long paymentId, BigDecimal amount, String method, LocalDate paidAt,
+                    Long clientId, Long headquartersId, Long organizationId) {
+                Payment payment = new Payment();
+                payment.setId(paymentId);
+                payment.setAmount(amount);
+                payment.setMethod(PaymentMethod.valueOf(method));
+                payment.setPaidAt(paidAt);
+                payment.setClientId(clientId);
+                payment.setHeadquartersId(headquartersId);
+                payment.setOrganizationId(organizationId);
+                return payment;
+            }
+        };
+
+        PaymentResource resource = new PaymentResource();
+        resource.createPaymentUseCase = new CreatePaymentUseCase();
+        resource.getPaymentsUseCase = new GetPaymentsUseCase();
+        resource.getPaymentByIdUseCase = new GetPaymentByIdUseCase();
+        resource.updatePaymentUseCase = updatePaymentUseCase;
+        resource.deletePaymentUseCase = new DeletePaymentUseCase();
+        resource.paymentDtoMapper = new PaymentDtoMapper();
+
+        UpdatePaymentRequest request = new UpdatePaymentRequest();
+        request.setAmount(new BigDecimal("95.00"));
+        request.setPaymentMethod("CASH");
+        request.setPaidAt("2026-01-30");
+        request.setClientId(22L);
+        request.setHeadquartersId(3L);
+        request.setOrganizationId(1L);
+
+        var response = resource.updatePayment(11L, request);
+
+        assertEquals(200, response.getStatus());
+        ApiResponse<?> apiResponse = (ApiResponse<?>) response.getEntity();
+        assertTrue(apiResponse.isSuccess());
+        assertEquals("Payment updated", apiResponse.getMessage());
+    }
+
+    @Test
+    void shouldDeletePayment() {
+        DeletePaymentUseCase deletePaymentUseCase = new DeletePaymentUseCase() {
+            @Override
+            public void execute(Long paymentId) {
+                assertEquals(19L, paymentId);
+            }
+        };
+
+        PaymentResource resource = new PaymentResource();
+        resource.createPaymentUseCase = new CreatePaymentUseCase();
+        resource.getPaymentsUseCase = new GetPaymentsUseCase();
+        resource.getPaymentByIdUseCase = new GetPaymentByIdUseCase();
+        resource.updatePaymentUseCase = new UpdatePaymentUseCase();
+        resource.deletePaymentUseCase = deletePaymentUseCase;
+        resource.paymentDtoMapper = new PaymentDtoMapper();
+
+        var response = resource.deletePayment(19L);
+
+        assertEquals(200, response.getStatus());
+        ApiResponse<?> apiResponse = (ApiResponse<?>) response.getEntity();
+        assertTrue(apiResponse.isSuccess());
+        assertEquals("Payment deleted", apiResponse.getMessage());
+    }
+
+    private static class CapturingGetPaymentsUseCase extends GetPaymentsUseCase {
+        Long lastHeadquartersId;
+        int lastPage;
+        int lastSize;
+
+        @Override
+        public PageResponse<PaymentListItem> execute(String player, LocalDate paidAtFrom, LocalDate paidAtTo,
+                Long clientId, String paymentMethod, BigDecimal amountMin, BigDecimal amountMax,
+                Long headquartersId, Long organizationId, int page, int size, String sort) {
+            this.lastHeadquartersId = headquartersId;
+            this.lastPage = page;
+            this.lastSize = size;
+            return new PageResponse<>(List.of(), page - 1, size, 0);
+        }
     }
 }
