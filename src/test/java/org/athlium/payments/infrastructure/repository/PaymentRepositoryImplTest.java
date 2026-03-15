@@ -40,8 +40,11 @@ class PaymentRepositoryImplTest {
                 3L,
                 1L
         }));
-        QuerySpec activitiesQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+        QuerySpec packageQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
                 9L,
+                111L
+        }));
+        QuerySpec activitiesQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
                 111L,
                 21L,
                 "Yoga",
@@ -51,7 +54,8 @@ class PaymentRepositoryImplTest {
                 3
         }));
 
-        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, activitiesQuery));
+        FakeEntityManager fakeEntityManager = new FakeEntityManager(
+                List.of(countQuery, dataQuery, packageQuery, activitiesQuery));
         PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
         repository.em = fakeEntityManager.proxy();
 
@@ -95,11 +99,15 @@ class PaymentRepositoryImplTest {
 
         String countSql = fakeEntityManager.sqlStatements.getFirst();
         String dataSql = fakeEntityManager.sqlStatements.get(1);
+        String packageSql = fakeEntityManager.sqlStatements.get(2);
+        String activitiesSql = fakeEntityManager.sqlStatements.get(3);
         assertTrue(countSql.contains("LOWER(u.name) LIKE :player"));
         assertTrue(countSql.contains("p.client_id = :clientId"));
         assertTrue(countSql.contains("p.headquarters_id = :headquartersId"));
         assertTrue(countSql.contains("p.organization_id = :organizationId"));
         assertTrue(dataSql.contains("ORDER BY p.amount ASC, p.id DESC"));
+        assertTrue(packageSql.contains("FROM client_packages cp"));
+        assertTrue(activitiesSql.contains("FROM client_package_credits cpc"));
 
         assertEquals("%ana%", countQuery.params.get("player"));
         assertEquals(LocalDate.of(2026, 1, 1), countQuery.params.get("paidAtFrom"));
@@ -112,11 +120,12 @@ class PaymentRepositoryImplTest {
         assertEquals(1L, countQuery.params.get("organizationId"));
         assertEquals(5, dataQuery.params.get("size"));
         assertEquals(10, dataQuery.params.get("offset"));
-        assertEquals(9L, activitiesQuery.params.get("paymentId0"));
+        assertEquals(9L, packageQuery.params.get("paymentId0"));
+        assertEquals(111L, activitiesQuery.params.get("packageId0"));
     }
 
     @Test
-    void shouldPopulatePaidPackageWhenNativeListParameterBindingWouldFail() {
+    void shouldPopulatePaidPackageWhenWeeklyFrequencyColumnIsMissing() {
         QuerySpec countQuery = QuerySpec.forCount(1L);
         QuerySpec dataQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
                 9L,
@@ -129,19 +138,24 @@ class PaymentRepositoryImplTest {
                 3L,
                 1L
         }));
-        QuerySpec activitiesQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+        QuerySpec packageQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
                 9L,
-                111L,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
+                111L
         }));
-        activitiesQuery.disallowedParams.add("paymentIds");
+        QuerySpec failedWeeklyFrequencyQuery = QuerySpec.forRows(List.of());
+        failedWeeklyFrequencyQuery.failOnGetResultList = true;
+        QuerySpec activitiesQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+                111L,
+                22L,
+                "Pilates",
+                "Core and posture",
+                true,
+                3L,
+                4
+        }));
 
-        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, activitiesQuery));
+        FakeEntityManager fakeEntityManager = new FakeEntityManager(
+                List.of(countQuery, dataQuery, packageQuery, failedWeeklyFrequencyQuery, activitiesQuery));
         PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
         repository.em = fakeEntityManager.proxy();
 
@@ -166,7 +180,10 @@ class PaymentRepositoryImplTest {
         assertEquals(1, page.getContent().size());
         assertNotNull(page.getContent().getFirst().getPaidPackage());
         assertEquals(111L, page.getContent().getFirst().getPaidPackage().getId());
-        assertTrue(page.getContent().getFirst().getPaidPackage().getActivities().isEmpty());
+        assertEquals(1, page.getContent().getFirst().getPaidPackage().getActivities().size());
+        assertEquals(4, page.getContent().getFirst().getPaidPackage().getActivities().getFirst().getWeeklyFrequency());
+        assertEquals("Pilates",
+                page.getContent().getFirst().getPaidPackage().getActivities().getFirst().getActivity().getName());
     }
 
     @Test
@@ -215,9 +232,9 @@ class PaymentRepositoryImplTest {
                 null,
                 null
         }));
-        QuerySpec activitiesQuery = QuerySpec.forRows(List.of());
+        QuerySpec packageQuery = QuerySpec.forRows(List.of());
 
-        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, activitiesQuery));
+        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, packageQuery));
         PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
         repository.em = fakeEntityManager.proxy();
 
@@ -261,9 +278,9 @@ class PaymentRepositoryImplTest {
                 2L,
                 1L
         }));
-        QuerySpec activitiesQuery = QuerySpec.forRows(List.of());
+        QuerySpec packageQuery = QuerySpec.forRows(List.of());
 
-        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, activitiesQuery));
+        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, packageQuery));
         PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
         repository.em = fakeEntityManager.proxy();
 
@@ -289,8 +306,20 @@ class PaymentRepositoryImplTest {
         assertEquals(PaymentMethod.OTHER, page.getContent().getFirst().getPaymentMethod());
     }
 
-    private record QuerySpec(Object singleResult, List<Object[]> rows, Map<String, Object> params,
-            List<String> disallowedParams) {
+    private static class QuerySpec {
+        private final Object singleResult;
+        private final List<Object[]> rows;
+        private final Map<String, Object> params;
+        private final List<String> disallowedParams;
+        private boolean failOnGetResultList;
+
+        private QuerySpec(Object singleResult, List<Object[]> rows, Map<String, Object> params,
+                List<String> disallowedParams) {
+            this.singleResult = singleResult;
+            this.rows = rows;
+            this.params = params;
+            this.disallowedParams = disallowedParams;
+        }
 
         static QuerySpec forCount(Object singleResult) {
             return new QuerySpec(singleResult, List.of(), new HashMap<>(), new ArrayList<>());
@@ -342,6 +371,9 @@ class PaymentRepositoryImplTest {
                         return spec.singleResult;
                     }
                     case "getResultList" -> {
+                        if (spec.failOnGetResultList) {
+                            throw new RuntimeException("Result list unavailable for this query");
+                        }
                         return spec.rows;
                     }
                     default -> throw new UnsupportedOperationException("Unsupported Query method: " + method.getName());

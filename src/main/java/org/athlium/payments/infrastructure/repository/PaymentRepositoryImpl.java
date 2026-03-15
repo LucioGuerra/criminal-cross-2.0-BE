@@ -230,23 +230,37 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             return Map.of();
         }
 
+        Map<Long, Long> packageByPayment = findLatestPackageIdsByPaymentIds(paymentIds);
+        if (packageByPayment.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> packageIds = packageByPayment.values().stream().distinct().toList();
+        Map<Long, List<PaymentPackageActivity>> activitiesByPackage = findActivitiesByPackageIds(packageIds);
+
+        Map<Long, PaymentPackageInfo> packagesByPayment = new LinkedHashMap<>();
+        for (Long paymentId : paymentIds) {
+            Long packageId = packageByPayment.get(paymentId);
+            if (packageId == null) {
+                continue;
+            }
+            List<PaymentPackageActivity> activities = activitiesByPackage.getOrDefault(packageId, List.of());
+            packagesByPayment.put(paymentId, new PaymentPackageInfo(packageId, activities));
+        }
+
+        return packagesByPayment;
+    }
+
+    private Map<Long, Long> findLatestPackageIdsByPaymentIds(List<Long> paymentIds) {
         List<Object[]> rows;
         try {
             String paymentIdCondition = buildPaymentIdCondition(paymentIds.size());
             Query query = em.createNativeQuery("""
                     SELECT cp.payment_id,
-                           cp.id,
-                           a.id,
-                           a.name,
-                           a.description,
-                           a.is_active,
-                           a.hq_id,
-                           cpc.tokens
+                           cp.id
                     FROM client_packages cp
-                    LEFT JOIN client_package_credits cpc ON cpc.package_id = cp.id
-                    LEFT JOIN activity a ON a.id = cpc.activity_id
                     WHERE %s
-                    ORDER BY cp.payment_id, cp.id DESC, a.name
+                    ORDER BY cp.payment_id, cp.id DESC
                     """.formatted(paymentIdCondition));
             setPaymentIdParameters(query, paymentIds);
 
@@ -254,50 +268,105 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             List<Object[]> resultRows = query.getResultList();
             rows = resultRows;
         } catch (RuntimeException ex) {
-            LOG.warn("Failed to fetch package info for payments list. Returning payments without package details.", ex);
+            LOG.warn("Failed to fetch package ids for payments list. Returning payments without package details.", ex);
             return Map.of();
         }
+
+        Map<Long, Long> packageByPayment = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            Long paymentId = toLong(row[0]);
+            Long packageId = toLong(row[1]);
+            if (paymentId == null || packageId == null || packageByPayment.containsKey(paymentId)) {
+                continue;
+            }
+            packageByPayment.put(paymentId, packageId);
+        }
+        return packageByPayment;
+    }
+
+    private Map<Long, List<PaymentPackageActivity>> findActivitiesByPackageIds(List<Long> packageIds) {
+        if (packageIds == null || packageIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> weeklyFrequencyExpressions = List.of(
+                "cpc.weekly_frequency",
+                "cpc.tokens",
+                "NULL");
+
+        RuntimeException lastFailure = null;
+        for (String weeklyFrequencyExpression : weeklyFrequencyExpressions) {
+            try {
+                return queryActivitiesByPackageIds(packageIds, weeklyFrequencyExpression);
+            } catch (RuntimeException ex) {
+                lastFailure = ex;
+                LOG.debugf(ex,
+                        "Failed to fetch package activities with frequency expression '%s'. Trying fallback.",
+                        weeklyFrequencyExpression);
+            }
+        }
+
+        LOG.warn("Failed to fetch package activities for payments list. Returning paidPackage without activities.",
+                lastFailure);
+        return Map.of();
+    }
+
+    private Map<Long, List<PaymentPackageActivity>> queryActivitiesByPackageIds(List<Long> packageIds,
+            String weeklyFrequencyExpression) {
+        String packageIdCondition = buildPackageIdCondition(packageIds.size());
+        Query query = em.createNativeQuery("""
+                SELECT cpc.package_id,
+                       a.id,
+                       a.name,
+                       a.description,
+                       a.is_active,
+                       a.hq_id,
+                       %s AS weekly_frequency
+                FROM client_package_credits cpc
+                LEFT JOIN activity a ON a.id = cpc.activity_id
+                WHERE %s
+                ORDER BY cpc.package_id, a.name
+                """.formatted(weeklyFrequencyExpression, packageIdCondition));
+        setPackageIdParameters(query, packageIds);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
 
         Map<Long, PackageAccumulator> accumulators = new LinkedHashMap<>();
 
         for (Object[] row : rows) {
-            Long paymentId = ((Number) row[0]).longValue();
-            Long packageId = toLong(row[1]);
-            PackageAccumulator accumulator = accumulators.computeIfAbsent(paymentId,
-                    key -> new PackageAccumulator(packageId));
-
-            if (accumulator.packageId == null && packageId != null) {
-                accumulator.packageId = packageId;
-            }
-
-            if (accumulator.packageId != null && packageId != null && !accumulator.packageId.equals(packageId)) {
+            Long packageId = toLong(row[0]);
+            if (packageId == null) {
                 continue;
             }
 
-            Long activityId = toLong(row[2]);
+            PackageAccumulator accumulator = accumulators.computeIfAbsent(packageId,
+                    key -> new PackageAccumulator(packageId));
+
+            Long activityId = toLong(row[1]);
             if (activityId == null || accumulator.activityIds.contains(activityId)) {
                 continue;
             }
 
             Activity activity = new Activity();
             activity.setId(activityId);
-            activity.setName((String) row[3]);
-            activity.setDescription((String) row[4]);
-            activity.setIsActive(parseBoolean(row[5]));
-            activity.setHqId(toLong(row[6]));
+            activity.setName((String) row[2]);
+            activity.setDescription((String) row[3]);
+            activity.setIsActive(parseBoolean(row[4]));
+            activity.setHqId(toLong(row[5]));
 
-            PaymentPackageActivity packageActivity = new PaymentPackageActivity(activity, toInteger(row[7]));
+            PaymentPackageActivity packageActivity = new PaymentPackageActivity(activity, toInteger(row[6]));
             accumulator.activities.add(packageActivity);
             accumulator.activityIds.add(activityId);
         }
 
-        Map<Long, PaymentPackageInfo> packagesByPayment = new LinkedHashMap<>();
+        Map<Long, List<PaymentPackageActivity>> activitiesByPackage = new LinkedHashMap<>();
         for (Map.Entry<Long, PackageAccumulator> entry : accumulators.entrySet()) {
             PackageAccumulator value = entry.getValue();
-            packagesByPayment.put(entry.getKey(), new PaymentPackageInfo(value.packageId, value.activities));
+            activitiesByPackage.put(entry.getKey(), value.activities);
         }
 
-        return packagesByPayment;
+        return activitiesByPackage;
     }
 
     private String buildPaymentIdCondition(int size) {
@@ -319,6 +388,28 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     private void setPaymentIdParameters(Query query, List<Long> paymentIds) {
         for (int i = 0; i < paymentIds.size(); i++) {
             query.setParameter("paymentId" + i, paymentIds.get(i));
+        }
+    }
+
+    private String buildPackageIdCondition(int size) {
+        if (size == 1) {
+            return "cpc.package_id = :packageId0";
+        }
+
+        StringBuilder condition = new StringBuilder("cpc.package_id IN (");
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
+                condition.append(", ");
+            }
+            condition.append(":packageId").append(i);
+        }
+        condition.append(")");
+        return condition.toString();
+    }
+
+    private void setPackageIdParameters(Query query, List<Long> packageIds) {
+        for (int i = 0; i < packageIds.size(); i++) {
+            query.setParameter("packageId" + i, packageIds.get(i));
         }
     }
 
