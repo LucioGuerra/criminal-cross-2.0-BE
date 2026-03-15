@@ -5,7 +5,11 @@ import org.athlium.gym.domain.model.Activity;
 import org.athlium.gym.presentation.dto.ActivityResponse;
 import org.athlium.payments.domain.model.Payment;
 import org.athlium.payments.domain.model.PaymentListItem;
+import org.athlium.payments.domain.model.PaymentPackageActivity;
+import org.athlium.payments.domain.model.PaymentPackageInfo;
 import org.athlium.payments.presentation.dto.PaymentListItemResponse;
+import org.athlium.payments.presentation.dto.PaymentPackageActivityResponse;
+import org.athlium.payments.presentation.dto.PaymentPackageResponse;
 import org.athlium.payments.presentation.dto.PaymentResponse;
 
 import java.util.List;
@@ -38,6 +42,7 @@ public class PaymentDtoMapper {
         response.setUserName(payment.getUserName());
         response.setUserLastName(payment.getUserLastName());
         response.setActivities(toActivityResponseList(payment.getActivities()));
+        response.setPaidPackage(toPaidPackageResponse(payment.getPaidPackage()));
         response.setClientId(payment.getClientId());
         response.setHeadquartersId(payment.getHeadquartersId());
         response.setOrganizationId(payment.getOrganizationId());
@@ -50,13 +55,39 @@ public class PaymentDtoMapper {
         }
 
         return activities.stream().map(activity -> {
-            ActivityResponse response = new ActivityResponse();
-            response.setId(activity.getId());
-            response.setName(activity.getName());
-            response.setDescription(activity.getDescription());
-            response.setIsActive(activity.getIsActive());
-            response.setHqId(activity.getHqId());
-            return response;
+            return toActivityResponse(activity);
         }).toList();
+    }
+
+    private PaymentPackageResponse toPaidPackageResponse(PaymentPackageInfo paidPackage) {
+        if (paidPackage == null) {
+            return null;
+        }
+
+        PaymentPackageResponse response = new PaymentPackageResponse();
+        response.setId(paidPackage.getId());
+
+        List<PaymentPackageActivityResponse> activities = paidPackage.getActivities() == null
+                ? List.of()
+                : paidPackage.getActivities().stream().map(this::toPaidPackageActivityResponse).toList();
+        response.setActivities(activities);
+        return response;
+    }
+
+    private PaymentPackageActivityResponse toPaidPackageActivityResponse(PaymentPackageActivity paidActivity) {
+        PaymentPackageActivityResponse response = new PaymentPackageActivityResponse();
+        response.setActivity(toActivityResponse(paidActivity.getActivity()));
+        response.setWeeklyFrequency(paidActivity.getWeeklyFrequency());
+        return response;
+    }
+
+    private ActivityResponse toActivityResponse(Activity activity) {
+        ActivityResponse response = new ActivityResponse();
+        response.setId(activity.getId());
+        response.setName(activity.getName());
+        response.setDescription(activity.getDescription());
+        response.setIsActive(activity.getIsActive());
+        response.setHqId(activity.getHqId());
+        return response;
     }
 }

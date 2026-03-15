@@ -15,13 +15,14 @@ public class PaymentListItem {
     private final String userName;
     private final String userLastName;
     private final List<Activity> activities;
+    private final PaymentPackageInfo paidPackage;
     private final Long clientId;
     private final Long headquartersId;
     private final Long organizationId;
 
     public PaymentListItem(Long id, BigDecimal amount, PaymentMethod paymentMethod, LocalDate paidAt,
-            String userName, String userLastName, List<Activity> activities, Long clientId, Long headquartersId,
-            Long organizationId) {
+            String userName, String userLastName, List<Activity> activities, PaymentPackageInfo paidPackage,
+            Long clientId, Long headquartersId, Long organizationId) {
         this.id = id;
         this.amount = amount;
         this.paymentMethod = paymentMethod;
@@ -29,6 +30,7 @@ public class PaymentListItem {
         this.userName = userName;
         this.userLastName = userLastName;
         this.activities = activities;
+        this.paidPackage = paidPackage;
         this.clientId = clientId;
         this.headquartersId = headquartersId;
         this.organizationId = organizationId;
@@ -60,6 +62,10 @@ public class PaymentListItem {
 
     public List<Activity> getActivities() {
         return activities;
+    }
+
+    public PaymentPackageInfo getPaidPackage() {
+        return paidPackage;
     }
 
     public Long getClientId() {

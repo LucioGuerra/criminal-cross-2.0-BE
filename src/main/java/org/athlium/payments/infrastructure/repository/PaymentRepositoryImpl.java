@@ -8,6 +8,8 @@ import org.athlium.gym.domain.model.Activity;
 import org.athlium.payments.domain.model.Payment;
 import org.athlium.payments.domain.model.PaymentListItem;
 import org.athlium.payments.domain.model.PaymentMethod;
+import org.athlium.payments.domain.model.PaymentPackageActivity;
+import org.athlium.payments.domain.model.PaymentPackageInfo;
 import org.athlium.payments.domain.model.PaymentSearchCriteria;
 import org.athlium.payments.domain.repository.PaymentRepository;
 import org.athlium.payments.infrastructure.entity.PaymentEntity;
@@ -99,7 +101,7 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         List<PaymentListItem> items = rows.stream().map(this::mapRow).toList();
 
         List<Long> paymentIds = items.stream().map(PaymentListItem::getId).toList();
-        Map<Long, List<Activity>> activitiesByPayment = findActivitiesByPaymentIds(paymentIds);
+        Map<Long, PaymentPackageInfo> paidPackageByPayment = findPaidPackageByPaymentIds(paymentIds);
         List<PaymentListItem> enrichedItems = items.stream()
                 .map(item -> new PaymentListItem(
                         item.getId(),
@@ -108,7 +110,8 @@ public class PaymentRepositoryImpl implements PaymentRepository {
                         item.getPaidAt(),
                         item.getUserName(),
                         item.getUserLastName(),
-                        activitiesByPayment.getOrDefault(item.getId(), List.of()),
+                        extractActivities(paidPackageByPayment.get(item.getId())),
+                        paidPackageByPayment.get(item.getId()),
                         item.getClientId(),
                         item.getHeadquartersId(),
                         item.getOrganizationId()
@@ -218,11 +221,11 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         Long clientId = toLong(row[6]);
         Long headquartersId = toLong(row[7]);
         Long organizationId = toLong(row[8]);
-        return new PaymentListItem(id, amount, paymentMethod, paidAt, userName, userLastName, List.of(), clientId,
+        return new PaymentListItem(id, amount, paymentMethod, paidAt, userName, userLastName, List.of(), null, clientId,
                 headquartersId, organizationId);
     }
 
-    private Map<Long, List<Activity>> findActivitiesByPaymentIds(List<Long> paymentIds) {
+    private Map<Long, PaymentPackageInfo> findPaidPackageByPaymentIds(List<Long> paymentIds) {
         if (paymentIds == null || paymentIds.isEmpty()) {
             return Map.of();
         }
@@ -231,16 +234,18 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         try {
             Query query = em.createNativeQuery("""
                     SELECT cp.payment_id,
+                           cp.id,
                            a.id,
                            a.name,
                            a.description,
                            a.is_active,
-                           a.hq_id
+                           a.hq_id,
+                           cpc.tokens
                     FROM client_packages cp
-                    JOIN client_package_credits cpc ON cpc.package_id = cp.id
-                    JOIN activity a ON a.id = cpc.activity_id
+                    LEFT JOIN client_package_credits cpc ON cpc.package_id = cp.id
+                    LEFT JOIN activity a ON a.id = cpc.activity_id
                     WHERE cp.payment_id IN (:paymentIds)
-                    ORDER BY cp.payment_id, a.name
+                    ORDER BY cp.payment_id, cp.id DESC, a.name
                     """);
             query.setParameter("paymentIds", paymentIds);
 
@@ -248,34 +253,60 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             List<Object[]> resultRows = query.getResultList();
             rows = resultRows;
         } catch (RuntimeException ex) {
-            LOG.warn("Failed to fetch activities for payments list. Returning payments without activities.", ex);
+            LOG.warn("Failed to fetch package info for payments list. Returning payments without package details.", ex);
             return Map.of();
         }
 
-        Map<Long, List<Activity>> activitiesByPayment = new LinkedHashMap<>();
-        Map<Long, Set<Long>> activityIdsByPayment = new LinkedHashMap<>();
+        Map<Long, PackageAccumulator> accumulators = new LinkedHashMap<>();
 
         for (Object[] row : rows) {
             Long paymentId = ((Number) row[0]).longValue();
-            Long activityId = ((Number) row[1]).longValue();
+            Long packageId = toLong(row[1]);
+            PackageAccumulator accumulator = accumulators.computeIfAbsent(paymentId,
+                    key -> new PackageAccumulator(packageId));
 
-            Set<Long> seenIds = activityIdsByPayment.computeIfAbsent(paymentId, key -> new HashSet<>());
-            if (seenIds.contains(activityId)) {
+            if (accumulator.packageId == null && packageId != null) {
+                accumulator.packageId = packageId;
+            }
+
+            if (accumulator.packageId != null && packageId != null && !accumulator.packageId.equals(packageId)) {
+                continue;
+            }
+
+            Long activityId = toLong(row[2]);
+            if (activityId == null || accumulator.activityIds.contains(activityId)) {
                 continue;
             }
 
             Activity activity = new Activity();
             activity.setId(activityId);
-            activity.setName((String) row[2]);
-            activity.setDescription((String) row[3]);
-            activity.setIsActive(parseBoolean(row[4]));
-            activity.setHqId(toLong(row[5]));
+            activity.setName((String) row[3]);
+            activity.setDescription((String) row[4]);
+            activity.setIsActive(parseBoolean(row[5]));
+            activity.setHqId(toLong(row[6]));
 
-            activitiesByPayment.computeIfAbsent(paymentId, key -> new ArrayList<>()).add(activity);
-            seenIds.add(activityId);
+            PaymentPackageActivity packageActivity = new PaymentPackageActivity(activity, toInteger(row[7]));
+            accumulator.activities.add(packageActivity);
+            accumulator.activityIds.add(activityId);
         }
 
-        return activitiesByPayment;
+        Map<Long, PaymentPackageInfo> packagesByPayment = new LinkedHashMap<>();
+        for (Map.Entry<Long, PackageAccumulator> entry : accumulators.entrySet()) {
+            PackageAccumulator value = entry.getValue();
+            packagesByPayment.put(entry.getKey(), new PaymentPackageInfo(value.packageId, value.activities));
+        }
+
+        return packagesByPayment;
+    }
+
+    private List<Activity> extractActivities(PaymentPackageInfo paidPackage) {
+        if (paidPackage == null || paidPackage.getActivities() == null || paidPackage.getActivities().isEmpty()) {
+            return List.of();
+        }
+
+        return paidPackage.getActivities().stream()
+                .map(PaymentPackageActivity::getActivity)
+                .toList();
     }
 
     private Boolean parseBoolean(Object value) {
@@ -333,5 +364,22 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             return null;
         }
         return ((Number) value).longValue();
+    }
+
+    private Integer toInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return ((Number) value).intValue();
+    }
+
+    private static class PackageAccumulator {
+        private Long packageId;
+        private final List<PaymentPackageActivity> activities = new ArrayList<>();
+        private final Set<Long> activityIds = new HashSet<>();
+
+        private PackageAccumulator(Long packageId) {
+            this.packageId = packageId;
+        }
     }
 }

@@ -11,6 +11,8 @@ import org.athlium.payments.application.usecase.UpdatePaymentUseCase;
 import org.athlium.payments.domain.model.Payment;
 import org.athlium.payments.domain.model.PaymentListItem;
 import org.athlium.payments.domain.model.PaymentMethod;
+import org.athlium.payments.domain.model.PaymentPackageActivity;
+import org.athlium.payments.domain.model.PaymentPackageInfo;
 import org.athlium.payments.presentation.dto.CreatePaymentRequest;
 import org.athlium.payments.presentation.dto.PaymentListItemResponse;
 import org.athlium.payments.presentation.dto.UpdatePaymentRequest;
@@ -51,9 +53,12 @@ class PaymentResourceTest {
             public PageResponse<PaymentListItem> execute(String player, LocalDate paidAtFrom, LocalDate paidAtTo,
                     Long clientId, String paymentMethod, BigDecimal amountMin, BigDecimal amountMax,
                     Long headquartersId, Long organizationId, int page, int size, String sort) {
+                PaymentPackageActivity packageActivity = new PaymentPackageActivity(activity, 2);
+                PaymentPackageInfo paidPackage = new PaymentPackageInfo(77L, List.of(packageActivity));
                 return new PageResponse<>(
                         List.of(new PaymentListItem(7L, new BigDecimal("45.50"), PaymentMethod.CARD,
-                                LocalDate.of(2026, 1, 10), "Ana", "Lopez", List.of(activity), 55L, 3L, 1L)),
+                                LocalDate.of(2026, 1, 10), "Ana", "Lopez", List.of(activity), paidPackage, 55L, 3L,
+                                1L)),
                         0,
                         20,
                         1
@@ -87,6 +92,12 @@ class PaymentResourceTest {
         assertEquals(55L, data.getContent().getFirst().getClientId());
         assertEquals(1, data.getContent().getFirst().getActivities().size());
         assertEquals("Yoga", data.getContent().getFirst().getActivities().getFirst().getName());
+        assertNotNull(data.getContent().getFirst().getPaidPackage());
+        assertEquals(77L, data.getContent().getFirst().getPaidPackage().getId());
+        assertEquals(1, data.getContent().getFirst().getPaidPackage().getActivities().size());
+        assertEquals(2, data.getContent().getFirst().getPaidPackage().getActivities().getFirst().getWeeklyFrequency());
+        assertEquals("Yoga",
+                data.getContent().getFirst().getPaidPackage().getActivities().getFirst().getActivity().getName());
         assertEquals(3L, data.getContent().getFirst().getHeadquartersId());
         assertEquals(1L, data.getContent().getFirst().getOrganizationId());
     }

@@ -19,6 +19,7 @@ public class PaymentListItemResponse {
     private String userName;
     private String userLastName;
     private List<ActivityResponse> activities;
+    private PaymentPackageResponse paidPackage;
     private Long clientId;
     private Long headquartersId;
     private Long organizationId;
@@ -77,6 +78,14 @@ public class PaymentListItemResponse {
 
     public void setActivities(List<ActivityResponse> activities) {
         this.activities = activities;
+    }
+
+    public PaymentPackageResponse getPaidPackage() {
+        return paidPackage;
+    }
+
+    public void setPaidPackage(PaymentPackageResponse paidPackage) {
+        this.paidPackage = paidPackage;
     }
 
     public Long getClientId() {
