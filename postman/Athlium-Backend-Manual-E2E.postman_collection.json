@@ -220,6 +220,7 @@
         },
         {
           "name": "Create Activity",
+          "description": "Requires SUPERADMIN, ORG_OWNER, ORG_ADMIN, or PROFESSOR role.",
           "event": [
             {
               "listen": "test",
@@ -252,6 +253,7 @@
       "item": [
         {
           "name": "Upsert Activity Config",
+          "description": "Requires SUPERADMIN, ORG_OWNER, ORG_ADMIN, or PROFESSOR role.",
           "request": {
             "method": "PUT",
             "header": [

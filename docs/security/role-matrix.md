@@ -30,7 +30,7 @@ Policy conventions:
 | ActivityResource | DELETE | `/api/activities/{id}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
 | SessionConfigurationResource | PUT | `/api/gym/config/organizations/{organizationId}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
 | SessionConfigurationResource | PUT | `/api/gym/config/headquarters/{headquartersId}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
-| SessionConfigurationResource | PUT | `/api/gym/config/activities/{activityId}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
+| SessionConfigurationResource | PUT | `/api/gym/config/activities/{activityId}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN`, `PROFESSOR` |
 | SessionConfigurationResource | PUT | `/api/gym/config/sessions/{sessionId}` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN` |
 | SessionConfigurationResource | GET | `/api/gym/config/effective` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN`, `PROFESSOR` |
 | SessionResource | GET | `/api/sessions` | `SUPERADMIN`, `ORG_OWNER`, `ORG_ADMIN`, `PROFESSOR`, `CLIENT` |

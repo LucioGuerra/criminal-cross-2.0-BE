@@ -570,6 +570,7 @@
         },
         {
           "name": "Create Activity",
+          "description": "Requires SUPERADMIN, ORG_OWNER, ORG_ADMIN, or PROFESSOR role.",
           "event": [
             {
               "listen": "test",
@@ -706,6 +707,7 @@
         },
         {
           "name": "Upsert Activity Config",
+          "description": "Requires SUPERADMIN, ORG_OWNER, ORG_ADMIN, or PROFESSOR role.",
           "request": {
             "method": "PUT",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -867,6 +869,7 @@
     },
     {
       "name": "10 Payments",
+      "description": "Payment responses include paidPackage when the payment is linked to a package purchase.",
       "item": [
         {
           "name": "Create Payment",
@@ -898,7 +901,16 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/payments?player=ana&paidAtFrom=2026-01-01&paidAtTo=2026-12-31&clientId={{user_id}}&paymentMethod=CASH&amountMin=100&amountMax=50000&headquartersId={{headquarters_id}}&organizationId={{organization_id}}&page=1&size=20&sort=paidAt:desc"
-          }
+          },
+          "response": [
+            {
+              "name": "OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 501,\n        \"amount\": 24000,\n        \"paymentMethod\": \"TRANSFER\",\n        \"paidAt\": \"2026-03-01T10:30:00Z\",\n        \"clientId\": 101,\n        \"organizationId\": 1,\n        \"headquartersId\": 2,\n        \"paidPackage\": {\n          \"id\": 88,\n          \"activities\": [\n            {\n              \"activityId\": 5,\n              \"weeklyFrequency\": 3\n            },\n            {\n              \"activityId\": 8,\n              \"weeklyFrequency\": 2\n            }\n          ]\n        }\n      }\n    ],\n    \"page\": 1,\n    \"size\": 20,\n    \"total\": 1\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Get Payment By Id",
