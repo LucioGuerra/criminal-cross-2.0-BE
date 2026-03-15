@@ -75,7 +75,7 @@ class PaymentResourceTest {
         resource.paymentDtoMapper = new PaymentDtoMapper();
 
         var response = resource.getPayments("ana", null, null, null, null, null, null,
-                null, null, 1, 20, "paidAt:desc");
+                null, null, null, 1, 20, "paidAt:desc");
 
         assertEquals(200, response.getStatus());
         Object entity = response.getEntity();
@@ -122,7 +122,7 @@ class PaymentResourceTest {
         resource.paymentDtoMapper = new PaymentDtoMapper();
 
         var response = resource.getPayments(null, null, null, null, null, null, null,
-                null, null, 1, 20, "paidAt:desc");
+                null, null, null, 1, 20, "paidAt:desc");
 
         assertEquals(400, response.getStatus());
         ApiResponse<?> apiResponse = (ApiResponse<?>) response.getEntity();
@@ -191,12 +191,13 @@ class PaymentResourceTest {
     void shouldDeclareDefaultPaginationAndSortQueryParamsForUnifiedListEndpoint() throws Exception {
         Method listMethod = PaymentResource.class.getMethod(
                 "getPayments", String.class, String.class, String.class, Long.class, String.class,
-                BigDecimal.class, BigDecimal.class, Long.class, Long.class, int.class, int.class, String.class);
+                BigDecimal.class, BigDecimal.class, Long.class, Long.class, Long.class, int.class, int.class,
+                String.class);
         Parameter[] params = listMethod.getParameters();
 
-        DefaultValue pageDefault = params[9].getAnnotation(DefaultValue.class);
-        DefaultValue sizeDefault = params[10].getAnnotation(DefaultValue.class);
-        DefaultValue sortDefault = params[11].getAnnotation(DefaultValue.class);
+        DefaultValue pageDefault = params[10].getAnnotation(DefaultValue.class);
+        DefaultValue sizeDefault = params[11].getAnnotation(DefaultValue.class);
+        DefaultValue sortDefault = params[12].getAnnotation(DefaultValue.class);
         assertNotNull(pageDefault);
         assertNotNull(sizeDefault);
         assertNotNull(sortDefault);
@@ -279,7 +280,7 @@ class PaymentResourceTest {
         resource.paymentDtoMapper = new PaymentDtoMapper();
 
         var response = resource.getPayments(null, null, null, null, null, null, null,
-                3L, null, 2, 5, "paidAt:desc");
+                3L, null, null, 2, 5, "paidAt:desc");
 
         assertEquals(200, response.getStatus());
         assertEquals(3L, getPaymentsUseCase.lastHeadquartersId);
@@ -327,6 +328,25 @@ class PaymentResourceTest {
         ApiResponse<?> apiResponse = (ApiResponse<?>) response.getEntity();
         assertTrue(apiResponse.isSuccess());
         assertEquals("Payment updated", apiResponse.getMessage());
+    }
+
+    @Test
+    void shouldDelegateGetPaymentsWithHeadquarterIdAlias() {
+        CapturingGetPaymentsUseCase getPaymentsUseCase = new CapturingGetPaymentsUseCase();
+
+        PaymentResource resource = new PaymentResource();
+        resource.getPaymentsUseCase = getPaymentsUseCase;
+        resource.getPaymentByIdUseCase = new GetPaymentByIdUseCase();
+        resource.createPaymentUseCase = new CreatePaymentUseCase();
+        resource.updatePaymentUseCase = new UpdatePaymentUseCase();
+        resource.deletePaymentUseCase = new DeletePaymentUseCase();
+        resource.paymentDtoMapper = new PaymentDtoMapper();
+
+        var response = resource.getPayments(null, null, null, null, null, null, null,
+                null, 8L, null, 1, 20, "paidAt:desc");
+
+        assertEquals(200, response.getStatus());
+        assertEquals(8L, getPaymentsUseCase.lastHeadquartersId);
     }
 
     @Test

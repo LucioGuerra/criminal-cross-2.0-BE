@@ -232,6 +232,7 @@ public class PaymentRepositoryImpl implements PaymentRepository {
 
         List<Object[]> rows;
         try {
+            String paymentIdCondition = buildPaymentIdCondition(paymentIds.size());
             Query query = em.createNativeQuery("""
                     SELECT cp.payment_id,
                            cp.id,
@@ -244,10 +245,10 @@ public class PaymentRepositoryImpl implements PaymentRepository {
                     FROM client_packages cp
                     LEFT JOIN client_package_credits cpc ON cpc.package_id = cp.id
                     LEFT JOIN activity a ON a.id = cpc.activity_id
-                    WHERE cp.payment_id IN (:paymentIds)
+                    WHERE %s
                     ORDER BY cp.payment_id, cp.id DESC, a.name
-                    """);
-            query.setParameter("paymentIds", paymentIds);
+                    """.formatted(paymentIdCondition));
+            setPaymentIdParameters(query, paymentIds);
 
             @SuppressWarnings("unchecked")
             List<Object[]> resultRows = query.getResultList();
@@ -297,6 +298,28 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         }
 
         return packagesByPayment;
+    }
+
+    private String buildPaymentIdCondition(int size) {
+        if (size == 1) {
+            return "cp.payment_id = :paymentId0";
+        }
+
+        StringBuilder condition = new StringBuilder("cp.payment_id IN (");
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
+                condition.append(", ");
+            }
+            condition.append(":paymentId").append(i);
+        }
+        condition.append(")");
+        return condition.toString();
+    }
+
+    private void setPaymentIdParameters(Query query, List<Long> paymentIds) {
+        for (int i = 0; i < paymentIds.size(); i++) {
+            query.setParameter("paymentId" + i, paymentIds.get(i));
+        }
     }
 
     private List<Activity> extractActivities(PaymentPackageInfo paidPackage) {

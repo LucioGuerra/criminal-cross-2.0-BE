@@ -88,11 +88,20 @@ public class PaymentResource {
             @QueryParam("amountMin") BigDecimal amountMin,
             @QueryParam("amountMax") BigDecimal amountMax,
             @QueryParam("headquartersId") Long headquartersId,
+            @QueryParam("headquarterId") Long headquarterId,
             @QueryParam("organizationId") Long organizationId,
             @DefaultValue("1") @QueryParam("page") int page,
             @DefaultValue("20") @QueryParam("size") int size,
             @DefaultValue("paidAt:desc") @QueryParam("sort") String sort) {
         try {
+            if (headquartersId != null && headquarterId != null && !headquartersId.equals(headquarterId)) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(ApiResponse.error("Query params headquartersId and headquarterId must match when both are provided"))
+                        .build();
+            }
+
+            Long effectiveHeadquartersId = headquartersId != null ? headquartersId : headquarterId;
+
             var paymentsPage = getPaymentsUseCase.execute(
                     player,
                     parseLocalDate(paidAtFrom, "paidAtFrom"),
@@ -101,7 +110,7 @@ public class PaymentResource {
                     paymentMethod,
                     amountMin,
                     amountMax,
-                    headquartersId,
+                    effectiveHeadquartersId,
                     organizationId,
                     page,
                     size,

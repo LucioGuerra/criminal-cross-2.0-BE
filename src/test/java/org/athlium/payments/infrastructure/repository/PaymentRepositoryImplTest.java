@@ -20,6 +20,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -111,7 +112,61 @@ class PaymentRepositoryImplTest {
         assertEquals(1L, countQuery.params.get("organizationId"));
         assertEquals(5, dataQuery.params.get("size"));
         assertEquals(10, dataQuery.params.get("offset"));
-        assertEquals(List.of(9L), activitiesQuery.params.get("paymentIds"));
+        assertEquals(9L, activitiesQuery.params.get("paymentId0"));
+    }
+
+    @Test
+    void shouldPopulatePaidPackageWhenNativeListParameterBindingWouldFail() {
+        QuerySpec countQuery = QuerySpec.forCount(1L);
+        QuerySpec dataQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+                9L,
+                new BigDecimal("45.50"),
+                "CARD",
+                LocalDate.of(2026, 1, 5),
+                "Ana",
+                "Lopez",
+                88L,
+                3L,
+                1L
+        }));
+        QuerySpec activitiesQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+                9L,
+                111L,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        }));
+        activitiesQuery.disallowedParams.add("paymentIds");
+
+        FakeEntityManager fakeEntityManager = new FakeEntityManager(List.of(countQuery, dataQuery, activitiesQuery));
+        PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
+        repository.em = fakeEntityManager.proxy();
+
+        PaymentSearchCriteria criteria = new PaymentSearchCriteria(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                5,
+                "paid_at",
+                false
+        );
+
+        var page = repository.findPayments(criteria);
+
+        assertEquals(1, page.getContent().size());
+        assertNotNull(page.getContent().getFirst().getPaidPackage());
+        assertEquals(111L, page.getContent().getFirst().getPaidPackage().getId());
+        assertTrue(page.getContent().getFirst().getPaidPackage().getActivities().isEmpty());
     }
 
     @Test
@@ -234,14 +289,15 @@ class PaymentRepositoryImplTest {
         assertEquals(PaymentMethod.OTHER, page.getContent().getFirst().getPaymentMethod());
     }
 
-    private record QuerySpec(Object singleResult, List<Object[]> rows, Map<String, Object> params) {
+    private record QuerySpec(Object singleResult, List<Object[]> rows, Map<String, Object> params,
+            List<String> disallowedParams) {
 
         static QuerySpec forCount(Object singleResult) {
-            return new QuerySpec(singleResult, List.of(), new HashMap<>());
+            return new QuerySpec(singleResult, List.of(), new HashMap<>(), new ArrayList<>());
         }
 
         static QuerySpec forRows(List<Object[]> rows) {
-            return new QuerySpec(null, rows, new HashMap<>());
+            return new QuerySpec(null, rows, new HashMap<>(), new ArrayList<>());
         }
     }
 
@@ -276,6 +332,9 @@ class PaymentRepositoryImplTest {
             InvocationHandler handler = (proxy, method, args) -> {
                 switch (method.getName()) {
                     case "setParameter" -> {
+                        if (spec.disallowedParams.contains((String) args[0])) {
+                            throw new IllegalArgumentException("Unsupported parameter: " + args[0]);
+                        }
                         spec.params.put((String) args[0], args[1]);
                         return proxy;
                     }
