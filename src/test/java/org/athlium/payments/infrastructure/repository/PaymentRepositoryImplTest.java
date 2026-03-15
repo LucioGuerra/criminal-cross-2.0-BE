@@ -17,6 +17,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -108,6 +110,8 @@ class PaymentRepositoryImplTest {
         assertTrue(dataSql.contains("ORDER BY p.amount ASC, p.id DESC"));
         assertTrue(packageSql.contains("FROM client_packages cp"));
         assertTrue(activitiesSql.contains("FROM client_package_credits cpc"));
+        assertTrue(activitiesSql.contains("a.isactive"));
+        assertTrue(activitiesSql.contains("cpc.tokens AS weekly_frequency"));
 
         assertEquals("%ana%", countQuery.params.get("player"));
         assertEquals(LocalDate.of(2026, 1, 1), countQuery.params.get("paidAtFrom"));
@@ -125,9 +129,9 @@ class PaymentRepositoryImplTest {
     }
 
     @Test
-    void shouldPopulatePaidPackageWhenWeeklyFrequencyColumnIsMissing() {
-        QuerySpec countQuery = QuerySpec.forCount(1L);
-        QuerySpec dataQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+    void shouldMapWeeklyFrequencyPerActivityWithoutCrossPackageBleed() {
+        QuerySpec countQuery = QuerySpec.forCount(2L);
+        QuerySpec dataQuery = QuerySpec.forRows(List.of(new Object[] {
                 9L,
                 new BigDecimal("45.50"),
                 "CARD",
@@ -137,25 +141,60 @@ class PaymentRepositoryImplTest {
                 88L,
                 3L,
                 1L
+        }, new Object[] {
+                10L,
+                new BigDecimal("60.00"),
+                "TRANSFER",
+                LocalDate.of(2026, 1, 6),
+                "Ana",
+                "Lopez",
+                88L,
+                3L,
+                1L
         }));
-        QuerySpec packageQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+        QuerySpec packageQuery = QuerySpec.forRows(List.of(new Object[] {
                 9L,
                 111L
+        }, new Object[] {
+                10L,
+                112L
         }));
-        QuerySpec failedWeeklyFrequencyQuery = QuerySpec.forRows(List.of());
-        failedWeeklyFrequencyQuery.failOnGetResultList = true;
-        QuerySpec activitiesQuery = QuerySpec.forRows(Collections.singletonList(new Object[] {
+        QuerySpec activitiesQuery = QuerySpec.forRows(List.of(new Object[] {
+                111L,
+                21L,
+                "Yoga",
+                "Mind and body",
+                true,
+                3L,
+                3
+        }, new Object[] {
                 111L,
                 22L,
                 "Pilates",
                 "Core and posture",
                 true,
                 3L,
+                1
+        }, new Object[] {
+                112L,
+                21L,
+                "Yoga",
+                "Mind and body",
+                true,
+                3L,
+                5
+        }, new Object[] {
+                112L,
+                23L,
+                "Box",
+                "Conditioning",
+                true,
+                3L,
                 4
         }));
 
         FakeEntityManager fakeEntityManager = new FakeEntityManager(
-                List.of(countQuery, dataQuery, packageQuery, failedWeeklyFrequencyQuery, activitiesQuery));
+                List.of(countQuery, dataQuery, packageQuery, activitiesQuery));
         PaymentRepositoryImpl repository = new PaymentRepositoryImpl();
         repository.em = fakeEntityManager.proxy();
 
@@ -177,13 +216,33 @@ class PaymentRepositoryImplTest {
 
         var page = repository.findPayments(criteria);
 
-        assertEquals(1, page.getContent().size());
-        assertNotNull(page.getContent().getFirst().getPaidPackage());
-        assertEquals(111L, page.getContent().getFirst().getPaidPackage().getId());
-        assertEquals(1, page.getContent().getFirst().getPaidPackage().getActivities().size());
-        assertEquals(4, page.getContent().getFirst().getPaidPackage().getActivities().getFirst().getWeeklyFrequency());
-        assertEquals("Pilates",
-                page.getContent().getFirst().getPaidPackage().getActivities().getFirst().getActivity().getName());
+        assertEquals(2, page.getContent().size());
+
+        Map<Long, PaymentListItem> byPaymentId = page.getContent().stream()
+                .collect(Collectors.toMap(PaymentListItem::getId, Function.identity()));
+
+        PaymentListItem paymentNine = byPaymentId.get(9L);
+        assertNotNull(paymentNine);
+        assertNotNull(paymentNine.getPaidPackage());
+        assertEquals(111L, paymentNine.getPaidPackage().getId());
+        assertEquals(2, paymentNine.getPaidPackage().getActivities().size());
+        Map<Long, Integer> weeklyByActivityPackage111 = paymentNine.getPaidPackage().getActivities().stream()
+                .collect(Collectors.toMap(a -> a.getActivity().getId(), a -> a.getWeeklyFrequency()));
+        assertEquals(3, weeklyByActivityPackage111.get(21L));
+        assertEquals(1, weeklyByActivityPackage111.get(22L));
+
+        PaymentListItem paymentTen = byPaymentId.get(10L);
+        assertNotNull(paymentTen);
+        assertNotNull(paymentTen.getPaidPackage());
+        assertEquals(112L, paymentTen.getPaidPackage().getId());
+        assertEquals(2, paymentTen.getPaidPackage().getActivities().size());
+        Map<Long, Integer> weeklyByActivityPackage112 = paymentTen.getPaidPackage().getActivities().stream()
+                .collect(Collectors.toMap(a -> a.getActivity().getId(), a -> a.getWeeklyFrequency()));
+        assertEquals(5, weeklyByActivityPackage112.get(21L));
+        assertEquals(4, weeklyByActivityPackage112.get(23L));
+
+        assertEquals(111L, activitiesQuery.params.get("packageId0"));
+        assertEquals(112L, activitiesQuery.params.get("packageId1"));
     }
 
     @Test

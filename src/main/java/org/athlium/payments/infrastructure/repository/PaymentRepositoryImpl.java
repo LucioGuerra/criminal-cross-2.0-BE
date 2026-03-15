@@ -289,44 +289,30 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             return Map.of();
         }
 
-        List<String> weeklyFrequencyExpressions = List.of(
-                "cpc.weekly_frequency",
-                "cpc.tokens",
-                "NULL");
-
-        RuntimeException lastFailure = null;
-        for (String weeklyFrequencyExpression : weeklyFrequencyExpressions) {
-            try {
-                return queryActivitiesByPackageIds(packageIds, weeklyFrequencyExpression);
-            } catch (RuntimeException ex) {
-                lastFailure = ex;
-                LOG.debugf(ex,
-                        "Failed to fetch package activities with frequency expression '%s'. Trying fallback.",
-                        weeklyFrequencyExpression);
-            }
+        try {
+            return queryActivitiesByPackageIds(packageIds);
+        } catch (RuntimeException ex) {
+            LOG.warn("Failed to fetch package activities for payments list. Returning paidPackage without activities.",
+                    ex);
+            return Map.of();
         }
-
-        LOG.warn("Failed to fetch package activities for payments list. Returning paidPackage without activities.",
-                lastFailure);
-        return Map.of();
     }
 
-    private Map<Long, List<PaymentPackageActivity>> queryActivitiesByPackageIds(List<Long> packageIds,
-            String weeklyFrequencyExpression) {
+    private Map<Long, List<PaymentPackageActivity>> queryActivitiesByPackageIds(List<Long> packageIds) {
         String packageIdCondition = buildPackageIdCondition(packageIds.size());
         Query query = em.createNativeQuery("""
-                SELECT cpc.package_id,
-                       a.id,
-                       a.name,
-                       a.description,
-                       a.is_active,
-                       a.hq_id,
-                       %s AS weekly_frequency
-                FROM client_package_credits cpc
-                LEFT JOIN activity a ON a.id = cpc.activity_id
+                 SELECT cpc.package_id,
+                        cpc.activity_id,
+                        a.name,
+                        a.description,
+                        a.isactive,
+                        a.hq_id,
+                        cpc.tokens AS weekly_frequency
+                 FROM client_package_credits cpc
+                 LEFT JOIN activity a ON a.id = cpc.activity_id
                 WHERE %s
-                ORDER BY cpc.package_id, a.name
-                """.formatted(weeklyFrequencyExpression, packageIdCondition));
+                ORDER BY cpc.package_id, cpc.activity_id
+                """.formatted(packageIdCondition));
         setPackageIdParameters(query, packageIds);
 
         @SuppressWarnings("unchecked")
