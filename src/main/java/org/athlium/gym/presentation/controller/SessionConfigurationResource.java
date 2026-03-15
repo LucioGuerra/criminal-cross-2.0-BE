@@ -75,6 +75,7 @@ public class SessionConfigurationResource {
 
     @PUT
     @Path("/activities/{activityId}")
+    @Authenticated(roles = {"SUPERADMIN", "ORG_OWNER", "ORG_ADMIN", "PROFESSOR"})
     public Response upsertActivityConfig(
             @PathParam("activityId") Long activityId,
             SessionConfigurationRequest request
