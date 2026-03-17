@@ -36,46 +36,46 @@ public class CorsResponseFilter implements ContainerResponseFilter {
             return;
         }
 
-        if (!isAllowedOrigin(origin)) {
+        List<String> allowedOrigins = parseAllowedOrigins();
+        if (!isAllowedOrigin(origin, allowedOrigins)) {
             return;
         }
 
-        responseContext.getHeaders().putSingle("Access-Control-Allow-Origin", resolveAllowOriginHeader(origin));
-        responseContext.getHeaders().putSingle("Access-Control-Allow-Methods", allowedMethods);
+        responseContext.getHeaders().putSingle("Access-Control-Allow-Origin", resolveAllowOriginHeader(origin, allowedOrigins));
 
-        String requestedHeaders = requestContext.getHeaderString("Access-Control-Request-Headers");
-        responseContext.getHeaders().putSingle(
-                "Access-Control-Allow-Headers",
-                requestedHeaders != null && !requestedHeaders.isBlank() ? requestedHeaders : allowedHeaders
-        );
-        responseContext.getHeaders().putSingle("Access-Control-Max-Age", maxAgeSeconds);
-
-        if (!hasWildcardOrigin()) {
+        if (!hasWildcardOrigin(allowedOrigins)) {
             responseContext.getHeaders().putSingle("Vary", "Origin");
         }
 
         if (HttpMethod.OPTIONS.equalsIgnoreCase(requestContext.getMethod())) {
+            responseContext.getHeaders().putSingle("Access-Control-Allow-Methods", allowedMethods);
+            String requestedHeaders = requestContext.getHeaderString("Access-Control-Request-Headers");
+            responseContext.getHeaders().putSingle(
+                    "Access-Control-Allow-Headers",
+                    requestedHeaders != null && !requestedHeaders.isBlank() ? requestedHeaders : allowedHeaders
+            );
+            responseContext.getHeaders().putSingle("Access-Control-Max-Age", maxAgeSeconds);
             responseContext.getHeaders().putSingle("Content-Length", "0");
         }
     }
 
-    private boolean isAllowedOrigin(String origin) {
-        if (hasWildcardOrigin()) {
+    private boolean isAllowedOrigin(String origin, List<String> allowedOrigins) {
+        if (hasWildcardOrigin(allowedOrigins)) {
             return true;
         }
 
-        return parseAllowedOrigins().contains(origin);
+        return allowedOrigins.contains(origin);
     }
 
-    private String resolveAllowOriginHeader(String requestOrigin) {
-        if (hasWildcardOrigin()) {
+    private String resolveAllowOriginHeader(String requestOrigin, List<String> allowedOrigins) {
+        if (hasWildcardOrigin(allowedOrigins)) {
             return "*";
         }
         return requestOrigin;
     }
 
-    private boolean hasWildcardOrigin() {
-        return parseAllowedOrigins().stream().anyMatch("*"::equals);
+    private boolean hasWildcardOrigin(List<String> allowedOrigins) {
+        return allowedOrigins.stream().anyMatch("*"::equals);
     }
 
     private List<String> parseAllowedOrigins() {
