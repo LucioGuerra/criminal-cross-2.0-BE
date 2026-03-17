@@ -39,4 +39,19 @@ class CorsTestProfileE2ETest {
                 .statusCode(200)
                 .header("Access-Control-Allow-Origin", notNullValue());
     }
+
+    @Test
+    void shouldReturnCorsHeadersForRegisterPreflightRequest() {
+        given()
+                .header("Origin", FRONTEND_ORIGIN)
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "content-type")
+                .when()
+                .options("/api/auth/register")
+                .then()
+                .statusCode(anyOf(equalTo(200), equalTo(204)))
+                .header("Access-Control-Allow-Origin", anyOf(equalTo("*"), equalTo(FRONTEND_ORIGIN)))
+                .header("Access-Control-Allow-Methods", containsString("POST"))
+                .header("Access-Control-Allow-Headers", anyOf(containsString("content-type"), equalTo("*")));
+    }
 }
