@@ -12,20 +12,20 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 class CorsTestProfileE2ETest {
 
-    private static final String FRONTEND_ORIGIN = "http://localhost:5173";
+    private static final String FRONTEND_ORIGIN = "https://athlium-f7b0f.web.app";
 
     @Test
     void shouldReturnCorsHeadersForPreflightRequestsInTestProfile() {
         given()
                 .header("Origin", FRONTEND_ORIGIN)
-                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Method", "POST")
                 .header("Access-Control-Request-Headers", "authorization,content-type,x-idempotency-key")
                 .when()
-                .options("/api/auth/health")
+                .options("/api/auth/register")
                 .then()
                 .statusCode(anyOf(equalTo(200), equalTo(204)))
                 .header("Access-Control-Allow-Origin", anyOf(equalTo("*"), equalTo(FRONTEND_ORIGIN)))
-                .header("Access-Control-Allow-Methods", containsString("GET"))
+                .header("Access-Control-Allow-Methods", containsString("POST"))
                 .header("Access-Control-Allow-Headers", anyOf(containsString("authorization"), equalTo("*")));
     }
 
