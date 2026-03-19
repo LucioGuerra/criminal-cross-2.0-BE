@@ -60,7 +60,6 @@ class UpdateActivityScheduleUseCaseTest {
         ActivitySchedule updatedData = new ActivitySchedule();
         updatedData.setOrganizationId(999L);
         updatedData.setHeadquartersId(888L);
-        updatedData.setActivityId(777L);
         updatedData.setStartTime(LocalTime.of(9, 0));
 
         ActivitySchedule result = useCase.execute(1L, updatedData);
@@ -69,6 +68,39 @@ class UpdateActivityScheduleUseCaseTest {
         assertEquals(20L, result.getHeadquartersId());
         assertEquals(30L, result.getActivityId());
         assertEquals(LocalTime.of(9, 0), result.getStartTime());
+    }
+
+    @Test
+    void shouldThrowBadRequestWhenOnlyIdentityFieldsAreProvided() {
+        ActivitySchedule existing = baseSchedule();
+        existing.setId(1L);
+        existing.setActivityId(30L);
+        repository.store(existing);
+
+        ActivitySchedule updatedData = new ActivitySchedule();
+        updatedData.setOrganizationId(999L);
+        updatedData.setHeadquartersId(888L);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(1L, updatedData));
+        assertEquals("No updatable fields were provided", ex.getMessage());
+
+        ActivitySchedule stored = repository.findById(1L);
+        assertEquals(30L, stored.getActivityId());
+    }
+
+    @Test
+    void shouldAllowUpdatingActivityId() {
+        ActivitySchedule existing = baseSchedule();
+        existing.setId(1L);
+        existing.setActivityId(30L);
+        repository.store(existing);
+
+        ActivitySchedule updatedData = new ActivitySchedule();
+        updatedData.setActivityId(99L);
+
+        ActivitySchedule result = useCase.execute(1L, updatedData);
+
+        assertEquals(99L, result.getActivityId());
     }
 
     @Test
@@ -91,6 +123,20 @@ class UpdateActivityScheduleUseCaseTest {
     void shouldThrowBadRequestWhenUpdatedDataIsNull() {
         BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(1L, null));
         assertEquals("Schedule data is required", ex.getMessage());
+    }
+
+    @Test
+    void shouldThrowBadRequestWhenNoUpdatableFieldsAreProvided() {
+        ActivitySchedule existing = baseSchedule();
+        existing.setId(1L);
+        repository.store(existing);
+
+        ActivitySchedule updatedData = new ActivitySchedule();
+        updatedData.setOrganizationId(999L);
+        updatedData.setHeadquartersId(888L);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> useCase.execute(1L, updatedData));
+        assertEquals("No updatable fields were provided", ex.getMessage());
     }
 
     private ActivitySchedule baseSchedule() {

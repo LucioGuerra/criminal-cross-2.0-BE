@@ -2,6 +2,7 @@ package org.athlium.gym.application.usecase;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.athlium.gym.application.service.ScheduleTimezoneResolver;
 import org.athlium.gym.domain.model.ActivitySchedule;
 import org.athlium.gym.domain.model.SchedulerType;
 import org.athlium.gym.domain.model.SessionConfiguration;
@@ -27,8 +28,15 @@ public class GenerateSessionForScheduleUseCase {
     @Inject
     ActivityScheduleRepository activityScheduleRepository;
 
+    @Inject
+    ScheduleTimezoneResolver scheduleTimezoneResolver;
+
     public GenerationResult execute(ActivitySchedule schedule, LocalDate nextMonday) {
-        List<SessionSlot> slots = sessionTemplateDirector.buildSlotsForWeek(schedule, nextMonday);
+        List<SessionSlot> slots = sessionTemplateDirector.buildSlotsForWeek(
+                schedule,
+                nextMonday,
+                scheduleTimezoneResolver.resolveForHeadquarters(schedule.getHeadquartersId())
+        );
         if (slots.isEmpty()) {
             return new GenerationResult(0, 0, false);
         }

@@ -26,6 +26,10 @@ public class UpdateActivityScheduleUseCase {
             throw new EntityNotFoundException("Activity schedule not found");
         }
 
+        if (!hasAnyMutableField(updatedData)) {
+            throw new BadRequestException("No updatable fields were provided");
+        }
+
         if (updatedData.getDayOfWeek() != null) {
             existing.setDayOfWeek(updatedData.getDayOfWeek());
         }
@@ -37,6 +41,9 @@ public class UpdateActivityScheduleUseCase {
         }
         if (updatedData.getDurationMinutes() != null) {
             existing.setDurationMinutes(updatedData.getDurationMinutes());
+        }
+        if (updatedData.getActivityId() != null) {
+            existing.setActivityId(updatedData.getActivityId());
         }
         if (updatedData.getActive() != null) {
             existing.setActive(updatedData.getActive());
@@ -59,5 +66,19 @@ public class UpdateActivityScheduleUseCase {
 
         existing.setId(id);
         return activityScheduleRepository.save(existing);
+    }
+
+    private boolean hasAnyMutableField(ActivitySchedule updatedData) {
+        return updatedData.getDayOfWeek() != null
+                || updatedData.getWeekDays() != null
+                || updatedData.getStartTime() != null
+                || updatedData.getDurationMinutes() != null
+                || updatedData.getActivityId() != null
+                || updatedData.getActive() != null
+                || updatedData.getSchedulerType() != null
+                || updatedData.getTemplateType() != null
+                || updatedData.getActiveFrom() != null
+                || updatedData.getActiveUntil() != null
+                || updatedData.getScheduledDate() != null;
     }
 }

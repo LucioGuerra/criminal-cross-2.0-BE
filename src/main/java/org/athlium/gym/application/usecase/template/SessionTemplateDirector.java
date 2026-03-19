@@ -7,6 +7,7 @@ import org.athlium.gym.domain.model.ActivitySchedule;
 import org.athlium.shared.exception.BadRequestException;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @ApplicationScoped
@@ -21,11 +22,11 @@ public class SessionTemplateDirector {
         this.buildersOverride = buildersOverride;
     }
 
-    public List<SessionSlot> buildSlotsForWeek(ActivitySchedule schedule, LocalDate weekStart) {
+    public List<SessionSlot> buildSlotsForWeek(ActivitySchedule schedule, LocalDate weekStart, ZoneId zoneId) {
         Iterable<SessionTemplateBuilder> builders = buildersOverride != null ? buildersOverride : cdiBuilders;
         for (SessionTemplateBuilder builder : builders) {
             if (builder.supports(schedule)) {
-                return builder.buildSlots(schedule, weekStart);
+                return builder.buildSlots(schedule, weekStart, zoneId);
             }
         }
 

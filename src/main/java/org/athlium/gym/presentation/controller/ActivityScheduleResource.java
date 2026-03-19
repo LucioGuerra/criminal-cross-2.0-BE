@@ -14,6 +14,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.athlium.auth.infrastructure.security.Authenticated;
+import org.athlium.auth.infrastructure.security.PublicEndpoint;
 import org.athlium.gym.application.usecase.CreateActivityScheduleUseCase;
 import org.athlium.gym.application.usecase.DeleteActivityScheduleUseCase;
 import org.athlium.gym.application.usecase.GetActivitySchedulesUseCase;
@@ -104,6 +105,7 @@ public class ActivityScheduleResource {
     }
 
     @POST
+    @PublicEndpoint
     @Path("/generate-next-week")
     public Response generateNextWeek(@DefaultValue("false") @QueryParam("dryRun") boolean dryRun) {
         if (dryRun) {

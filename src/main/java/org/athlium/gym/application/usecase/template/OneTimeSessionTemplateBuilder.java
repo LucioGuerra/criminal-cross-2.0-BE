@@ -6,7 +6,7 @@ import org.athlium.gym.domain.model.SchedulerType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 
 @ApplicationScoped
@@ -18,7 +18,7 @@ public class OneTimeSessionTemplateBuilder implements SessionTemplateBuilder {
     }
 
     @Override
-    public List<SessionSlot> buildSlots(ActivitySchedule schedule, LocalDate weekStart) {
+    public List<SessionSlot> buildSlots(ActivitySchedule schedule, LocalDate weekStart, ZoneId zoneId) {
         if (schedule.getStartTime() == null || schedule.getDurationMinutes() == null) {
             return List.of();
         }
@@ -31,7 +31,7 @@ public class OneTimeSessionTemplateBuilder implements SessionTemplateBuilder {
             return List.of();
         }
 
-        var startsAt = LocalDateTime.of(scheduledDate, schedule.getStartTime()).toInstant(ZoneOffset.UTC);
+        var startsAt = LocalDateTime.of(scheduledDate, schedule.getStartTime()).atZone(zoneId).toInstant();
         var endsAt = startsAt.plusSeconds(schedule.getDurationMinutes() * 60L);
         return List.of(new SessionSlot(startsAt, endsAt));
     }

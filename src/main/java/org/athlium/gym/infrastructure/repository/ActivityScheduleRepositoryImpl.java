@@ -5,6 +5,7 @@ import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -45,25 +46,32 @@ public class ActivityScheduleRepositoryImpl implements ActivityScheduleRepositor
 
     @Override
     public ActivitySchedule save(ActivitySchedule schedule) {
-        ActivityScheduleDocument managedDocument = null;
         if (schedule.getId() != null) {
-            managedDocument = panacheRepository.find("scheduleId", schedule.getId()).firstResult();
-        }
+            UpdateResult result = panacheRepository.mongoCollection().updateOne(
+                    Filters.eq("scheduleId", schedule.getId()),
+                    Updates.combine(
+                            Updates.set("organizationId", schedule.getOrganizationId()),
+                            Updates.set("headquartersId", schedule.getHeadquartersId()),
+                            Updates.set("activityId", schedule.getActivityId()),
+                            Updates.set("dayOfWeek", schedule.getDayOfWeek()),
+                            Updates.set("weekDays", schedule.getWeekDays()),
+                            Updates.set("startTime", schedule.getStartTime()),
+                            Updates.set("durationMinutes", schedule.getDurationMinutes()),
+                            Updates.set("active", schedule.getActive()),
+                            Updates.set("schedulerType", schedule.getSchedulerType()),
+                            Updates.set("templateType", schedule.getTemplateType()),
+                            Updates.set("activeFrom", schedule.getActiveFrom()),
+                            Updates.set("activeUntil", schedule.getActiveUntil()),
+                            Updates.set("scheduledDate", schedule.getScheduledDate())
+                    )
+            );
 
-        if (managedDocument != null) {
-            managedDocument.organizationId = schedule.getOrganizationId();
-            managedDocument.headquartersId = schedule.getHeadquartersId();
-            managedDocument.activityId = schedule.getActivityId();
-            managedDocument.dayOfWeek = schedule.getDayOfWeek();
-            managedDocument.weekDays = schedule.getWeekDays();
-            managedDocument.startTime = schedule.getStartTime();
-            managedDocument.durationMinutes = schedule.getDurationMinutes();
-            managedDocument.active = schedule.getActive();
-            managedDocument.schedulerType = schedule.getSchedulerType();
-            managedDocument.activeFrom = schedule.getActiveFrom();
-            managedDocument.activeUntil = schedule.getActiveUntil();
-            managedDocument.scheduledDate = schedule.getScheduledDate();
-            return toDomain(managedDocument);
+            if (result.getMatchedCount() == 0) {
+                return null;
+            }
+
+            ActivityScheduleDocument updatedDocument = panacheRepository.find("scheduleId", schedule.getId()).firstResult();
+            return updatedDocument == null ? null : toDomain(updatedDocument);
         }
 
         ActivityScheduleDocument document = mapper.toDocument(schedule);

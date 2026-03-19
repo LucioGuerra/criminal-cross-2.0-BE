@@ -1,0 +1,7 @@
+steps:
+  - name: maven:3.9.6-eclipse-temurin-21
+    entrypoint: mvn
+    args:
+      - -B
+      - -Dtest=UpdateActivityScheduleUseCaseTest,DeleteActivityScheduleUseCaseTest,ActivityScheduleResourceUnitTest
+      - test

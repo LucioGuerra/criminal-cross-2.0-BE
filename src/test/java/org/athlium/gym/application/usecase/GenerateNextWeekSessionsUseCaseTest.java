@@ -1,5 +1,6 @@
 package org.athlium.gym.application.usecase;
 
+import org.athlium.gym.application.service.ScheduleTimezoneResolver;
 import org.athlium.gym.application.usecase.template.OneTimeSessionTemplateBuilder;
 import org.athlium.gym.application.usecase.template.SessionTemplateBuilder;
 import org.athlium.gym.application.usecase.template.SessionTemplateDirector;
@@ -22,6 +23,7 @@ import java.time.Instant;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +59,7 @@ class GenerateNextWeekSessionsUseCaseTest {
         generateSessionForScheduleUseCase.resolveSessionConfigurationUseCase = resolveConfigUseCase;
         generateSessionForScheduleUseCase.sessionTemplateDirector = sessionTemplateDirector;
         generateSessionForScheduleUseCase.activityScheduleRepository = scheduleRepository;
+        generateSessionForScheduleUseCase.scheduleTimezoneResolver = new StubScheduleTimezoneResolver();
 
         persistGeneratedSessionUseCase.sessionInstanceRepository = sessionRepository;
 
@@ -264,6 +267,28 @@ class GenerateNextWeekSessionsUseCaseTest {
     }
 
     @Test
+    void shouldGenerateInstantUsingConfiguredTimezone() {
+        ActivitySchedule schedule = new ActivitySchedule();
+        schedule.setOrganizationId(1L);
+        schedule.setHeadquartersId(10L);
+        schedule.setActivityId(901L);
+        schedule.setWeekDays(List.of(WeekDay.MONDAY));
+        schedule.setStartTime(LocalTime.of(8, 0));
+        schedule.setDurationMinutes(60);
+        schedule.setActive(true);
+        schedule.setSchedulerType(SchedulerType.WEEKLY_RANGE);
+        schedule.setActiveFrom(LocalDate.now().minusDays(1));
+        schedule.setActiveUntil(LocalDate.now().plusMonths(1));
+        scheduleRepository.schedules.add(schedule);
+
+        useCase.execute();
+
+        Instant startsAt = sessionRepository.saved.get(0).getStartsAt();
+        int generatedHourInBuenosAires = startsAt.atZone(ZoneId.of("America/Argentina/Buenos_Aires")).getHour();
+        assertEquals(8, generatedHourInBuenosAires);
+    }
+
+    @Test
     void shouldDeactivateExpiredWeeklyRangeAndSkipProcessing() {
         ActivitySchedule expired = new ActivitySchedule();
         expired.setOrganizationId(1L);
@@ -379,6 +404,13 @@ class GenerateNextWeekSessionsUseCaseTest {
             config.setCancellationMinHoursBeforeStart(2);
             config.setCancellationAllowLateCancel(false);
             return config;
+        }
+    }
+
+    private static class StubScheduleTimezoneResolver extends ScheduleTimezoneResolver {
+        @Override
+        public ZoneId resolveForHeadquarters(Long headquartersId) {
+            return ZoneId.of("America/Argentina/Buenos_Aires");
         }
     }
 }
